@@ -30,20 +30,136 @@
         .clear-history:hover {
             background-color: #cc0000;
         }
+        /* 新增样式 */
+        .tab-container {
+            margin: 20px 0;
+            border-bottom: 1px solid #ccc;
+        }
+        .tab {
+            display: inline-block;
+            padding: 10px 15px;
+            cursor: pointer;
+            background-color: #f5f5f5;
+            border: 1px solid #ccc;
+            border-bottom: none;
+            margin-right: 5px;
+            border-radius: 4px 4px 0 0;
+        }
+        .tab.active {
+            background-color: #4CAF50;
+            color: white;
+        }
+        .tab-content {
+            display: none;
+            padding: 15px;
+            border: 1px solid #ccc;
+            border-top: none;
+            margin-bottom: 20px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="number"] {
+            width: 100%;
+            padding: 8px;
+            box-sizing: border-box;
+        }
+        /* 新增帧数据卡片样式 */
+        .frame-data-card {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            padding: 10px;
+            margin: 10px 0;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .frame-data-title {
+            font-weight: bold;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 5px;
+            margin-bottom: 10px;
+        }
+        .auto-update {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            padding: 5px 10px;
+            margin-left: 10px;
+            cursor: pointer;
+        }
+        .auto-update.disabled {
+            background-color: #ccc;
+        }
+        .frame-value {
+            font-family: monospace;
+            margin: 5px 0;
+        }
+        .timestamp {
+            color: #666;
+            font-size: 0.9em;
+            font-style: italic;
+        }
     </style>
 </head>
 <body>
-    <h1>Serial Communication Interface</h1>
+    <h1>串口通信接口</h1>
     
-    <div>
-        <input type="text" id="dataInput" placeholder="Enter data to send">
-        <button onclick="sendData()">Send</button>
+    <div class="tab-container">
+        <div class="tab active" onclick="openTab(event, 'textMode')">文本模式</div>
+        <div class="tab" onclick="openTab(event, 'frameMode')">帧模式</div>
     </div>
     
-    <h2>Response:</h2>
+    <div id="textMode" class="tab-content active">
+        <div>
+            <input type="text" id="dataInput" placeholder="输入要发送的数据">
+            <button onclick="sendData()">发送</button>
+        </div>
+    </div>
+    
+    <div id="frameMode" class="tab-content">
+        <div class="form-group">
+            <label for="yawInput">Yaw 值:</label>
+            <input type="number" id="yawInput" step="0.01" value="0.0">
+        </div>
+        
+        <div class="form-group">
+            <label for="pitchInput">Pitch 值:</label>
+            <input type="number" id="pitchInput" step="0.01" value="0.0">
+        </div>
+        
+        <div class="form-group">
+            <input type="checkbox" id="findBoolInput">
+            <label for="findBoolInput" style="display: inline;">是否追踪</label>
+        </div>
+        
+        <div>
+            <button onclick="sendFrame()">发送帧数据</button>
+            <button onclick="readFrame()">读取帧数据</button>
+            <button id="autoUpdateBtn" onclick="toggleAutoUpdate()" class="auto-update">自动更新: 开启</button>
+        </div>
+        
+        <div id="latestFrameData" class="frame-data-card" style="display: none;">
+            <div class="frame-data-title">最新接收的帧数据</div>
+            <div class="frame-value">类型: <span id="frameType"></span></div>
+            <div class="frame-value">Yaw: <span id="frameYaw"></span></div>
+            <div class="frame-value">Pitch: <span id="framePitch"></span></div>
+            <div class="timestamp" id="frameTimestamp"></div>
+        </div>
+    </div>
+    
+    <h2>响应:</h2>
     <div id="response"></div>
     
-    <h2>History:</h2>
+    <h2>历史记录:</h2>
     <button class="clear-history" onclick="clearHistory()">清空历史记录</button>
     <div id="history"></div>
     <div class="pagination" id="pagination"></div>
@@ -64,6 +180,26 @@
             hour12: false
         });
 
+        // 切换标签页
+        function openTab(evt, tabName) {
+            // 隐藏所有标签内容
+            const tabContents = document.getElementsByClassName("tab-content");
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove("active");
+            }
+            
+            // 移除所有标签的active类
+            const tabs = document.getElementsByClassName("tab");
+            for (let i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove("active");
+            }
+            
+            // 显示当前标签并添加active类
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+
+        // 发送文本数据
         function sendData() {
             const data = document.getElementById('dataInput').value;
             
@@ -78,6 +214,43 @@
             .then(data => {
                 document.getElementById('response').innerText = data.response;
                 updateHistory(1);  // 发送后返回第一页
+            });
+        }
+        
+        // 发送帧数据
+        function sendFrame() {
+            const yaw = parseFloat(document.getElementById('yawInput').value);
+            const pitch = parseFloat(document.getElementById('pitchInput').value);
+            const find_bool = document.getElementById('findBoolInput').checked;
+            
+            fetch('/send_frame', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                    yaw: yaw,
+                    pitch: pitch,
+                    find_bool: find_bool
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('response').innerText = data.response;
+                updateHistory(1);  // 发送后返回第一页
+            });
+        }
+        
+        // 读取帧数据
+        function readFrame() {
+            fetch('/read_frame')
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    document.getElementById('response').innerText = JSON.stringify(data.frame_data, null, 2);
+                } else {
+                    document.getElementById('response').innerText = data.message;
+                }
             });
         }
         
@@ -169,6 +342,94 @@
         
         // 页面加载时获取第一页历史记录
         updateHistory(1);
+
+        // 帧数据自动更新相关
+        let eventSource = null;
+        let autoUpdateEnabled = true;
+        
+        function toggleAutoUpdate() {
+            autoUpdateEnabled = !autoUpdateEnabled;
+            const btn = document.getElementById('autoUpdateBtn');
+            
+            if (autoUpdateEnabled) {
+                btn.innerText = "自动更新: 开启";
+                btn.classList.remove('disabled');
+                startEventSource();
+            } else {
+                btn.innerText = "自动更新: 关闭";
+                btn.classList.add('disabled');
+                stopEventSource();
+            }
+        }
+        
+        function startEventSource() {
+            if (eventSource) {
+                stopEventSource();
+            }
+            
+            eventSource = new EventSource('/frame_events');
+            
+            eventSource.onmessage = function(event) {
+                const data = JSON.parse(event.data);
+                
+                // 忽略心跳包
+                if (data.type === 'heartbeat') {
+                    return;
+                }
+                
+                // 如果有错误
+                if (data.error) {
+                    console.error('SSE错误:', data.error);
+                    return;
+                }
+                
+                // 更新界面显示最新帧数据
+                updateLatestFrameDisplay(data);
+                
+                // 刷新历史记录（仅显示第一页）
+                updateHistory(1);
+            };
+            
+            eventSource.onerror = function(error) {
+                console.error('SSE连接错误:', error);
+                // 如果连接断开，尝试重新连接
+                setTimeout(() => {
+                    if (autoUpdateEnabled) {
+                        stopEventSource();
+                        startEventSource();
+                    }
+                }, 5000);
+            };
+        }
+        
+        function stopEventSource() {
+            if (eventSource) {
+                eventSource.close();
+                eventSource = null;
+            }
+        }
+        
+        function updateLatestFrameDisplay(frameData) {
+            const frameCard = document.getElementById('latestFrameData');
+            frameCard.style.display = 'block';
+            
+            document.getElementById('frameType').innerText = '0x' + frameData.type.toString(16).toUpperCase();
+            document.getElementById('frameYaw').innerText = frameData.yaw.toFixed(4);
+            document.getElementById('framePitch').innerText = frameData.pitch.toFixed(4);
+            document.getElementById('frameTimestamp').innerText = '接收时间: ' + new Date().toLocaleString();
+        }
+        
+        // 页面加载时启动事件源
+        window.addEventListener('load', function() {
+            if (autoUpdateEnabled) {
+                startEventSource();
+            }
+            
+            // 页面关闭或刷新时关闭事件源
+            window.addEventListener('beforeunload', function() {
+                stopEventSource();
+            });
+        });
     </script>
 </body>
 </html>
