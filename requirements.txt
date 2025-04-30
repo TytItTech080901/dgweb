@@ -1,0 +1,4 @@
+flask
+pyserial
+mysql-connector-python
+pytz

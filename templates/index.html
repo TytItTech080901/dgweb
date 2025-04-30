@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Serial Communication</title>
+    <style>
+        .pagination {
+            margin: 20px 0;
+        }
+        .pagination button {
+            margin: 0 5px;
+            padding: 5px 10px;
+        }
+        .history-record {
+            border-bottom: 1px solid #ccc;
+            padding: 10px;
+            margin: 5px 0;
+        }
+        .record-number {
+            font-weight: bold;
+            color: #666;
+        }
+        .clear-history {
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        .clear-history:hover {
+            background-color: #cc0000;
+        }
+    </style>
+</head>
+<body>
+    <h1>Serial Communication Interface</h1>
+    
+    <div>
+        <input type="text" id="dataInput" placeholder="Enter data to send">
+        <button onclick="sendData()">Send</button>
+    </div>
+    
+    <h2>Response:</h2>
+    <div id="response"></div>
+    
+    <h2>History:</h2>
+    <button class="clear-history" onclick="clearHistory()">清空历史记录</button>
+    <div id="history"></div>
+    <div class="pagination" id="pagination"></div>
+    
+    <script>
+        let currentPage = 1;
+        let totalPages = 1;
+        const perPage = 10;
+        
+        // 创建日期格式化器
+        const dateFormatter = new Intl.DateTimeFormat(undefined, {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+
+        function sendData() {
+            const data = document.getElementById('dataInput').value;
+            
+            fetch('/send_data', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({data: data})
+            })
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('response').innerText = data.response;
+                updateHistory(1);  // 发送后返回第一页
+            });
+        }
+        
+        function clearHistory() {
+            if (confirm('确定要清空所有历史记录吗？此操作不可恢复。')) {
+                fetch('/clear_history', {
+                    method: 'POST'
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('历史记录已清空');
+                        updateHistory(1);  // 刷新页面显示
+                    } else {
+                        alert('清空历史记录失败: ' + data.message);
+                    }
+                });
+            }
+        }
+        
+        function updateHistory(page) {
+            fetch(`/get_history?page=${page}&per_page=${perPage}`)
+            .then(response => response.json())
+            .then(data => {
+                const historyDiv = document.getElementById('history');
+                historyDiv.innerHTML = '';
+                
+                if (data.status === 'error') {
+                    historyDiv.innerHTML = `<div class="error">${data.message}</div>`;
+                    return;
+                }
+
+                if (!data.records || data.records.length === 0) {
+                    historyDiv.innerHTML = '<div>暂无历史记录</div>';
+                    return;
+                }
+                
+                data.records.forEach(record => {
+                    // Convert MySQL timestamp to local time
+                    const timestamp = new Date(record.timestamp);
+                    const formattedDate = dateFormatter.format(timestamp);
+                    
+                    historyDiv.innerHTML += `
+                        <div class="history-record">
+                            <span class="record-number">#${record.record_number}</span>
+                            <br>
+                            发送: ${record.sent_data || '无数据'}<br>
+                            接收: ${record.received_data || '无响应'}<br>
+                            状态: ${record.status || '未知'}<br>
+                            消息: ${record.message || '无消息'}<br>
+                            时间: ${formattedDate}
+                        </div>
+                    `;
+                });
+                
+                currentPage = data.current_page;
+                totalPages = data.total_pages;
+                updatePagination();
+            })
+            .catch(error => {
+                console.error('获取历史记录失败:', error);
+                document.getElementById('history').innerHTML = '<div class="error">获取历史记录失败</div>';
+            });
+        }
+        
+        function updatePagination() {
+            const paginationDiv = document.getElementById('pagination');
+            paginationDiv.innerHTML = '';
+            
+            // 首页按钮
+            if (currentPage > 1) {
+                paginationDiv.innerHTML += `
+                    <button onclick="updateHistory(1)">首页</button>
+                    <button onclick="updateHistory(${currentPage - 1})">上一页</button>
+                `;
+            }
+            
+            // 页码显示
+            paginationDiv.innerHTML += `<span>第 ${currentPage}/${totalPages} 页</span>`;
+            
+            // 下一页和末页按钮
+            if (currentPage < totalPages) {
+                paginationDiv.innerHTML += `
+                    <button onclick="updateHistory(${currentPage + 1})">下一页</button>
+                    <button onclick="updateHistory(${totalPages})">末页</button>
+                `;
+            }
+        }
+        
+        // 页面加载时获取第一页历史记录
+        updateHistory(1);
+    </script>
+</body>
+</html>
