@@ -57,6 +57,20 @@ posture_params = {
     'brow_down_threshold': BROW_DOWN_THRESHOLD
 }
 
+# 分辨率和性能相关参数
+DEFAULT_PROCESS_WIDTH = PROCESS_WIDTH
+DEFAULT_PROCESS_HEIGHT = PROCESS_HEIGHT
+RESOLUTION_LEVELS = [
+    (640, 480),   # 高分辨率
+    (480, 360),   # 中分辨率
+    (320, 240),   # 低分辨率
+    (240, 180)    # 极低分辨率
+]
+TARGET_FPS = 25.0  # 目标帧率
+FPS_THRESHOLD_LOW = 15.0  # 低帧率阈值，低于此值降低分辨率
+FPS_THRESHOLD_HIGH = 28.0  # 高帧率阈值，高于此值可以尝试提高分辨率
+RESOLUTION_ADJUST_INTERVAL = 5.0  # 分辨率调整间隔（秒）
+
 # 帧率计算类
 class FPSCounter:
     """计算并跟踪帧率"""
@@ -106,6 +120,17 @@ class WebPostureMonitor:
         self.thread = None
         self.video_stream_handler = video_stream_handler
         
+        # 初始化处理分辨率
+        self.process_width = DEFAULT_PROCESS_WIDTH
+        self.process_height = DEFAULT_PROCESS_HEIGHT
+        self.current_resolution_index = 1  # 从中等分辨率开始
+        self.last_resolution_adjust_time = 0
+        self.adaptive_resolution = True  # 是否启用自适应分辨率
+        
+        # 初始化摄像头参数
+        self.camera_fps = 30  # 尝试设置摄像头的FPS
+        self.camera_buffer_size = 1  # 摄像头缓冲区大小，小值减少延迟
+        
         # 初始化帧率计数器
         self.capture_fps = FPSCounter()  # 摄像头捕获帧率
         self.pose_process_fps = FPSCounter()  # 姿势处理帧率
@@ -132,42 +157,34 @@ class WebPostureMonitor:
     
     def start(self):
         """启动姿势分析线程"""
-        if self.is_running or not POSTURE_MODULE_AVAILABLE:
-            return False
-        
-        try:
-            # 初始化摄像头
-            self.cap = self._init_camera()
-            if not self.cap:
-                print("无法初始化摄像头")
-                return False
-            
-            # 初始化姿势检测
-            self.pose = mp_pose.Pose(
-                static_image_mode=False,
-                model_complexity=1,
-                min_detection_confidence=0.7,
-                min_tracking_confidence=0.5
-            )
-            
-            # 初始化情绪分析器，使用全局参数设置
-            self.emotion_analyzer = EmotionAnalyzer()
-            self.emotion_analyzer.emotion_smoothing_window = posture_params['emotion_smoothing_window']
-            
-            # 计数器和状态变量
-            self.occlusion_counter = 0
-            self.clear_counter = 0
-            self.last_valid_angle = None
-            
-            # 启动处理线程
-            self.is_running = True
-            self.thread = threading.Thread(target=self._process_frames, daemon=True)
-            self.thread.start()
-            
+        if self.is_running:
+            print("分析系统已经在运行中")
             return True
-        except Exception as e:
-            print(f"启动姿势分析失败: {str(e)}")
-            self.stop()
+            
+        self.is_running = True
+        self._init_camera()
+        
+        if not self.cap or not self.cap.isOpened():
+            self.is_running = False
+            print("无法初始化摄像头")
+            return False
+            
+        if POSTURE_MODULE_AVAILABLE:
+            try:
+                self.pose = PostureAnalysis()
+                self.emotion_analyzer = EmotionAnalyzer()
+                self.thread = threading.Thread(target=self._process_frames)
+                self.thread.daemon = True
+                self.thread.start()
+                print("姿势分析系统启动成功")
+                return True
+            except Exception as e:
+                self.is_running = False
+                print(f"启动姿势分析系统失败: {e}")
+                return False
+        else:
+            self.is_running = False
+            print("姿势分析模块不可用")
             return False
     
     def stop(self):
@@ -177,122 +194,71 @@ class WebPostureMonitor:
         if self.thread:
             try:
                 self.thread.join(timeout=2.0)
-            except:
+            except Exception:
                 pass
             self.thread = None
-        
+            
         if self.cap:
             self.cap.release()
             self.cap = None
-        
-        if self.pose:
-            self.pose.close()
-            self.pose = None
-        
-        if self.emotion_analyzer and hasattr(self.emotion_analyzer, 'face_mesh'):
-            self.emotion_analyzer.face_mesh.close()
-        
-        self.emotion_analyzer = None
+            
+        print("姿势分析系统已停止")
         return True
     
     def _init_camera(self):
         """初始化摄像头设备"""
-        print("开始初始化摄像头...")
-        
-        # 首先尝试使用指定的摄像头 (Bus 008 Device 006: ID 0c45:6366)
-        # 在Linux上，摄像头通常映射为/dev/videoX设备
-        
-        # 1. 检查可用的视频设备
-        import glob
-        import subprocess
-        import re
-        
-        available_devices = glob.glob('/dev/video*')
-        print(f"系统中找到以下视频设备: {available_devices}")
-        
-        # 2. 获取详细设备信息
         try:
-            result = subprocess.run(['v4l2-ctl', '--list-devices'], capture_output=True, text=True)
-            print(f"摄像头设备列表:\n{result.stdout}")
-        except:
-            print("无法使用v4l2-ctl列出设备，将尝试其他方法")
-        
-        # 3. 尝试不同的方法来打开摄像头
-        # 方法1: 直接尝试特定设备
-        specific_devices = [6, 0, 2, 4, 8] # 首先尝试设备6(Bus 008中的设备), 然后是其他常见设备
-        for device_num in specific_devices:
-            try:
-                device_path = f"/dev/video{device_num}"
-                print(f"尝试打开摄像头: {device_path}")
-                cap = cv2.VideoCapture(device_num)
-                if cap.isOpened():
-                    # 设置参数
-                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
-                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
-                    cap.set(cv2.CAP_PROP_FPS, 30)
-                    
-                    # 读取一帧测试是否正常工作
-                    ret, test_frame = cap.read()
-                    if ret and test_frame is not None and test_frame.size > 0:
-                        print(f"摄像头初始化成功: {device_path}")
-                        return cap
-                    else:
-                        print(f"摄像头能打开但无法读取帧: {device_path}")
-                        cap.release()
-                else:
-                    print(f"无法打开摄像头: {device_path}")
-            except Exception as e:
-                print(f"尝试打开 {device_num} 时出错: {str(e)}")
-        
-        # 方法2: 尝试通过GStreamer打开设备
-        try:
-            for device_num in specific_devices:
-                device_path = f"/dev/video{device_num}"
-                print(f"尝试使用GStreamer打开摄像头: {device_path}")
-                gst_str = f"v4l2src device={device_path} ! video/x-raw,width={CAMERA_WIDTH},height={CAMERA_HEIGHT} ! videoconvert ! appsink"
-                cap = cv2.VideoCapture(gst_str, cv2.CAP_GSTREAMER)
-                if cap.isOpened():
-                    ret, test_frame = cap.read()
-                    if ret and test_frame is not None and test_frame.size > 0:
-                        print(f"GStreamer摄像头初始化成功: {device_path}")
-                        return cap
-                    else:
-                        print(f"GStreamer摄像头能打开但无法读取帧: {device_path}")
-                        cap.release()
-                else:
-                    print(f"无法通过GStreamer打开摄像头: {device_path}")
-        except Exception as e:
-            print(f"尝试使用GStreamer时出错: {str(e)}")
-        
-        # 方法3: 最后尝试常规的OpenCV循环
-        print("尝试查找所有可能的摄像头设备...")
-        for i in range(10):  # 尝试前10个摄像头设备
-            try:
-                print(f"尝试打开摄像头索引: {i}")
-                cap = cv2.VideoCapture(i)
-                if cap.isOpened():
-                    cap.set(cv2.CAP_PROP_FRAME_WIDTH, CAMERA_WIDTH)
-                    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, CAMERA_HEIGHT)
-                    cap.set(cv2.CAP_PROP_FPS, 30)
-                    
-                    # 测试是否能读取帧
-                    ret, test_frame = cap.read()
-                    if ret and test_frame is not None and test_frame.size > 0:
-                        print(f"成功找到并初始化摄像头: index={i}")
-                        return cap
-                    else:
-                        print(f"摄像头 {i} 能打开但无法读取帧")
-                        cap.release()
-                else:
-                    print(f"无法打开摄像头索引: {i}")
-            except Exception as e:
-                print(f"尝试摄像头 {i} 时出错: {str(e)}")
+            self.cap = cv2.VideoCapture(0)
             
-            if cap.isOpened():
-                cap.release()
+            # 设置摄像头分辨率为高分辨率
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+            
+            # 设置摄像头FPS
+            self.cap.set(cv2.CAP_PROP_FPS, self.camera_fps)
+            
+            # 设置缓冲区大小
+            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, self.camera_buffer_size)
+            
+            # 优化摄像头配置
+            self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))  # 使用MJPG解码器提高效率
+            
+            print(f"摄像头初始化成功，设置为 {1280}x{720}@{self.camera_fps}fps")
+            
+            # 重置帧率计数器
+            self.capture_fps = FPSCounter()
+            self.pose_process_fps = FPSCounter()
+            self.emotion_process_fps = FPSCounter()
+            
+            return True
+        except Exception as e:
+            print(f"初始化摄像头失败: {e}")
+            return False
+    
+    def _adjust_processing_resolution(self):
+        """根据当前帧率动态调整处理分辨率"""
+        current_time = time.time()
         
-        print("警告: 未检测到可用摄像头设备")
-        return None
+        # 检查是否到达调整间隔
+        if not self.adaptive_resolution或(current_time - self.last_resolution_adjust_time) < RESOLUTION_ADJUST_INTERVAL:
+            return
+            
+        capture_fps = self.capture_fps.get_fps()
+        process_fps = min(self.pose_process_fps.get_fps(), self.emotion_process_fps.get_fps())
+        
+        # 当帧率过低时降低分辨率
+        if process_fps < FPS_THRESHOLD_LOW and self.current_resolution_index < len(RESOLUTION_LEVELS) - 1:
+            self.current_resolution_index += 1
+            self.process_width, self.process_height = RESOLUTION_LEVELS[self.current_resolution_index]
+            print(f"帧率过低 ({process_fps:.1f} FPS)，降低处理分辨率至 {self.process_width}x{self.process_height}")
+            self.last_resolution_adjust_time = current_time
+        
+        # 当帧率足够高时提高分辨率
+        elif process_fps > FPS_THRESHOLD_HIGH and self.current_resolution_index > 0:
+            self.current_resolution_index -= 1
+            self.process_width, self.process_height = RESOLUTION_LEVELS[self.current_resolution_index]
+            print(f"帧率足够高 ({process_fps:.1f} FPS)，提高处理分辨率至 {self.process_width}x{self.process_height}")
+            self.last_resolution_adjust_time = current_time
     
     def _process_frames(self):
         """处理视频帧的主循环"""
@@ -300,20 +266,36 @@ class WebPostureMonitor:
             return
         
         last_fps_update_time = time.time()
+        consecutive_read_failures = 0
         
         while self.is_running and self.cap and self.cap.isOpened():
             try:
-                ret, frame = self.cap.read()
+                # 读取帧，使用grabbing和retrieving分离方式提高效率
+                grabbed = self.cap.grab()
+                if not grabbed:
+                    consecutive_read_failures += 1
+                    if consecutive_read_failures > 5:
+                        print("连续多次无法获取摄像头帧，尝试重新初始化摄像头...")
+                        self._init_camera()
+                        consecutive_read_failures = 0
+                    time.sleep(0.01)
+                    continue
+                
+                consecutive_read_failures = 0
+                ret, frame = self.cap.retrieve()
                 if not ret:
                     print("无法读取摄像头帧")
-                    time.sleep(0.5)
+                    time.sleep(0.01)
                     continue
                 
                 # 更新捕获帧率
                 self.capture_fps.update()
                 
+                # 每隔一段时间检查并调整处理分辨率
+                self._adjust_processing_resolution()
+                
                 # 调整帧尺寸进行处理
-                processed_frame = cv2.resize(frame, (PROCESS_WIDTH, PROCESS_HEIGHT))
+                processed_frame = cv2.resize(frame, (self.process_width, self.process_height))
                 pose_frame = processed_frame.copy()
                 emotion_frame = processed_frame.copy()
                 
@@ -327,8 +309,9 @@ class WebPostureMonitor:
                 emotion_results = self._process_emotion(emotion_frame)
                 self.emotion_process_fps.update()  # 更新情绪处理帧率
                 
-                # 将处理后的帧放入队列供Web端点使用
+                # 调整输出视频尺寸，确保与当前处理分辨率匹配
                 if self.video_stream_handler:
+                    # 将处理后的帧放入队列供Web端点使用
                     self.video_stream_handler.add_pose_frame(pose_results['display_frame'])
                     self.video_stream_handler.add_emotion_frame(emotion_results['display_frame'])
                 
@@ -355,10 +338,17 @@ class WebPostureMonitor:
                     }
                     last_fps_update_time = current_time
                 
-                time.sleep(0.03)  # 限制处理速率，约30fps
+                # 根据实际帧率动态调整延迟时间
+                current_fps = min(self.pose_process_fps.get_fps(), self.emotion_process_fps.get_fps())
+                if current_fps > TARGET_FPS:
+                    # 如果帧率过高，增加一点延迟以减少CPU使用
+                    time.sleep(0.001)
+                else:
+                    # 帧率正常或过低，尽可能快地处理
+                    time.sleep(0.0001)
             except Exception as e:
                 print(f"处理帧异常: {str(e)}")
-                time.sleep(0.5)
+                time.sleep(0.1)
     
     def _process_pose(self, frame):
         """处理姿势检测"""
@@ -542,3 +532,19 @@ class WebPostureMonitor:
     def get_fps_info(self):
         """获取帧率信息"""
         return self.fps_info
+    
+    def set_resolution_mode(self, adaptive=True, resolution_index=None):
+        """设置分辨率模式
+        
+        Args:
+            adaptive: 是否启用自适应分辨率调整
+            resolution_index: 如果不使用自适应模式，设置固定分辨率索引
+        """
+        self.adaptive_resolution = adaptive
+        
+        if resolution_index is not None and 0 <= resolution_index < len(RESOLUTION_LEVELS):
+            self.current_resolution_index = resolution_index
+            self.process_width, self.process_height = RESOLUTION_LEVELS[self.current_resolution_index]
+            print(f"手动设置处理分辨率为 {self.process_width}x{self.process_height}")
+        
+        return True

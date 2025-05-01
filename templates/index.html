@@ -282,6 +282,88 @@
                 </div>
             </div>
 
+            <!-- 在系统状态区域中添加帧率控制区域 -->
+            <div class="card mb-4">
+                <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
+                    <span>帧率与分辨率控制</span>
+                    <button class="btn btn-sm btn-light" data-bs-toggle="collapse" data-bs-target="#fpsControlContent">
+                        <i class="fas fa-chevron-down"></i>
+                    </button>
+                </div>
+                <div id="fpsControlContent" class="collapse show">
+                    <div class="card-body">
+                        <div class="fps-display mb-3">
+                            <div class="row">
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">摄像头帧率</h5>
+                                            <div class="fps-value"><span id="captureFPS">0.0</span> FPS</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">处理帧率</h5>
+                                            <div class="fps-value"><span id="processFPS">0.0</span> FPS</div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-4">
+                                    <div class="card bg-light">
+                                        <div class="card-body text-center">
+                                            <h5 class="card-title">视频流帧率</h5>
+                                            <div class="fps-value"><span id="streamFPS">0.0</span> FPS</div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="resolution-control">
+                            <div class="row mb-3">
+                                <div class="col-md-6">
+                                    <div class="form-check form-switch">
+                                        <input class="form-check-input" type="checkbox" id="adaptiveResolution" checked>
+                                        <label class="form-check-label" for="adaptiveResolution">启用自适应分辨率</label>
+                                    </div>
+                                    <small class="text-muted">自动根据帧率调整处理和流分辨率</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <select id="resolutionSelector" class="form-select" disabled>
+                                        <option value="0">高分辨率 (640x480/800x600)</option>
+                                        <option value="1" selected>中分辨率 (480x360/640x480)</option>
+                                        <option value="2">低分辨率 (320x240/480x360)</option>
+                                        <option value="3">极低分辨率 (240x180/320x240)</option>
+                                    </select>
+                                </div>
+                            </div>
+                            
+                            <div class="row">
+                                <div class="col-md-6">
+                                    <label for="targetSelector" class="form-label">应用目标</label>
+                                    <select id="targetSelector" class="form-select">
+                                        <option value="both" selected>处理和流传输</option>
+                                        <option value="processing">仅处理</option>
+                                        <option value="streaming">仅流传输</option>
+                                    </select>
+                                </div>
+                                <div class="col-md-6">
+                                    <label for="qualitySlider" class="form-label">JPEG质量 (<span id="qualityValue">90</span>%)</label>
+                                    <input type="range" class="form-range" id="qualitySlider" min="50" max="100" value="90">
+                                    <small class="text-muted">降低质量可提高帧率，但会降低图像清晰度</small>
+                                </div>
+                            </div>
+                            
+                            <div class="d-grid gap-2 mt-3">
+                                <button id="applyResolutionSettings" class="btn btn-primary">应用设置</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
             <!-- 帧率显示区域 -->
             <div class="fps-container">
                 <div class="fps-box">
