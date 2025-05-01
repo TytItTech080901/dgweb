@@ -6,6 +6,8 @@ import sys
 import cv2
 import time
 import threading
+import queue
+from collections import deque
 from config import DB_CONFIG
 
 # 尝试导入posture_analysis模块
@@ -55,6 +57,45 @@ posture_params = {
     'brow_down_threshold': BROW_DOWN_THRESHOLD
 }
 
+# 帧率计算类
+class FPSCounter:
+    """计算并跟踪帧率"""
+    def __init__(self, window_size=30):
+        """初始化帧率计数器
+        
+        Args:
+            window_size: 计算平均帧率的时间窗口大小（帧数）
+        """
+        self.window_size = window_size
+        self.timestamps = deque(maxlen=window_size)
+        self.last_fps = 0
+        self.total_frames = 0
+    
+    def update(self):
+        """记录一帧的时间戳并更新帧率"""
+        self.timestamps.append(time.time())
+        self.total_frames += 1
+        
+        # 至少需要2个时间戳才能计算帧率
+        if len(self.timestamps) >= 2:
+            # 计算时间差（秒）
+            time_diff = self.timestamps[-1] - self.timestamps[0]
+            if time_diff > 0:
+                # 计算当前窗口内的平均帧率
+                self.last_fps = (len(self.timestamps) - 1) / time_diff
+            else:
+                self.last_fps = 0
+        
+        return self.last_fps
+    
+    def get_fps(self):
+        """获取当前帧率"""
+        return self.last_fps
+    
+    def get_total_frames(self):
+        """获取总帧数"""
+        return self.total_frames
+
 class WebPostureMonitor:
     """适配Web服务的姿势监测器"""
     def __init__(self, video_stream_handler=None):
@@ -64,6 +105,11 @@ class WebPostureMonitor:
         self.is_running = False
         self.thread = None
         self.video_stream_handler = video_stream_handler
+        
+        # 初始化帧率计数器
+        self.capture_fps = FPSCounter()  # 摄像头捕获帧率
+        self.pose_process_fps = FPSCounter()  # 姿势处理帧率
+        self.emotion_process_fps = FPSCounter()  # 情绪处理帧率
         
         # 存储最新分析结果
         self.pose_result = {
@@ -75,6 +121,13 @@ class WebPostureMonitor:
         self.emotion_result = {
             'emotion': 'NEUTRAL',
             'emotion_code': 0
+        }
+        
+        # 帧率信息
+        self.fps_info = {
+            'capture_fps': 0,
+            'pose_process_fps': 0,
+            'emotion_process_fps': 0
         }
     
     def start(self):
@@ -246,6 +299,8 @@ class WebPostureMonitor:
         if not POSTURE_MODULE_AVAILABLE:
             return
         
+        last_fps_update_time = time.time()
+        
         while self.is_running and self.cap and self.cap.isOpened():
             try:
                 ret, frame = self.cap.read()
@@ -254,16 +309,23 @@ class WebPostureMonitor:
                     time.sleep(0.5)
                     continue
                 
+                # 更新捕获帧率
+                self.capture_fps.update()
+                
                 # 调整帧尺寸进行处理
                 processed_frame = cv2.resize(frame, (PROCESS_WIDTH, PROCESS_HEIGHT))
                 pose_frame = processed_frame.copy()
                 emotion_frame = processed_frame.copy()
                 
                 # 处理姿势
+                pose_start_time = time.time()
                 pose_results = self._process_pose(pose_frame)
+                self.pose_process_fps.update()  # 更新姿势处理帧率
                 
                 # 处理情绪
+                emotion_start_time = time.time()
                 emotion_results = self._process_emotion(emotion_frame)
+                self.emotion_process_fps.update()  # 更新情绪处理帧率
                 
                 # 将处理后的帧放入队列供Web端点使用
                 if self.video_stream_handler:
@@ -282,6 +344,16 @@ class WebPostureMonitor:
                     'emotion': emotion_results['emotion'].name if emotion_results['emotion'] else 'UNKNOWN',
                     'emotion_code': emotion_results['emotion'].value if emotion_results['emotion'] else -1
                 }
+                
+                # 每秒更新一次帧率信息
+                current_time = time.time()
+                if current_time - last_fps_update_time >= 1.0:
+                    self.fps_info = {
+                        'capture_fps': round(self.capture_fps.get_fps(), 1),
+                        'pose_process_fps': round(self.pose_process_fps.get_fps(), 1),
+                        'emotion_process_fps': round(self.emotion_process_fps.get_fps(), 1)
+                    }
+                    last_fps_update_time = current_time
                 
                 time.sleep(0.03)  # 限制处理速率，约30fps
             except Exception as e:
@@ -466,3 +538,7 @@ class WebPostureMonitor:
         except Exception as e:
             print(f"更新情绪参数失败: {str(e)}")
             return False
+    
+    def get_fps_info(self):
+        """获取帧率信息"""
+        return self.fps_info

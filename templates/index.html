@@ -226,6 +226,39 @@
                 width: 100%;
             }
         }
+        /* 帧率显示样式 */
+        .fps-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .fps-box {
+            width: 31%;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            background: #f0f0f0;
+            text-align: center;
+        }
+        .fps-title {
+            font-weight: bold;
+            font-size: 16px;
+            margin-bottom: 5px;
+            color: #333;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .fps-value {
+            font-size: 22px;
+            font-weight: bold;
+            color: #2196F3;
+        }
+        .fps-label {
+            font-size: 12px;
+            color: #666;
+            margin-top: 3px;
+        }
     </style>
 </head>
 <body>
@@ -246,6 +279,25 @@
                 </div>
                 <div id="analysisStatus">
                     系统状态: <span id="systemStatusText">未初始化</span>
+                </div>
+            </div>
+
+            <!-- 帧率显示区域 -->
+            <div class="fps-container">
+                <div class="fps-box">
+                    <div class="fps-title">图像接收帧率</div>
+                    <div id="captureFPS" class="fps-value">0.0</div>
+                    <div class="fps-label">FPS</div>
+                </div>
+                <div class="fps-box">
+                    <div class="fps-title">图像处理帧率</div>
+                    <div id="processFPS" class="fps-value">0.0</div>
+                    <div class="fps-label">FPS</div>
+                </div>
+                <div class="fps-box">
+                    <div class="fps-title">视频流帧率</div>
+                    <div id="streamFPS" class="fps-value">0.0</div>
+                    <div class="fps-label">FPS</div>
                 </div>
             </div>
             
@@ -392,8 +444,11 @@
             // 获取分析系统状态并更新UI
             fetchAnalysisStatus();
             
-            // 定时更新状态
-            analysisStatusInterval = setInterval(fetchAnalysisStatus, 2000);
+            // 定时更新状态和帧率
+            analysisStatusInterval = setInterval(function() {
+                fetchAnalysisStatus();
+                fetchFPSInfo();
+            }, 1000);
             
             // 获取历史记录
             updateHistory(1);
@@ -411,6 +466,37 @@
                 }
             });
         });
+        
+        // 获取帧率信息
+        function fetchFPSInfo() {
+            fetch('/get_fps_info')
+                .then(response => response.json())
+                .then(data => {
+                    updateFPSDisplay(data);
+                })
+                .catch(error => {
+                    console.error('获取帧率信息失败:', error);
+                });
+        }
+        
+        // 更新帧率显示
+        function updateFPSDisplay(data) {
+            if (data.status !== 'success') {
+                console.error('获取帧率数据失败:', data.message);
+                return;
+            }
+            
+            // 更新图像接收帧率
+            document.getElementById('captureFPS').textContent = data.capture_fps.toFixed(1);
+            
+            // 更新图像处理帧率 (平均姿势和情绪处理帧率)
+            const avgProcessFPS = (data.pose_process_fps + data.emotion_process_fps) / 2;
+            document.getElementById('processFPS').textContent = avgProcessFPS.toFixed(1);
+            
+            // 更新视频流帧率 (平均姿势和情绪视频流帧率)
+            const avgStreamFPS = (data.pose_stream_fps + data.emotion_stream_fps) / 2;
+            document.getElementById('streamFPS').textContent = avgStreamFPS.toFixed(1);
+        }
         
         // 主标签页切换
         function openTab(evt, tabName) {

@@ -5,6 +5,45 @@ import cv2
 import numpy as np
 import queue
 import time
+from collections import deque
+
+class FPSCounter:
+    """计算并跟踪帧率"""
+    def __init__(self, window_size=30):
+        """初始化帧率计数器
+        
+        Args:
+            window_size: 计算平均帧率的时间窗口大小（帧数）
+        """
+        self.window_size = window_size
+        self.timestamps = deque(maxlen=window_size)
+        self.last_fps = 0
+        self.total_frames = 0
+    
+    def update(self):
+        """记录一帧的时间戳并更新帧率"""
+        self.timestamps.append(time.time())
+        self.total_frames += 1
+        
+        # 至少需要2个时间戳才能计算帧率
+        if len(self.timestamps) >= 2:
+            # 计算时间差（秒）
+            time_diff = self.timestamps[-1] - self.timestamps[0]
+            if time_diff > 0:
+                # 计算当前窗口内的平均帧率
+                self.last_fps = (len(self.timestamps) - 1) / time_diff
+            else:
+                self.last_fps = 0
+        
+        return self.last_fps
+    
+    def get_fps(self):
+        """获取当前帧率"""
+        return self.last_fps
+    
+    def get_total_frames(self):
+        """获取总帧数"""
+        return self.total_frames
 
 class VideoStreamHandler:
     """视频流处理器类，封装视频流相关的功能"""
@@ -16,13 +55,41 @@ class VideoStreamHandler:
         # 创建视频帧队列
         self.pose_frame_queue = queue.Queue(maxsize=10)
         self.emotion_frame_queue = queue.Queue(maxsize=10)
+        
+        # 添加帧率计数器
+        self.pose_stream_fps = FPSCounter()
+        self.emotion_stream_fps = FPSCounter()
+        
+        # 存储帧率信息
+        self.fps_info = {
+            'pose_stream_fps': 0,
+            'emotion_stream_fps': 0
+        }
+        
+        # 帧率更新计时器
+        self.last_fps_update_time = time.time()
     
-    def generate_video_frames(self, frame_queue):
+    def generate_video_frames(self, frame_queue, is_pose_stream=True):
         """生成视频帧序列，用于Flask的视频流响应"""
         while True:
             try:
                 # 尝试从队列获取帧，设置超时避免永久阻塞
                 frame = frame_queue.get(timeout=1.0)
+                
+                # 更新相应的帧率计数器
+                if is_pose_stream:
+                    self.pose_stream_fps.update()
+                else:
+                    self.emotion_stream_fps.update()
+                
+                # 更新帧率信息（每秒更新一次）
+                current_time = time.time()
+                if current_time - self.last_fps_update_time >= 1.0:
+                    self.fps_info = {
+                        'pose_stream_fps': round(self.pose_stream_fps.get_fps(), 1),
+                        'emotion_stream_fps': round(self.emotion_stream_fps.get_fps(), 1)
+                    }
+                    self.last_fps_update_time = current_time
                 
                 # 编码图像为JPEG
                 ret, buffer = cv2.imencode('.jpg', frame)
@@ -80,3 +147,7 @@ class VideoStreamHandler:
             except queue.Empty:
                 pass
         self.emotion_frame_queue.put(frame)
+    
+    def get_fps_info(self):
+        """获取视频流帧率信息"""
+        return self.fps_info

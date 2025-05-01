@@ -210,7 +210,7 @@ def start_posture_analysis():
     except Exception as e:
         return jsonify({
             'status': 'error',
-            'message': f'启动姿势分析系统出错: {str(e)}'
+                'message': f'启动姿势分析系统出错: {str(e)}'
         })
 
 # 路由：停止姿势分析
@@ -276,6 +276,52 @@ def get_pose_status():
             'emotion_data': None
         })
 
+# 新增路由：获取帧率信息
+@routes_bp.route('/get_fps_info')
+def get_fps_info():
+    """获取所有帧率信息（包括捕获帧率、处理帧率和视频流帧率）"""
+    global posture_monitor, video_stream_handler
+    
+    try:
+        # 初始化返回数据
+        fps_data = {
+            'status': 'success',
+            'capture_fps': 0,  # 图像接收帧率
+            'pose_process_fps': 0,  # 姿势处理帧率
+            'emotion_process_fps': 0,  # 情绪处理帧率
+            'pose_stream_fps': 0,  # 姿势视频流帧率
+            'emotion_stream_fps': 0  # 情绪视频流帧率
+        }
+        
+        # 获取姿势分析模块的帧率数据
+        if posture_monitor and posture_monitor.is_running:
+            posture_fps_info = posture_monitor.get_fps_info()
+            fps_data.update({
+                'capture_fps': posture_fps_info.get('capture_fps', 0),
+                'pose_process_fps': posture_fps_info.get('pose_process_fps', 0),
+                'emotion_process_fps': posture_fps_info.get('emotion_process_fps', 0)
+            })
+        
+        # 获取视频流模块的帧率数据
+        if video_stream_handler:
+            stream_fps_info = video_stream_handler.get_fps_info()
+            fps_data.update({
+                'pose_stream_fps': stream_fps_info.get('pose_stream_fps', 0),
+                'emotion_stream_fps': stream_fps_info.get('emotion_stream_fps', 0)
+            })
+        
+        return jsonify(fps_data)
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'获取帧率信息出错: {str(e)}',
+            'capture_fps': 0,
+            'pose_process_fps': 0,
+            'emotion_process_fps': 0,
+            'pose_stream_fps': 0,
+            'emotion_stream_fps': 0
+        })
+
 # 路由：获取情绪参数
 @routes_bp.route('/get_emotion_params')
 def get_emotion_params():
@@ -337,7 +383,7 @@ def video_pose():
         return Response("视频流处理器未初始化", status=500)
         
     return Response(
-        video_stream_handler.generate_video_frames(video_stream_handler.get_pose_frame_queue()),
+        video_stream_handler.generate_video_frames(video_stream_handler.get_pose_frame_queue(), is_pose_stream=True),
         mimetype='multipart/x-mixed-replace; boundary=frame'
     )
 
@@ -350,6 +396,6 @@ def video_emotion():
         return Response("视频流处理器未初始化", status=500)
         
     return Response(
-        video_stream_handler.generate_video_frames(video_stream_handler.get_emotion_frame_queue()),
+        video_stream_handler.generate_video_frames(video_stream_handler.get_emotion_frame_queue(), is_pose_stream=False),
         mimetype='multipart/x-mixed-replace; boundary=frame'
     )
