@@ -1,4 +1,10 @@
-flask
-pyserial
-mysql-connector-python
+flask>=2.0.0
+pyserial>=3.5
+mysql-connector-python>=8.0.0
 pytz
+numpy>=1.20.0
+opencv-python>=4.5.0
+opencv-contrib-python>=4.5.0
+mediapipe>=0.8.9
+pillow>=8.0.0
+werkzeug>=2.0.0

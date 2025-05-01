@@ -1,36 +1,26 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Serial Communication</title>
+    <title>姿势与情绪分析系统</title>
     <style>
-        .pagination {
-            margin: 20px 0;
+        body {
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
         }
-        .pagination button {
-            margin: 0 5px;
-            padding: 5px 10px;
+        h1, h2, h3 {
+            color: #333;
         }
-        .history-record {
-            border-bottom: 1px solid #ccc;
-            padding: 10px;
-            margin: 5px 0;
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            background: white;
+            padding: 20px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+            border-radius: 5px;
         }
-        .record-number {
-            font-weight: bold;
-            color: #666;
-        }
-        .clear-history {
-            background-color: #ff4444;
-            color: white;
-            border: none;
-            padding: 8px 16px;
-            cursor: pointer;
-            margin: 10px 0;
-        }
-        .clear-history:hover {
-            background-color: #cc0000;
-        }
-        /* 新增样式 */
         .tab-container {
             margin: 20px 0;
             border-bottom: 1px solid #ccc;
@@ -59,6 +49,66 @@
         .tab-content.active {
             display: block;
         }
+        .video-container {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .video-box {
+            width: 48%;
+            margin-bottom: 20px;
+            border: 1px solid #ddd;
+            padding: 10px;
+            border-radius: 5px;
+            background: #f9f9f9;
+        }
+        .video-box img {
+            width: 100%;
+            height: auto;
+            border-radius: 3px;
+        }
+        .video-title {
+            font-weight: bold;
+            font-size: 18px;
+            margin-bottom: 10px;
+            color: #333;
+        }
+        .status-container {
+            margin-top: 10px;
+            padding: 10px;
+            background: #efefef;
+            border-radius: 5px;
+        }
+        .status-item {
+            margin-bottom: 5px;
+        }
+        .status-label {
+            font-weight: bold;
+        }
+        .status-value {
+            margin-left: 5px;
+        }
+        .status-value.good {
+            color: green;
+        }
+        .status-value.bad {
+            color: red;
+        }
+        .control-panel {
+            display: flex;
+            justify-content: space-between;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .control-box {
+            width: 48%;
+            border: 1px solid #ddd;
+            padding: 15px;
+            border-radius: 5px;
+            background: #f9f9f9;
+            margin-bottom: 20px;
+        }
         .form-group {
             margin-bottom: 15px;
         }
@@ -67,12 +117,75 @@
             margin-bottom: 5px;
             font-weight: bold;
         }
-        input[type="number"] {
+        input[type="number"], input[type="range"] {
             width: 100%;
             padding: 8px;
             box-sizing: border-box;
         }
-        /* 新增帧数据卡片样式 */
+        button {
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            cursor: pointer;
+            border-radius: 4px;
+            margin-right: 10px;
+        }
+        button:hover {
+            background-color: #45a049;
+        }
+        button.red {
+            background-color: #f44336;
+        }
+        button.red:hover {
+            background-color: #d32f2f;
+        }
+        .emotion-params {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f0f0f0;
+            border-radius: 5px;
+        }
+        .range-control {
+            display: flex;
+            align-items: center;
+        }
+        .range-control input[type="range"] {
+            flex: 1;
+            margin-right: 10px;
+        }
+        .range-value {
+            width: 60px;
+            text-align: center;
+            font-weight: bold;
+        }
+        .pagination {
+            margin: 20px 0;
+        }
+        .pagination button {
+            margin: 0 5px;
+            padding: 5px 10px;
+        }
+        .history-record {
+            border-bottom: 1px solid #ccc;
+            padding: 10px;
+            margin: 5px 0;
+        }
+        .record-number {
+            font-weight: bold;
+            color: #666;
+        }
+        .clear-history {
+            background-color: #ff4444;
+            color: white;
+            border: none;
+            padding: 8px 16px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+        .clear-history:hover {
+            background-color: #cc0000;
+        }
         .frame-data-card {
             background-color: #f9f9f9;
             border: 1px solid #ddd;
@@ -108,79 +221,198 @@
             font-size: 0.9em;
             font-style: italic;
         }
+        @media (max-width: 768px) {
+            .video-box, .control-box {
+                width: 100%;
+            }
+        }
     </style>
 </head>
 <body>
-    <h1>串口通信接口</h1>
-    
-    <div class="tab-container">
-        <div class="tab active" onclick="openTab(event, 'textMode')">文本模式</div>
-        <div class="tab" onclick="openTab(event, 'frameMode')">帧模式</div>
+    <div class="container">
+        <h1>姿势与情绪分析系统</h1>
+        
+        <div class="tab-container">
+            <div class="tab active" onclick="openTab(event, 'analysisTab')">姿势与情绪分析</div>
+            <div class="tab" onclick="openTab(event, 'serialTab')">串口通信</div>
+        </div>
+        
+        <!-- 姿势分析标签页 -->
+        <div id="analysisTab" class="tab-content active">
+            <div class="control-panel">
+                <div id="analysisControls">
+                    <button id="startAnalysisBtn" onclick="startPostureAnalysis()">启动分析系统</button>
+                    <button id="stopAnalysisBtn" onclick="stopPostureAnalysis()" class="red">停止分析系统</button>
+                </div>
+                <div id="analysisStatus">
+                    系统状态: <span id="systemStatusText">未初始化</span>
+                </div>
+            </div>
+            
+            <div class="video-container">
+                <div class="video-box">
+                    <div class="video-title">姿势分析</div>
+                    <img id="poseVideo" src="/video_pose" alt="姿势分析视频" onerror="this.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='">
+                    <div class="status-container">
+                        <div class="status-item">
+                            <span class="status-label">头部角度:</span>
+                            <span id="headAngle" class="status-value">-- °</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">姿势状态:</span>
+                            <span id="postureStatus" class="status-value">--</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">检测状态:</span>
+                            <span id="detectionStatus" class="status-value">--</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="video-box">
+                    <div class="video-title">情绪分析</div>
+                    <img id="emotionVideo" src="/video_emotion" alt="情绪分析视频" onerror="this.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='">
+                    <div class="status-container">
+                        <div class="status-item">
+                            <span class="status-label">当前情绪:</span>
+                            <span id="emotionStatus" class="status-value">--</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="control-box">
+                <h3>情绪分析参数调整</h3>
+                <div class="emotion-params">
+                    <div class="form-group">
+                        <label>情绪平滑窗口大小 (帧数):</label>
+                        <div class="range-control">
+                            <input type="range" id="smoothingWindowSlider" min="1" max="30" step="1" value="7" oninput="updateRangeValue('smoothingWindowSlider', 'smoothingWindowValue')">
+                            <span id="smoothingWindowValue" class="range-value">7</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>嘴部开合比阈值 (笑容检测):</label>
+                        <div class="range-control">
+                            <input type="range" id="mouthRatioSlider" min="0.1" max="1.0" step="0.01" value="0.45" oninput="updateRangeValue('mouthRatioSlider', 'mouthRatioValue')">
+                            <span id="mouthRatioValue" class="range-value">0.45</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>眼睛开合比阈值 (闭眼检测):</label>
+                        <div class="range-control">
+                            <input type="range" id="eyeRatioSlider" min="0.05" max="0.5" step="0.01" value="0.25" oninput="updateRangeValue('eyeRatioSlider', 'eyeRatioValue')">
+                            <span id="eyeRatioValue" class="range-value">0.25</span>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label>眉毛下压阈值 (皱眉检测):</label>
+                        <div class="range-control">
+                            <input type="range" id="browThresholdSlider" min="0.01" max="0.2" step="0.01" value="0.04" oninput="updateRangeValue('browThresholdSlider', 'browThresholdValue')">
+                            <span id="browThresholdValue" class="range-value">0.04</span>
+                        </div>
+                    </div>
+                    
+                    <button onclick="updateEmotionParams()">应用参数</button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 串口通信标签页 -->
+        <div id="serialTab" class="tab-content">
+            <div class="tab-container">
+                <div class="tab active" onclick="openSubTab(event, 'textMode')">文本模式</div>
+                <div class="tab" onclick="openSubTab(event, 'frameMode')">帧模式</div>
+            </div>
+            
+            <div id="textMode" class="tab-content active">
+                <div>
+                    <input type="text" id="dataInput" placeholder="输入要发送的数据">
+                    <button onclick="sendData()">发送</button>
+                </div>
+            </div>
+            
+            <div id="frameMode" class="tab-content">
+                <div class="form-group">
+                    <label for="yawInput">Yaw 值:</label>
+                    <input type="number" id="yawInput" step="0.01" value="0.0">
+                </div>
+                
+                <div class="form-group">
+                    <label for="pitchInput">Pitch 值:</label>
+                    <input type="number" id="pitchInput" step="0.01" value="0.0">
+                </div>
+                
+                <div class="form-group">
+                    <input type="checkbox" id="findBoolInput">
+                    <label for="findBoolInput" style="display: inline;">是否追踪</label>
+                </div>
+                
+                <div>
+                    <button onclick="sendFrame()">发送帧数据</button>
+                    <button onclick="readFrame()">读取帧数据</button>
+                    <button id="autoUpdateBtn" onclick="toggleAutoUpdate()" class="auto-update">自动更新: 开启</button>
+                </div>
+                
+                <div id="latestFrameData" class="frame-data-card" style="display: none;">
+                    <div class="frame-data-title">最新接收的帧数据</div>
+                    <div class="frame-value">类型: <span id="frameType"></span></div>
+                    <div class="frame-value">Yaw: <span id="frameYaw"></span></div>
+                    <div class="frame-value">Pitch: <span id="framePitch"></span></div>
+                    <div class="timestamp" id="frameTimestamp"></div>
+                </div>
+            </div>
+            
+            <h2>响应:</h2>
+            <div id="response"></div>
+            
+            <h2>历史记录:</h2>
+            <button class="clear-history" onclick="clearHistory()">清空历史记录</button>
+            <div id="history"></div>
+            <div class="pagination" id="pagination"></div>
+        </div>
     </div>
-    
-    <div id="textMode" class="tab-content active">
-        <div>
-            <input type="text" id="dataInput" placeholder="输入要发送的数据">
-            <button onclick="sendData()">发送</button>
-        </div>
-    </div>
-    
-    <div id="frameMode" class="tab-content">
-        <div class="form-group">
-            <label for="yawInput">Yaw 值:</label>
-            <input type="number" id="yawInput" step="0.01" value="0.0">
-        </div>
-        
-        <div class="form-group">
-            <label for="pitchInput">Pitch 值:</label>
-            <input type="number" id="pitchInput" step="0.01" value="0.0">
-        </div>
-        
-        <div class="form-group">
-            <input type="checkbox" id="findBoolInput">
-            <label for="findBoolInput" style="display: inline;">是否追踪</label>
-        </div>
-        
-        <div>
-            <button onclick="sendFrame()">发送帧数据</button>
-            <button onclick="readFrame()">读取帧数据</button>
-            <button id="autoUpdateBtn" onclick="toggleAutoUpdate()" class="auto-update">自动更新: 开启</button>
-        </div>
-        
-        <div id="latestFrameData" class="frame-data-card" style="display: none;">
-            <div class="frame-data-title">最新接收的帧数据</div>
-            <div class="frame-value">类型: <span id="frameType"></span></div>
-            <div class="frame-value">Yaw: <span id="frameYaw"></span></div>
-            <div class="frame-value">Pitch: <span id="framePitch"></span></div>
-            <div class="timestamp" id="frameTimestamp"></div>
-        </div>
-    </div>
-    
-    <h2>响应:</h2>
-    <div id="response"></div>
-    
-    <h2>历史记录:</h2>
-    <button class="clear-history" onclick="clearHistory()">清空历史记录</button>
-    <div id="history"></div>
-    <div class="pagination" id="pagination"></div>
     
     <script>
         let currentPage = 1;
         let totalPages = 1;
         const perPage = 10;
+        let analysisStatusInterval = null;
+        let autoUpdateEnabled = true;
+        let eventSource = null;
         
-        // 创建日期格式化器
-        const dateFormatter = new Intl.DateTimeFormat(undefined, {
-            year: 'numeric',
-            month: '2-digit',
-            day: '2-digit',
-            hour: '2-digit',
-            minute: '2-digit',
-            second: '2-digit',
-            hour12: false
+        // 页面加载时初始化
+        window.addEventListener('load', function() {
+            // 获取情绪分析参数
+            fetchEmotionParams();
+            
+            // 获取分析系统状态并更新UI
+            fetchAnalysisStatus();
+            
+            // 定时更新状态
+            analysisStatusInterval = setInterval(fetchAnalysisStatus, 2000);
+            
+            // 获取历史记录
+            updateHistory(1);
+            
+            // 如果自动更新开启，启动事件源
+            if (autoUpdateEnabled) {
+                startEventSource();
+            }
+            
+            // 页面关闭或刷新时关闭事件源
+            window.addEventListener('beforeunload', function() {
+                stopEventSource();
+                if (analysisStatusInterval) {
+                    clearInterval(analysisStatusInterval);
+                }
+            });
         });
-
-        // 切换标签页
+        
+        // 主标签页切换
         function openTab(evt, tabName) {
             // 隐藏所有标签内容
             const tabContents = document.getElementsByClassName("tab-content");
@@ -197,8 +429,233 @@
             // 显示当前标签并添加active类
             document.getElementById(tabName).classList.add("active");
             evt.currentTarget.classList.add("active");
+            
+            // 如果切换到姿势分析标签，重新获取状态
+            if (tabName === 'analysisTab') {
+                fetchAnalysisStatus();
+            }
         }
-
+        
+        // 子标签页切换
+        function openSubTab(evt, tabName) {
+            // 隐藏所有标签内容
+            const tabContents = document.querySelectorAll("#serialTab .tab-content");
+            for (let i = 0; i < tabContents.length; i++) {
+                tabContents[i].classList.remove("active");
+            }
+            
+            // 移除所有标签的active类
+            const tabs = document.querySelectorAll("#serialTab .tab");
+            for (let i = 0; i < tabs.length; i++) {
+                tabs[i].classList.remove("active");
+            }
+            
+            // 显示当前标签并添加active类
+            document.getElementById(tabName).classList.add("active");
+            evt.currentTarget.classList.add("active");
+        }
+        
+        // 获取当前情绪分析参数
+        function fetchEmotionParams() {
+            fetch('/get_emotion_params')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const params = data.params;
+                        
+                        // 更新滑块值
+                        document.getElementById('smoothingWindowSlider').value = params.emotion_smoothing_window;
+                        document.getElementById('smoothingWindowValue').textContent = params.emotion_smoothing_window;
+                        
+                        document.getElementById('mouthRatioSlider').value = params.mouth_open_ratio_threshold;
+                        document.getElementById('mouthRatioValue').textContent = params.mouth_open_ratio_threshold.toFixed(2);
+                        
+                        document.getElementById('eyeRatioSlider').value = params.eye_open_ratio_threshold;
+                        document.getElementById('eyeRatioValue').textContent = params.eye_open_ratio_threshold.toFixed(2);
+                        
+                        document.getElementById('browThresholdSlider').value = params.brow_down_threshold;
+                        document.getElementById('browThresholdValue').textContent = params.brow_down_threshold.toFixed(2);
+                    } else {
+                        console.error('获取情绪参数失败:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('获取情绪参数请求失败:', error);
+                });
+        }
+        
+        // 更新滑块显示值
+        function updateRangeValue(sliderId, valueId) {
+            const slider = document.getElementById(sliderId);
+            const valueDisplay = document.getElementById(valueId);
+            
+            // 针对不同类型的值使用不同的格式
+            if (sliderId === 'smoothingWindowSlider') {
+                valueDisplay.textContent = slider.value;
+            } else {
+                valueDisplay.textContent = parseFloat(slider.value).toFixed(2);
+            }
+        }
+        
+        // 更新情绪分析参数
+        function updateEmotionParams() {
+            const params = {
+                emotion_smoothing_window: parseInt(document.getElementById('smoothingWindowSlider').value),
+                mouth_open_ratio_threshold: parseFloat(document.getElementById('mouthRatioSlider').value),
+                eye_open_ratio_threshold: parseFloat(document.getElementById('eyeRatioSlider').value),
+                brow_down_threshold: parseFloat(document.getElementById('browThresholdSlider').value)
+            };
+            
+            fetch('/update_emotion_params', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify(params)
+            })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        alert('参数更新成功！');
+                    } else {
+                        alert('参数更新失败: ' + data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('更新参数请求失败:', error);
+                    alert('参数更新请求失败，请检查网络连接。');
+                });
+        }
+        
+        // 启动姿势分析系统
+        function startPostureAnalysis() {
+            fetch('/start_posture_analysis', {
+                method: 'POST'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    fetchAnalysisStatus(); // 更新状态显示
+                    
+                    // 刷新视频流
+                    refreshVideoStreams();
+                })
+                .catch(error => {
+                    console.error('启动姿势分析系统请求失败:', error);
+                    alert('启动请求失败，请检查网络连接。');
+                });
+        }
+        
+        // 停止姿势分析系统
+        function stopPostureAnalysis() {
+            fetch('/stop_posture_analysis', {
+                method: 'POST'
+            })
+                .then(response => response.json())
+                .then(data => {
+                    alert(data.message);
+                    fetchAnalysisStatus(); // 更新状态显示
+                })
+                .catch(error => {
+                    console.error('停止姿势分析系统请求失败:', error);
+                    alert('停止请求失败，请检查网络连接。');
+                });
+        }
+        
+        // 获取并更新分析系统状态
+        function fetchAnalysisStatus() {
+            fetch('/get_pose_status')
+                .then(response => response.json())
+                .then(data => {
+                    updateAnalysisStatusUI(data);
+                })
+                .catch(error => {
+                    console.error('获取姿势分析状态失败:', error);
+                    document.getElementById('systemStatusText').textContent = '连接错误';
+                });
+        }
+        
+        // 更新分析系统状态UI
+        function updateAnalysisStatusUI(data) {
+            const systemStatusText = document.getElementById('systemStatusText');
+            const headAngle = document.getElementById('headAngle');
+            const postureStatus = document.getElementById('postureStatus');
+            const detectionStatus = document.getElementById('detectionStatus');
+            const emotionStatus = document.getElementById('emotionStatus');
+            
+            if (data.status === 'success') {
+                // 更新系统状态
+                systemStatusText.textContent = data.is_running ? '运行中' : '已停止';
+                systemStatusText.style.color = data.is_running ? 'green' : 'red';
+                
+                // 如果系统运行中，更新姿势和情绪状态
+                if (data.is_running) {
+                    // 更新姿势数据
+                    if (data.pose_data) {
+                        const angle = data.pose_data.angle || 0;
+                        const isBadPosture = data.pose_data.is_bad_posture;
+                        
+                        headAngle.textContent = `${angle.toFixed(1)}°`;
+                        headAngle.className = 'status-value ' + (isBadPosture ? 'bad' : 'good');
+                        
+                        postureStatus.textContent = isBadPosture ? '不良姿势' : '良好姿势';
+                        postureStatus.className = 'status-value ' + (isBadPosture ? 'bad' : 'good');
+                        
+                        detectionStatus.textContent = data.pose_data.is_occluded ? '视线遮挡' : '正常追踪';
+                        detectionStatus.className = 'status-value ' + (data.pose_data.is_occluded ? 'bad' : 'good');
+                    }
+                    
+                    // 更新情绪数据
+                    if (data.emotion_data) {
+                        const emotionMap = {
+                            'NEUTRAL': '中性',
+                            'HAPPY': '高兴',
+                            'ANGRY': '生气',
+                            'SAD': '悲伤',
+                            'UNKNOWN': '未知'
+                        };
+                        
+                        const emotion = data.emotion_data.emotion;
+                        emotionStatus.textContent = emotionMap[emotion] || emotion;
+                    }
+                } else {
+                    // 系统未运行时重置显示
+                    headAngle.textContent = '-- °';
+                    headAngle.className = 'status-value';
+                    postureStatus.textContent = '--';
+                    postureStatus.className = 'status-value';
+                    detectionStatus.textContent = '--';
+                    detectionStatus.className = 'status-value';
+                    emotionStatus.textContent = '--';
+                }
+            } else {
+                // 获取状态失败
+                systemStatusText.textContent = '状态错误';
+                systemStatusText.style.color = 'orange';
+            }
+        }
+        
+        // 刷新视频流
+        function refreshVideoStreams() {
+            const poseVideo = document.getElementById('poseVideo');
+            const emotionVideo = document.getElementById('emotionVideo');
+            
+            // 添加时间戳参数刷新视频流
+            poseVideo.src = '/video_pose?' + new Date().getTime();
+            emotionVideo.src = '/video_emotion?' + new Date().getTime();
+        }
+        
+        // 创建日期格式化器
+        const dateFormatter = new Intl.DateTimeFormat(undefined, {
+            year: 'numeric',
+            month: '2-digit',
+            day: '2-digit',
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit',
+            hour12: false
+        });
+        
         // 发送文本数据
         function sendData() {
             const data = document.getElementById('dataInput').value;
@@ -210,11 +667,11 @@
                 },
                 body: JSON.stringify({data: data})
             })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('response').innerText = data.response;
-                updateHistory(1);  // 发送后返回第一页
-            });
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('response').innerText = data.response;
+                    updateHistory(1);  // 发送后返回第一页
+                });
         }
         
         // 发送帧数据
@@ -234,88 +691,91 @@
                     find_bool: find_bool
                 })
             })
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('response').innerText = data.response;
-                updateHistory(1);  // 发送后返回第一页
-            });
+                .then(response => response.json())
+                .then(data => {
+                    document.getElementById('response').innerText = data.response;
+                    updateHistory(1);  // 发送后返回第一页
+                });
         }
         
         // 读取帧数据
         function readFrame() {
             fetch('/read_frame')
-            .then(response => response.json())
-            .then(data => {
-                if (data.status === 'success') {
-                    document.getElementById('response').innerText = JSON.stringify(data.frame_data, null, 2);
-                } else {
-                    document.getElementById('response').innerText = data.message;
-                }
-            });
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        document.getElementById('response').innerText = JSON.stringify(data.frame_data, null, 2);
+                    } else {
+                        document.getElementById('response').innerText = data.message;
+                    }
+                });
         }
         
+        // 清空历史记录
         function clearHistory() {
             if (confirm('确定要清空所有历史记录吗？此操作不可恢复。')) {
                 fetch('/clear_history', {
                     method: 'POST'
                 })
-                .then(response => response.json())
-                .then(data => {
-                    if (data.status === 'success') {
-                        alert('历史记录已清空');
-                        updateHistory(1);  // 刷新页面显示
-                    } else {
-                        alert('清空历史记录失败: ' + data.message);
-                    }
-                });
+                    .then(response => response.json())
+                    .then(data => {
+                        if (data.status === 'success') {
+                            alert('历史记录已清空');
+                            updateHistory(1);  // 刷新页面显示
+                        } else {
+                            alert('清空历史记录失败: ' + data.message);
+                        }
+                    });
             }
         }
         
+        // 更新历史记录
         function updateHistory(page) {
             fetch(`/get_history?page=${page}&per_page=${perPage}`)
-            .then(response => response.json())
-            .then(data => {
-                const historyDiv = document.getElementById('history');
-                historyDiv.innerHTML = '';
-                
-                if (data.status === 'error') {
-                    historyDiv.innerHTML = `<div class="error">${data.message}</div>`;
-                    return;
-                }
-
-                if (!data.records || data.records.length === 0) {
-                    historyDiv.innerHTML = '<div>暂无历史记录</div>';
-                    return;
-                }
-                
-                data.records.forEach(record => {
-                    // Convert MySQL timestamp to local time
-                    const timestamp = new Date(record.timestamp);
-                    const formattedDate = dateFormatter.format(timestamp);
+                .then(response => response.json())
+                .then(data => {
+                    const historyDiv = document.getElementById('history');
+                    historyDiv.innerHTML = '';
                     
-                    historyDiv.innerHTML += `
-                        <div class="history-record">
-                            <span class="record-number">#${record.record_number}</span>
-                            <br>
-                            发送: ${record.sent_data || '无数据'}<br>
-                            接收: ${record.received_data || '无响应'}<br>
-                            状态: ${record.status || '未知'}<br>
-                            消息: ${record.message || '无消息'}<br>
-                            时间: ${formattedDate}
-                        </div>
-                    `;
+                    if (data.status === 'error') {
+                        historyDiv.innerHTML = `<div class="error">${data.message}</div>`;
+                        return;
+                    }
+                    
+                    if (!data.records || data.records.length === 0) {
+                        historyDiv.innerHTML = '<div>暂无历史记录</div>';
+                        return;
+                    }
+                    
+                    data.records.forEach(record => {
+                        // Convert MySQL timestamp to local time
+                        const timestamp = new Date(record.timestamp);
+                        const formattedDate = dateFormatter.format(timestamp);
+                        
+                        historyDiv.innerHTML += `
+                            <div class="history-record">
+                                <span class="record-number">#${record.record_number}</span>
+                                <br>
+                                发送: ${record.sent_data || '无数据'}<br>
+                                接收: ${record.received_data || '无响应'}<br>
+                                状态: ${record.status || '未知'}<br>
+                                消息: ${record.message || '无消息'}<br>
+                                时间: ${formattedDate}
+                            </div>
+                        `;
+                    });
+                    
+                    currentPage = data.current_page;
+                    totalPages = data.total_pages;
+                    updatePagination();
+                })
+                .catch(error => {
+                    console.error('获取历史记录失败:', error);
+                    document.getElementById('history').innerHTML = '<div class="error">获取历史记录失败</div>';
                 });
-                
-                currentPage = data.current_page;
-                totalPages = data.total_pages;
-                updatePagination();
-            })
-            .catch(error => {
-                console.error('获取历史记录失败:', error);
-                document.getElementById('history').innerHTML = '<div class="error">获取历史记录失败</div>';
-            });
         }
         
+        // 更新分页按钮
         function updatePagination() {
             const paginationDiv = document.getElementById('pagination');
             paginationDiv.innerHTML = '';
@@ -340,13 +800,7 @@
             }
         }
         
-        // 页面加载时获取第一页历史记录
-        updateHistory(1);
-
         // 帧数据自动更新相关
-        let eventSource = null;
-        let autoUpdateEnabled = true;
-        
         function toggleAutoUpdate() {
             autoUpdateEnabled = !autoUpdateEnabled;
             const btn = document.getElementById('autoUpdateBtn');
@@ -362,6 +816,7 @@
             }
         }
         
+        // 启动事件源
         function startEventSource() {
             if (eventSource) {
                 stopEventSource();
@@ -402,6 +857,7 @@
             };
         }
         
+        // 停止事件源
         function stopEventSource() {
             if (eventSource) {
                 eventSource.close();
@@ -409,6 +865,7 @@
             }
         }
         
+        // 更新最新帧数据显示
         function updateLatestFrameDisplay(frameData) {
             const frameCard = document.getElementById('latestFrameData');
             frameCard.style.display = 'block';
@@ -418,18 +875,6 @@
             document.getElementById('framePitch').innerText = frameData.pitch.toFixed(4);
             document.getElementById('frameTimestamp').innerText = '接收时间: ' + new Date().toLocaleString();
         }
-        
-        // 页面加载时启动事件源
-        window.addEventListener('load', function() {
-            if (autoUpdateEnabled) {
-                startEventSource();
-            }
-            
-            // 页面关闭或刷新时关闭事件源
-            window.addEventListener('beforeunload', function() {
-                stopEventSource();
-            });
-        });
     </script>
 </body>
 </html>
