@@ -1,0 +1,210 @@
+// main.js - 主要脚本文件
+document.addEventListener('DOMContentLoaded', function() {
+    // 初始化页面
+    initApp();
+});
+
+// 应用初始化
+function initApp() {
+    console.log('姿势与情绪分析系统初始化...');
+    
+    // 获取分析系统状态并更新UI
+    fetchAnalysisStatus();
+    
+    // 获取初始帧率信息
+    fetchFPSInfo();
+    
+    // 定时更新状态和帧率
+    setInterval(function() {
+        fetchAnalysisStatus();
+        fetchFPSInfo();
+    }, 1000);
+}
+
+// 获取分析系统状态
+function fetchAnalysisStatus() {
+    fetch('/get_pose_status')  // 修正API路由为正确的get_pose_status
+        .then(response => response.json())
+        .then(data => {
+            updateSystemStatus(data);
+        })
+        .catch(error => {
+            console.error('获取系统状态失败:', error);
+            // 请求失败时显示错误状态
+            const statusText = document.getElementById('systemStatusText');
+            statusText.textContent = '连接错误';
+            statusText.className = 'status-error';
+        });
+}
+
+// 更新系统状态显示
+function updateSystemStatus(data) {
+    console.log('收到系统状态:', data);  // 调试日志
+    
+    const statusText = document.getElementById('systemStatusText');
+    
+    // 根据状态代码更新UI
+    if (data.status === 'success') {
+        if (data.is_running) {
+            statusText.textContent = '运行中';
+            statusText.className = 'status-running';
+            document.getElementById('startAnalysisBtn').disabled = true;
+            document.getElementById('stopAnalysisBtn').disabled = false;
+        } else {
+            statusText.textContent = '已停止';
+            statusText.className = 'status-stopped';
+            document.getElementById('startAnalysisBtn').disabled = false;
+            document.getElementById('stopAnalysisBtn').disabled = true;
+        }
+        
+        // 如果有姿势数据，更新姿势和情绪状态
+        if (data.pose_data && data.emotion_data) {
+            updatePostureEmotionUI(data.pose_data, data.emotion_data);
+        }
+    } 
+    // 处理部分初始化状态 - 新增对partial状态的处理
+    else if (data.status === 'partial') {
+        statusText.textContent = '仅视频流可用';
+        statusText.className = 'status-partial';
+        document.getElementById('startAnalysisBtn').disabled = false;
+        document.getElementById('stopAnalysisBtn').disabled = true;
+        
+        console.log('系统部分可用:', data.message);
+    }
+    // 处理错误状态
+    else {
+        statusText.textContent = '未初始化';
+        statusText.className = 'status-error';
+        document.getElementById('startAnalysisBtn').disabled = false;
+        document.getElementById('stopAnalysisBtn').disabled = true;
+        
+        console.error('系统状态错误:', data.message);
+    }
+}
+
+// 开始分析
+function startAnalysis() {
+    fetch('/start_posture_analysis', { method: 'POST' })  // 修正为正确的API路径
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                fetchAnalysisStatus();
+                showNotification('分析系统已启动', 'success');
+            } else {
+                showNotification('启动失败: ' + data.message, 'error');
+                console.error('启动失败详情:', data);
+            }
+        })
+        .catch(error => {
+            console.error('启动分析失败:', error);
+            showNotification('启动请求失败', 'error');
+        });
+}
+
+// 停止分析
+function stopAnalysis() {
+    fetch('/stop_posture_analysis', { method: 'POST' })  // 修正为正确的API路径
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                fetchAnalysisStatus();
+                showNotification('分析系统已停止', 'success');
+            } else {
+                showNotification('停止失败: ' + data.message, 'error');
+                console.error('停止失败详情:', data);
+            }
+        })
+        .catch(error => {
+            console.error('停止分析失败:', error);
+            showNotification('停止请求失败', 'error');
+        });
+}
+
+// 获取帧率信息
+function fetchFPSInfo() {
+    fetch('/get_fps_info')
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // 更新UI显示帧率
+                updateFPSDisplay(data);
+            } else {
+                console.error('获取帧率信息失败:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('获取帧率信息请求失败:', error);
+        });
+}
+
+// 更新帧率显示
+function updateFPSDisplay(data) {
+    const captureFPS = document.getElementById('captureFPS');
+    const processFPS = document.getElementById('processFPS');
+    const streamFPS = document.getElementById('streamFPS');
+    
+    if (captureFPS) captureFPS.textContent = data.capture_fps.toFixed(1);
+    
+    // 使用姿势处理帧率作为处理帧率显示
+    if (processFPS) processFPS.textContent = data.pose_process_fps.toFixed(1);
+    
+    // 使用姿势流帧率作为流帧率显示
+    if (streamFPS) streamFPS.textContent = data.pose_stream_fps.toFixed(1);
+}
+
+// 更新姿势和情绪UI状态
+function updatePostureEmotionUI(pose_data, emotion_data) {
+    // 更新姿势状态信息
+    if (pose_data) {
+        const headAngle = document.getElementById('headAngle');
+        const postureStatus = document.getElementById('postureStatus');
+        const detectionStatus = document.getElementById('detectionStatus');
+        
+        if (headAngle) headAngle.textContent = (pose_data.angle !== null) ? 
+            `${pose_data.angle.toFixed(1)} °` : '-- °';
+        
+        if (postureStatus) {
+            const status = pose_data.is_bad_posture ? '不良姿势' : '良好姿势';
+            postureStatus.textContent = status;
+            postureStatus.className = pose_data.is_bad_posture ? 
+                'status-value bad-posture' : 'status-value good-posture';
+        }
+        
+        if (detectionStatus) {
+            detectionStatus.textContent = pose_data.status || '--';
+            detectionStatus.className = pose_data.is_occluded ? 
+                'status-value occluded' : 'status-value detected';
+        }
+    }
+    
+    // 更新情绪状态信息
+    if (emotion_data) {
+        const emotionStatus = document.getElementById('emotionStatus');
+        
+        if (emotionStatus) {
+            // 将英文情绪名称转为中文
+            const emotionMap = {
+                'NEUTRAL': '中性',
+                'HAPPY': '高兴',
+                'ANGRY': '生气',
+                'SAD': '悲伤',
+                'UNKNOWN': '未知'
+            };
+            const emotion = emotionMap[emotion_data.emotion] || emotion_data.emotion;
+            emotionStatus.textContent = emotion;
+        }
+    }
+}
+
+// 显示通知
+function showNotification(message, type = 'info') {
+    // 简单的通知实现，可以扩展为更好的UI组件
+    alert(message);
+}
+
+// 绑定按钮事件
+document.addEventListener('DOMContentLoaded', function() {
+    // 绑定启动/停止按钮
+    document.getElementById('startAnalysisBtn').addEventListener('click', startAnalysis);
+    document.getElementById('stopAnalysisBtn').addEventListener('click', stopAnalysis);
+});

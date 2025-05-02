@@ -154,6 +154,11 @@ class WebPostureMonitor:
             'pose_process_fps': 0,
             'emotion_process_fps': 0
         }
+        
+        # 初始化遮挡计数器
+        self.occlusion_counter = 0
+        self.clear_counter = 0
+        self.last_valid_angle = None
     
     def start(self):
         """启动姿势分析线程"""
@@ -162,29 +167,44 @@ class WebPostureMonitor:
             return True
             
         self.is_running = True
-        self._init_camera()
+        success = self._init_camera()
         
-        if not self.cap or not self.cap.isOpened():
+        if not success or not self.cap or not self.cap.isOpened():
             self.is_running = False
-            print("无法初始化摄像头")
+            print("无法初始化摄像头，姿势分析系统启动失败")
             return False
             
         if POSTURE_MODULE_AVAILABLE:
             try:
-                self.pose = PostureAnalysis()
+                print("正在初始化姿势分析和情绪分析组件...")
+                
+                # 使用正确的MediaPipe姿势检测
+                self.pose = mp_pose.Pose(
+                    static_image_mode=False,    # 视频流模式
+                    model_complexity=1,         # 模型复杂度（0-2）降低以提高性能
+                    min_detection_confidence=0.6, # 降低到0.6以提高检测率
+                    min_tracking_confidence=0.5
+                )
+                
+                # 创建情绪分析器实例
                 self.emotion_analyzer = EmotionAnalyzer()
+                
+                # 启动处理线程
                 self.thread = threading.Thread(target=self._process_frames)
                 self.thread.daemon = True
                 self.thread.start()
+                
                 print("姿势分析系统启动成功")
                 return True
             except Exception as e:
                 self.is_running = False
-                print(f"启动姿势分析系统失败: {e}")
+                print(f"启动姿势分析系统失败，错误详情: {e}")
+                import traceback
+                traceback.print_exc()  # 打印详细错误堆栈
                 return False
         else:
             self.is_running = False
-            print("姿势分析模块不可用")
+            print("姿势分析模块不可用，请检查posture_analysis包是否正确安装")
             return False
     
     def stop(self):
@@ -208,39 +228,217 @@ class WebPostureMonitor:
     def _init_camera(self):
         """初始化摄像头设备"""
         try:
-            self.cap = cv2.VideoCapture(0)
+            # 先使用_find_available_cameras找到所有可用的摄像头
+            available_cameras = self._find_available_cameras()
+            camera_found = False
             
-            # 设置摄像头分辨率为高分辨率
-            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 1280)
-            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 720)
+            if available_cameras:
+                # 首先尝试available_cameras中的相机
+                for camera_index in available_cameras:
+                    try:
+                        print(f"尝试初始化摄像头索引 {camera_index}...")
+                        self.cap = cv2.VideoCapture(camera_index)
+                        if self.cap.isOpened():
+                            # 读取一帧验证相机是否真正可用
+                            ret, test_frame = self.cap.read()
+                            if ret and test_frame is not None:
+                                print(f"找到可用摄像头：索引 {camera_index}")
+                                camera_found = True
+                                break
+                            else:
+                                print(f"摄像头索引 {camera_index} 无法读取帧")
+                                self.cap.release()
+                    except Exception as e:
+                        print(f"尝试摄像头索引 {camera_index} 失败: {e}")
+                        if self.cap:
+                            self.cap.release()
             
-            # 设置摄像头FPS
-            self.cap.set(cv2.CAP_PROP_FPS, self.camera_fps)
+            # 如果上面的方法没找到摄像头，尝试直接使用索引6（对应Bus 006）
+            if not camera_found:
+                try:
+                    print("尝试直接访问Bus 006上的摄像头 (索引6)...")
+                    # 使用V4L2后端，这在Linux上对USB摄像头效果更好
+                    self.cap = cv2.VideoCapture(6, cv2.CAP_V4L2)
+                    if self.cap.isOpened():
+                        ret, test_frame = self.cap.read()
+                        if ret and test_frame is not None:
+                            print("成功连接到索引6的摄像头")
+                            camera_found = True
+                    else:
+                        print("无法打开索引6的摄像头")
+                except Exception as e:
+                    print(f"尝试访问索引6摄像头失败: {e}")
             
-            # 设置缓冲区大小
-            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, self.camera_buffer_size)
+            # 继续尝试更多相机索引
+            if not camera_found:
+                for camera_index in range(10):
+                    if camera_index in available_cameras:
+                        continue  # 已经尝试过
+                    try:
+                        print(f"尝试初始化扩展搜索摄像头索引 {camera_index}...")
+                        self.cap = cv2.VideoCapture(camera_index, cv2.CAP_V4L2)
+                        if self.cap.isOpened():
+                            ret, test_frame = self.cap.read()
+                            if ret and test_frame is not None:
+                                print(f"扩展搜索找到可用摄像头：索引 {camera_index}")
+                                camera_found = True
+                                break
+                            else:
+                                self.cap.release()
+                    except Exception as e:
+                        print(f"扩展搜索摄像头索引 {camera_index} 失败: {e}")
+                        if self.cap:
+                            self.cap.release()
             
-            # 优化摄像头配置
-            self.cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc(*'MJPG'))  # 使用MJPG解码器提高效率
+            # 最后尝试直接设备路径
+            if not camera_found:
+                for dev_path in ["/dev/video0", "/dev/video1", "/dev/video2", "/dev/video6"]:
+                    try:
+                        print(f"尝试使用设备路径 {dev_path} 访问摄像头...")
+                        self.cap = cv2.VideoCapture(dev_path, cv2.CAP_V4L2)
+                        if self.cap.isOpened():
+                            ret, test_frame = self.cap.read()
+                            if ret and test_frame is not None:
+                                print(f"通过设备路径 {dev_path} 找到可用摄像头")
+                                camera_found = True
+                                break
+                            else:
+                                self.cap.release()
+                    except Exception as e:
+                        print(f"尝试设备路径 {dev_path} 失败: {e}")
+                        if self.cap:
+                            self.cap.release()
             
-            print(f"摄像头初始化成功，设置为 {1280}x{720}@{self.camera_fps}fps")
+            if not camera_found or not self.cap or not self.cap.isOpened():
+                print("未找到可用摄像头")
+                return False
+                
+            # 获取摄像头原始属性
+            original_width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+            original_height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+            original_fps = self.cap.get(cv2.CAP_PROP_FPS)
+            
+            print(f"摄像头原始属性: {original_width}x{original_height}@{original_fps}fps")
+            
+            # 专门针对Microdia USB 2.0相机(0c45:636b)的配置
+            try:
+                print("检测到Microdia USB 2.0相机，应用专用配置...")
+                
+                # Microdia相机通常支持这些分辨率
+                microdia_resolutions = [(640, 480), (352, 288), (320, 240)]
+                resolution_set = False
+                
+                for width, height in microdia_resolutions:
+                    self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+                    self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+                    
+                    # 确认是否设置成功
+                    actual_width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+                    actual_height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+                    
+                    if abs(actual_width - width) < 30 and abs(actual_height - height) < 30:
+                        print(f"成功设置Microdia相机分辨率: {width}x{height}")
+                        resolution_set = True
+                        break
+                
+                # 尝试设置其他参数
+                self.cap.set(cv2.CAP_PROP_FPS, 15)  # 降低帧率以提高稳定性
+                self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 最小缓冲区减少延迟
+                
+                # 尝试不同的格式
+                for fourcc_code in ['MJPG', 'YUYV', 'RGB3']:
+                    try:
+                        fourcc = cv2.VideoWriter_fourcc(*fourcc_code)
+                        self.cap.set(cv2.CAP_PROP_FOURCC, fourcc)
+                        # 读取一帧测试格式是否生效
+                        ret, test = self.cap.read()
+                        if ret:
+                            print(f"成功应用{fourcc_code}格式")
+                            break
+                    except Exception as e:
+                        print(f"设置{fourcc_code}格式失败: {e}")
+                
+                # 验证最终配置
+                ret, test_frame = self.cap.read()
+                if ret and test_frame is not None:
+                    actual_width = test_frame.shape[1]
+                    actual_height = test_frame.shape[0]
+                    print(f"Microdia相机配置验证成功，实际帧大小: {actual_width}x{actual_height}")
+                else:
+                    print("警告: Microdia相机配置后无法读取帧，将尝试使用默认配置")
+                    # 重新打开摄像头使用默认配置
+                    self.cap.release()
+                    self.cap = cv2.VideoCapture(6, cv2.CAP_V4L2)
+            except Exception as e:
+                print(f"应用Microdia相机专用配置失败(非致命错误): {e}")
+            
+            # 验证摄像头是否能够正常读取帧
+            ret, test_frame = self.cap.read()
+            if not ret or test_frame is None:
+                print("摄像头无法读取帧，初始化失败")
+                if self.cap:
+                    self.cap.release()
+                    self.cap = None
+                return False
+                
+            # 获取实际的摄像头属性
+            actual_width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+            actual_height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+            actual_fps = self.cap.get(cv2.CAP_PROP_FPS)
+            actual_format = int(self.cap.get(cv2.CAP_PROP_FOURCC))
+            
+            # 将4字节格式代码转换为可读字符串
+            try:
+                format_chars = "".join([chr((int(actual_format) >> (8 * i)) & 0xFF) for i in range(4)])
+                print(f"摄像头最终配置: {actual_width}x{actual_height}@{actual_fps}fps, 格式: {format_chars}")
+            except:
+                print(f"摄像头最终配置: {actual_width}x{actual_height}@{actual_fps}fps")
             
             # 重置帧率计数器
             self.capture_fps = FPSCounter()
             self.pose_process_fps = FPSCounter()
             self.emotion_process_fps = FPSCounter()
             
+            # 初始化遮挡计数器（之前代码中缺少这些初始化）
+            self.occlusion_counter = 0
+            self.clear_counter = 0
+            self.last_valid_angle = None
+            
             return True
         except Exception as e:
             print(f"初始化摄像头失败: {e}")
+            if self.cap:
+                self.cap.release()
+                self.cap = None
             return False
+    
+    def _test_camera_fps(self, cap, frames=20):
+        """测试摄像头的实际FPS"""
+        if not cap or not cap.isOpened():
+            return 0
+            
+        # 丢弃前几帧以稳定摄像头
+        for _ in range(5):
+            cap.grab()
+            
+        # 测量获取指定数量帧所需的时间
+        start_time = time.time()
+        for _ in range(frames):
+            cap.grab()
+        end_time = time.time()
+        
+        elapsed_time = end_time - start_time
+        if elapsed_time > 0:
+            return frames / elapsed_time
+        else:
+            return 0
     
     def _adjust_processing_resolution(self):
         """根据当前帧率动态调整处理分辨率"""
         current_time = time.time()
         
         # 检查是否到达调整间隔
-        if not self.adaptive_resolution或(current_time - self.last_resolution_adjust_time) < RESOLUTION_ADJUST_INTERVAL:
+        if not self.adaptive_resolution or (current_time - self.last_resolution_adjust_time) < RESOLUTION_ADJUST_INTERVAL:
             return
             
         capture_fps = self.capture_fps.get_fps()
@@ -548,3 +746,29 @@ class WebPostureMonitor:
             print(f"手动设置处理分辨率为 {self.process_width}x{self.process_height}")
         
         return True
+
+    def _find_available_cameras(self):
+        """查找系统中所有可用的摄像头并返回可用的索引列表"""
+        available_cameras = []
+        
+        # 尝试前10个摄像头索引
+        for i in range(10):
+            try:
+                cap = cv2.VideoCapture(i)
+                if cap.isOpened():
+                    ret, frame = cap.read()
+                    if ret and frame is not None:
+                        print(f"摄像头索引 {i} 可用，分辨率: {frame.shape[1]}x{frame.shape[0]}")
+                        available_cameras.append(i)
+                    else:
+                        print(f"摄像头索引 {i} 打开成功但无法读取帧")
+                cap.release()
+            except Exception as e:
+                print(f"测试摄像头索引 {i} 失败: {e}")
+        
+        if available_cameras:
+            print(f"找到 {len(available_cameras)} 个可用摄像头: {available_cameras}")
+        else:
+            print("未找到任何可用摄像头")
+        
+        return available_cameras

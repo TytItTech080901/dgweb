@@ -19,26 +19,75 @@ from modules.routes import routes_bp, setup_services
 
 def create_app():
     """创建并配置Flask应用"""
+    print("\n========== 开始初始化应用 ==========")
     # 初始化Flask应用
     app = Flask(__name__)
     
     # 注册路由蓝图
     app.register_blueprint(routes_bp)
+    print("路由蓝图注册完成")
     
     # 初始化数据库
     init_database()
+    print("数据库初始化完成")
     
     # 初始化视频流处理器
-    video_stream_handler = VideoStreamHandler(
-        process_width=PROCESS_WIDTH,
-        process_height=PROCESS_HEIGHT
-    )
+    try:
+        print("正在初始化视频流处理器...")
+        video_stream_handler = VideoStreamHandler(
+            process_width=PROCESS_WIDTH,
+            process_height=PROCESS_HEIGHT
+        )
+        print("视频流处理器初始化成功")
+    except Exception as e:
+        print(f"视频流处理器初始化失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        video_stream_handler = None
     
-    # 初始化串口通信处理器
-    serial_handler = SerialCommunicationHandler(baudrate=SERIAL_BAUDRATE)
+    # 初始化姿势分析器 (先于串口初始化，确保其不依赖串口)
+    try:
+        print("正在初始化姿势分析器...")
+        posture_monitor = WebPostureMonitor(video_stream_handler=video_stream_handler)
+        print("姿势分析器初始化成功")
+    except Exception as e:
+        print(f"姿势分析器初始化失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        posture_monitor = None
     
-    # 初始化姿势分析器
-    posture_monitor = WebPostureMonitor(video_stream_handler=video_stream_handler)
+    # 自动启动姿势分析系统
+    if posture_monitor:
+        try:
+            print("正在启动姿势分析系统...")
+            posture_start_success = posture_monitor.start()
+            if posture_start_success:
+                print("姿势分析系统自动启动成功")
+            else:
+                print("警告：姿势分析系统自动启动失败，请手动启动")
+        except Exception as e:
+            print(f"启动姿势分析系统时出错: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            posture_start_success = False
+    else:
+        print("姿势分析器未成功初始化，无法启动姿势分析系统")
+        posture_start_success = False
+    
+    # 尝试初始化串口通信处理器，允许失败
+    try:
+        serial_handler = SerialCommunicationHandler(baudrate=SERIAL_BAUDRATE)
+        serial_available = serial_handler is not None and hasattr(serial_handler, 'initialized') and serial_handler.initialized
+    except Exception as e:
+        print(f"串口通信初始化失败，但不影响姿势分析系统: {str(e)}")
+        serial_handler = None
+        serial_available = False
+    
+    # 通知用户串口和姿势分析系统的状态
+    if serial_available:
+        print("串口通信系统初始化成功")
+    else:
+        print("串口通信系统未启动，但姿势分析系统可以正常工作")
     
     # 设置路由模块依赖的服务
     setup_services(
@@ -52,7 +101,7 @@ def create_app():
         print("正在关闭服务器...")
         if posture_monitor:
             posture_monitor.stop()
-        if serial_handler:
+        if serial_handler and serial_available:
             serial_handler.cleanup()
     
     atexit.register(cleanup)

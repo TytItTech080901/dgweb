@@ -4,6 +4,7 @@
 from flask import Blueprint, render_template, jsonify, request, Response, stream_with_context
 import json
 import queue
+import time
 from modules.database_module import save_record_to_db, get_history_records, clear_history
 from modules.posture_module import WebPostureMonitor, posture_params
 
@@ -148,7 +149,15 @@ def frame_events():
     """SSE端点，向前端推送接收到的帧数据"""
     def event_stream():
         if not serial_handler:
-            yield f"data: {json.dumps({'error': '串口未初始化'})}\n\n"
+            # 如果串口未初始化，发送空闲状态信息而不是立即退出
+            yield f"data: {json.dumps({'status': 'idle', 'message': '串口未初始化', 'type': 'status'})}\n\n"
+            # 每30秒发送一次心跳保持连接
+            while True:
+                try:
+                    time.sleep(30)
+                    yield f"data: {json.dumps({'type': 'heartbeat'})}\n\n"
+                except Exception:
+                    break
             return
             
         frame_queue = serial_handler.get_frame_queue()
@@ -248,18 +257,37 @@ def stop_posture_analysis():
 @routes_bp.route('/get_pose_status')
 def get_pose_status():
     """获取当前姿势分析状态"""
-    global posture_monitor
+    global posture_monitor, video_stream_handler
     
     try:
-        if not posture_monitor:
-            return jsonify({
-                'status': 'error',
-                'message': '姿势分析系统未初始化',
-                'is_running': False,
-                'pose_data': None,
-                'emotion_data': None
-            })
+        print("DEBUG: 请求获取姿势分析状态")
         
+        # 检查是否有视频流但姿势分析未初始化的情况
+        if not posture_monitor:
+            print("WARNING: 姿势分析系统对象未初始化，但前端请求了状态")
+            # 检查视频流处理器是否在工作
+            if video_stream_handler:
+                # 视频流正常但姿势分析未初始化，尝试修正状态
+                print("INFO: 视频流处理器存在但姿势分析未初始化")
+                return jsonify({
+                    'status': 'partial',  # 新状态：部分可用
+                    'message': '视频流可用但姿势分析未正确初始化',
+                    'is_running': False,
+                    'pose_data': {'status': 'Video Only', 'angle': 0, 'is_bad_posture': False, 'is_occluded': True},
+                    'emotion_data': {'emotion': 'UNKNOWN', 'emotion_code': -1}
+                })
+            else:
+                print("ERROR: 姿势分析系统和视频流均未初始化")
+                return jsonify({
+                    'status': 'error',
+                    'message': '姿势分析系统未初始化',
+                    'is_running': False,
+                    'pose_data': None,
+                    'emotion_data': None
+                })
+        
+        # 正常情况下返回完整状态信息
+        print(f"DEBUG: 姿势分析系统状态 - 运行中: {posture_monitor.is_running}")
         return jsonify({
             'status': 'success',
             'message': '获取姿势分析状态成功',
@@ -268,6 +296,9 @@ def get_pose_status():
             'emotion_data': posture_monitor.emotion_result
         })
     except Exception as e:
+        print(f"ERROR: 获取姿势分析状态出错: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'status': 'error',
             'message': f'获取姿势分析状态出错: {str(e)}',
@@ -378,10 +409,14 @@ def update_emotion_params():
 @routes_bp.route('/video_pose')
 def video_pose():
     """姿势检测视频流端点"""
+    print("DEBUG: 请求姿势检测视频流")
+    
     if not video_stream_handler:
+        print("ERROR: 视频流处理器未初始化")
         # 返回空的响应
         return Response("视频流处理器未初始化", status=500)
-        
+    
+    print("DEBUG: 开始生成姿势视频流响应")
     return Response(
         video_stream_handler.generate_video_frames(video_stream_handler.get_pose_frame_queue(), is_pose_stream=True),
         mimetype='multipart/x-mixed-replace; boundary=frame'
@@ -391,10 +426,14 @@ def video_pose():
 @routes_bp.route('/video_emotion')
 def video_emotion():
     """情绪分析视频流端点"""
+    print("DEBUG: 请求情绪分析视频流")
+    
     if not video_stream_handler:
+        print("ERROR: 视频流处理器未初始化")
         # 返回空的响应
         return Response("视频流处理器未初始化", status=500)
-        
+    
+    print("DEBUG: 开始生成情绪视频流响应")
     return Response(
         video_stream_handler.generate_video_frames(video_stream_handler.get_emotion_frame_queue(), is_pose_stream=False),
         mimetype='multipart/x-mixed-replace; boundary=frame'

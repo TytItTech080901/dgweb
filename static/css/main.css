@@ -1,0 +1,213 @@
+/* main.css - 主样式文件 */
+body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 20px;
+    background-color: #f5f5f5;
+}
+
+.container {
+    max-width: 1200px;
+    margin: 0 auto;
+    background-color: #fff;
+    padding: 20px;
+    border-radius: 5px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.1);
+}
+
+h1 {
+    text-align: center;
+    color: #333;
+    margin-bottom: 30px;
+}
+
+/* 标签页样式 */
+.tab-container {
+    display: flex;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ddd;
+}
+
+.tab {
+    padding: 10px 20px;
+    cursor: pointer;
+    background-color: #f0f0f0;
+    border: 1px solid #ddd;
+    border-bottom: none;
+    border-radius: 5px 5px 0 0;
+    margin-right: 5px;
+}
+
+.tab.active {
+    background-color: #fff;
+    border-bottom: 1px solid #fff;
+    margin-bottom: -1px;
+}
+
+.tab-content {
+    display: none;
+}
+
+.tab-content.active {
+    display: block;
+}
+
+/* 控制面板样式 */
+.control-panel {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background-color: #f9f9f9;
+    padding: 15px;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    border: 1px solid #ddd;
+}
+
+button {
+    padding: 8px 16px;
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+button:hover {
+    background-color: #45a049;
+}
+
+button.red {
+    background-color: #f44336;
+}
+
+button.red:hover {
+    background-color: #d32f2f;
+}
+
+/* 视频容器样式 */
+.video-container {
+    display: flex;
+    justify-content: space-between;
+    flex-wrap: wrap;
+}
+
+.video-box {
+    width: 48%;
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    margin-bottom: 20px;
+    overflow: hidden;
+}
+
+.video-title {
+    background-color: #f0f0f0;
+    padding: 10px;
+    font-weight: bold;
+    border-bottom: 1px solid #ddd;
+}
+
+.video-box img {
+    width: 100%;
+    display: block;
+}
+
+/* 状态容器样式 */
+.status-container {
+    padding: 10px;
+    background-color: #f9f9f9;
+}
+
+.status-item {
+    margin-bottom: 8px;
+}
+
+.status-label {
+    font-weight: bold;
+    display: inline-block;
+    width: 100px;
+}
+
+.status-value {
+    color: #2196F3;
+    font-weight: bold;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .video-box {
+        width: 100%;
+    }
+}
+
+/* 状态指示器样式 */
+.status-running {
+    color: #4CAF50;
+    font-weight: bold;
+}
+
+.status-stopped {
+    color: #FF9800;
+    font-weight: bold;
+}
+
+.status-error {
+    color: #F44336;
+    font-weight: bold;
+}
+
+.status-partial {
+    color: #2196F3;
+    font-weight: bold;
+}
+
+/* 姿势状态样式 */
+.good-posture {
+    color: #4CAF50;
+}
+
+.bad-posture {
+    color: #F44336;
+}
+
+.occluded {
+    color: #FF9800;
+}
+
+.detected {
+    color: #4CAF50;
+}
+
+/* 新增通知样式 */
+.notification {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    padding: 15px;
+    border-radius: 5px;
+    color: white;
+    font-weight: bold;
+    z-index: 1000;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    animation: fadeInOut 5s forwards;
+}
+
+.notification.success {
+    background-color: #4CAF50;
+}
+
+.notification.error {
+    background-color: #F44336;
+}
+
+.notification.info {
+    background-color: #2196F3;
+}
+
+@keyframes fadeInOut {
+    0% { opacity: 0; }
+    10% { opacity: 1; }
+    90% { opacity: 1; }
+    100% { opacity: 0; }
+}

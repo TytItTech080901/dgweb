@@ -1,0 +1,129 @@
+/* fps_control.css - 帧率与分辨率控制样式 */
+.control-panel-fps {
+    border: 1px solid #ddd;
+    border-radius: 5px;
+    padding: 15px;
+    margin-bottom: 20px;
+    background: #f9f9f9;
+}
+
+.control-panel-title {
+    font-size: 18px;
+    font-weight: bold;
+    margin-bottom: 15px;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 8px;
+}
+
+.fps-container {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 20px;
+    flex-wrap: wrap;
+}
+
+.fps-box {
+    width: 31%;
+    border: 1px solid #ddd;
+    padding: 10px;
+    border-radius: 5px;
+    background: #f0f0f0;
+    text-align: center;
+}
+
+.fps-title {
+    font-weight: bold;
+    font-size: 16px;
+    margin-bottom: 5px;
+    color: #333;
+    border-bottom: 1px solid #ddd;
+    padding-bottom: 5px;
+}
+
+.fps-value {
+    font-size: 22px;
+    font-weight: bold;
+    color: #2196F3;
+}
+
+.fps-label {
+    font-size: 12px;
+    color: #666;
+    margin-top: 3px;
+}
+
+.resolution-control {
+    margin-top: 15px;
+}
+
+.resolution-row {
+    display: flex;
+    margin-bottom: 15px;
+    align-items: center;
+}
+
+.resolution-label {
+    width: 150px;
+    font-weight: bold;
+}
+
+.resolution-input {
+    flex: 1;
+}
+
+.quality-slider {
+    flex: 1;
+    margin-right: 10px;
+}
+
+.apply-button {
+    background-color: #4CAF50;
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 4px;
+    cursor: pointer;
+}
+
+.apply-button:hover {
+    background-color: #45a049;
+}
+
+/* FPS状态指示器 */
+.fps-indicator {
+    display: inline-block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    margin-left: 5px;
+}
+
+.fps-good {
+    background-color: #4CAF50;
+}
+
+.fps-medium {
+    background-color: #FFC107;
+}
+
+.fps-low {
+    background-color: #F44336;
+}
+
+/* 响应式设计 */
+@media (max-width: 768px) {
+    .fps-box {
+        width: 100%;
+        margin-bottom: 10px;
+    }
+    
+    .resolution-row {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+    
+    .resolution-label {
+        width: 100%;
+        margin-bottom: 5px;
+    }
+}

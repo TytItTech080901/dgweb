@@ -15,6 +15,9 @@ DB_CONFIG = {
     'database': 'serial_data'
 }
 
+# 调试配置
+DEBUG = False  # 设置为True开启调试模式，False关闭调试模式
+
 # 串口配置
 SERIAL_BAUDRATE = 115200
 
