@@ -188,9 +188,17 @@
             <div class="control-box">
                 <h3>情绪分析参数调整</h3>
                 <div class="emotion-params">
+                    <!-- 添加解释文本 -->
+                    <div class="param-guide">
+                        <p>通过调整以下参数可以提高情绪检测的精确度，适应不同人群和环境光线条件。合理的参数可以显著改善检测效果。</p>
+                    </div>
+                    
                     <form id="emotionParamsForm">
                         <div class="form-group">
                             <label>情绪平滑窗口大小 (帧数):</label>
+                            <div class="param-description">
+                                <small>控制情绪状态的稳定性。较大的值使情绪变化更平滑但响应更慢，较小的值使响应更敏感但可能不稳定。光线良好时推荐5-10，光线不足时推荐7-15。</small>
+                            </div>
                             <div class="range-control">
                                 <input type="range" id="smoothingWindowSlider" name="emotion_smoothing_window" min="1" max="30" step="1" value="7" oninput="updateRangeValue('smoothingWindowSlider', 'smoothingWindowValue')">
                                 <span id="smoothingWindowValue" class="range-value">7</span>
@@ -199,6 +207,9 @@
                         
                         <div class="form-group">
                             <label>嘴部开合比阈值 (笑容检测):</label>
+                            <div class="param-description">
+                                <small>判断微笑的敏感度。值越低越容易判定为微笑，值越高则需要更明显的笑容。亚洲面孔建议0.35-0.45，西方面孔建议0.4-0.5。笑容检测不准确时调整此参数。</small>
+                            </div>
                             <div class="range-control">
                                 <input type="range" id="mouthRatioSlider" name="mouth_open_ratio_threshold" min="0.1" max="1.0" step="0.01" value="0.45" oninput="updateRangeValue('mouthRatioSlider', 'mouthRatioValue')">
                                 <span id="mouthRatioValue" class="range-value">0.45</span>
@@ -207,6 +218,9 @@
                         
                         <div class="form-group">
                             <label>眼睛开合比阈值 (闭眼检测):</label>
+                            <div class="param-description">
+                                <small>判断眼睛闭合的敏感度。值越低越容易判定为闭眼，值越高则需要更明显的闭眼动作。单眼皮人群建议调低至0.15-0.2，双眼皮人群建议0.2-0.3。经常误判闭眼时调整此参数。</small>
+                            </div>
                             <div class="range-control">
                                 <input type="range" id="eyeRatioSlider" name="eye_open_ratio_threshold" min="0.05" max="0.5" step="0.01" value="0.25" oninput="updateRangeValue('eyeRatioSlider', 'eyeRatioValue')">
                                 <span id="eyeRatioValue" class="range-value">0.25</span>
@@ -215,6 +229,9 @@
                         
                         <div class="form-group">
                             <label>眉毛下压阈值 (皱眉检测):</label>
+                            <div class="param-description">
+                                <small>判断皱眉/生气表情的敏感度。值越低越容易判定为皱眉，值越高则需要更明显的皱眉动作。容易被误判为生气时，可以调高至0.05-0.08；表情丰富者可调低至0.02-0.04。</small>
+                            </div>
                             <div class="range-control">
                                 <input type="range" id="browThresholdSlider" name="brow_down_threshold" min="0.01" max="0.2" step="0.01" value="0.04" oninput="updateRangeValue('browThresholdSlider', 'browThresholdValue')">
                                 <span id="browThresholdValue" class="range-value">0.04</span>
@@ -222,7 +239,18 @@
                         </div>
                     </form>
                     
-                    <button onclick="saveEmotionParams()">应用参数</button>
+                    <div class="param-tips">
+                        <h4>调参技巧：</h4>
+                        <ul>
+                            <li><strong>逐一调整</strong>：一次只调整一个参数，观察效果后再调整下一个</li>
+                            <li><strong>小步调整</strong>：每次只小幅调整参数值（±5-10%），避免大幅变化</li>
+                            <li><strong>测试表情</strong>：调整时请做出明显的表情（微笑、皱眉、闭眼等）验证效果</li>
+                            <li><strong>环境光线</strong>：确保面部光线充足且均匀，避免侧光或背光</li>
+                            <li><strong>记录结果</strong>：找到最佳参数后记录下来，不同使用者可能需要不同配置</li>
+                        </ul>
+                    </div>
+                    
+                    <button onclick="saveEmotionParams()" class="apply-params-button">应用参数</button>
                 </div>
             </div>
         </div>

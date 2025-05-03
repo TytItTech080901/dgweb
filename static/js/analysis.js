@@ -60,8 +60,8 @@ function saveEmotionParams() {
         params[key] = parseFloat(value);
     }
     
-    // 发送请求
-    fetch('/set_emotion_params', {
+    // 发送请求 - 使用正确的API路径/update_emotion_params
+    fetch('/update_emotion_params', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'

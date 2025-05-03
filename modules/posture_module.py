@@ -60,16 +60,23 @@ posture_params = {
 # 分辨率和性能相关参数
 DEFAULT_PROCESS_WIDTH = PROCESS_WIDTH
 DEFAULT_PROCESS_HEIGHT = PROCESS_HEIGHT
+
+# 更新处理分辨率级别，设置320x240为最低分辨率
 RESOLUTION_LEVELS = [
     (640, 480),   # 高分辨率
     (480, 360),   # 中分辨率
-    (320, 240),   # 低分辨率
-    (240, 180)    # 极低分辨率
+    (320, 240)    # 最低分辨率 - 不再使用更低的分辨率以保证分析质量
 ]
 TARGET_FPS = 25.0  # 目标帧率
 FPS_THRESHOLD_LOW = 15.0  # 低帧率阈值，低于此值降低分辨率
 FPS_THRESHOLD_HIGH = 28.0  # 高帧率阈值，高于此值可以尝试提高分辨率
 RESOLUTION_ADJUST_INTERVAL = 5.0  # 分辨率调整间隔（秒）
+
+# 摄像头优化配置
+CAMERA_BUFFER_SIZE = 1  # 摄像头缓冲区大小
+CAMERA_API_PREFERENCE = cv2.CAP_V4L2  # Linux上使用V4L2后端
+CAMERA_FPS_TARGET = 30  # 摄像头目标帧率
+CAMERA_FOURCC_OPTIONS = ['MJPG', 'YUYV', 'RGB3']  # 优先使用MJPG编码
 
 # 帧率计算类
 class FPSCounter:
@@ -109,6 +116,12 @@ class FPSCounter:
     def get_total_frames(self):
         """获取总帧数"""
         return self.total_frames
+    
+    def reset(self):
+        """重置帧率计数器"""
+        self.timestamps.clear()
+        self.last_fps = 0
+        # 不重置total_frames，这样可以保留总计数
 
 class WebPostureMonitor:
     """适配Web服务的姿势监测器"""
@@ -128,8 +141,10 @@ class WebPostureMonitor:
         self.adaptive_resolution = True  # 是否启用自适应分辨率
         
         # 初始化摄像头参数
-        self.camera_fps = 30  # 尝试设置摄像头的FPS
-        self.camera_buffer_size = 1  # 摄像头缓冲区大小，小值减少延迟
+        self.camera_fps = CAMERA_FPS_TARGET
+        self.camera_buffer_size = CAMERA_BUFFER_SIZE
+        self.camera_api = CAMERA_API_PREFERENCE
+        self.camera_fourcc = None
         
         # 初始化帧率计数器
         self.capture_fps = FPSCounter()  # 摄像头捕获帧率
@@ -159,6 +174,56 @@ class WebPostureMonitor:
         self.occlusion_counter = 0
         self.clear_counter = 0
         self.last_valid_angle = None
+        
+        # 性能优化参数
+        self.use_separate_grab_retrieve = True  # 使用分离的grab和retrieve操作提高性能
+        self.skip_frames_when_slow = True  # 在处理过慢时允许跳帧
+        self.skip_count = 0  # 当前跳帧计数
+        self.max_consecutive_skips = 3  # 最大连续跳帧数
+        
+        # 性能监控
+        self.performance_stats = {
+            'camera_errors': 0,
+            'processing_times': deque(maxlen=100),
+            'skipped_frames': 0,
+            'last_reconnect_time': 0,
+            'reconnect_interval': 10.0  # 重连间隔（秒）
+        }
+        
+        # 采样策略
+        self.resize_method = 'subsampling'  # 'resize' 或 'subsampling'
+    
+    # 新增跳采样方法
+    def _resize_with_subsampling(self, frame, target_width, target_height):
+        """使用跳采样而非直接缩放来调整分辨率，保持原始视角
+        
+        Args:
+            frame: 原始帧图像
+            target_width: 目标宽度
+            target_height: 目标高度
+        
+        Returns:
+            调整后的帧图像
+        """
+        if frame is None:
+            return None
+            
+        h, w = frame.shape[:2]
+        
+        # 计算跳采样间隔
+        step_x = max(1, w // target_width)
+        step_y = max(1, h // target_height)
+        
+        # 进行跳采样
+        subsampled = frame[::step_y, ::step_x]
+        
+        # 如果跳采样后的尺寸与目标尺寸不完全匹配，进行最小程度的缩放调整
+        actual_h, actual_w = subsampled.shape[:2]
+        if actual_w != target_width or actual_h != target_height:
+            return cv2.resize(subsampled, (target_width, target_height), 
+                             interpolation=cv2.INTER_NEAREST)
+        
+        return subsampled
     
     def start(self):
         """启动姿势分析线程"""
@@ -182,12 +247,20 @@ class WebPostureMonitor:
                 self.pose = mp_pose.Pose(
                     static_image_mode=False,    # 视频流模式
                     model_complexity=1,         # 模型复杂度（0-2）降低以提高性能
+                    smooth_landmarks=True,      # 启用关键点平滑
                     min_detection_confidence=0.6, # 降低到0.6以提高检测率
                     min_tracking_confidence=0.5
                 )
                 
                 # 创建情绪分析器实例
                 self.emotion_analyzer = EmotionAnalyzer()
+                
+                # 重置计数器和性能统计
+                self.capture_fps.reset()
+                self.pose_process_fps.reset()
+                self.emotion_process_fps.reset()
+                self.performance_stats['camera_errors'] = 0
+                self.performance_stats['skipped_frames'] = 0
                 
                 # 启动处理线程
                 self.thread = threading.Thread(target=self._process_frames)
@@ -237,7 +310,7 @@ class WebPostureMonitor:
                 for camera_index in available_cameras:
                     try:
                         print(f"尝试初始化摄像头索引 {camera_index}...")
-                        self.cap = cv2.VideoCapture(camera_index)
+                        self.cap = cv2.VideoCapture(camera_index, self.camera_api)
                         if self.cap.isOpened():
                             # 读取一帧验证相机是否真正可用
                             ret, test_frame = self.cap.read()
@@ -258,7 +331,7 @@ class WebPostureMonitor:
                 try:
                     print("尝试直接访问Bus 006上的摄像头 (索引6)...")
                     # 使用V4L2后端，这在Linux上对USB摄像头效果更好
-                    self.cap = cv2.VideoCapture(6, cv2.CAP_V4L2)
+                    self.cap = cv2.VideoCapture(6, self.camera_api)
                     if self.cap.isOpened():
                         ret, test_frame = self.cap.read()
                         if ret and test_frame is not None:
@@ -276,7 +349,7 @@ class WebPostureMonitor:
                         continue  # 已经尝试过
                     try:
                         print(f"尝试初始化扩展搜索摄像头索引 {camera_index}...")
-                        self.cap = cv2.VideoCapture(camera_index, cv2.CAP_V4L2)
+                        self.cap = cv2.VideoCapture(camera_index, self.camera_api)
                         if self.cap.isOpened():
                             ret, test_frame = self.cap.read()
                             if ret and test_frame is not None:
@@ -295,7 +368,7 @@ class WebPostureMonitor:
                 for dev_path in ["/dev/video0", "/dev/video1", "/dev/video2", "/dev/video6"]:
                     try:
                         print(f"尝试使用设备路径 {dev_path} 访问摄像头...")
-                        self.cap = cv2.VideoCapture(dev_path, cv2.CAP_V4L2)
+                        self.cap = cv2.VideoCapture(dev_path, self.camera_api)
                         if self.cap.isOpened():
                             ret, test_frame = self.cap.read()
                             if ret and test_frame is not None:
@@ -320,57 +393,8 @@ class WebPostureMonitor:
             
             print(f"摄像头原始属性: {original_width}x{original_height}@{original_fps}fps")
             
-            # 专门针对Microdia USB 2.0相机(0c45:636b)的配置
-            try:
-                print("检测到Microdia USB 2.0相机，应用专用配置...")
-                
-                # Microdia相机通常支持这些分辨率
-                microdia_resolutions = [(640, 480), (352, 288), (320, 240)]
-                resolution_set = False
-                
-                for width, height in microdia_resolutions:
-                    self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
-                    self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
-                    
-                    # 确认是否设置成功
-                    actual_width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-                    actual_height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-                    
-                    if abs(actual_width - width) < 30 and abs(actual_height - height) < 30:
-                        print(f"成功设置Microdia相机分辨率: {width}x{height}")
-                        resolution_set = True
-                        break
-                
-                # 尝试设置其他参数
-                self.cap.set(cv2.CAP_PROP_FPS, 15)  # 降低帧率以提高稳定性
-                self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 最小缓冲区减少延迟
-                
-                # 尝试不同的格式
-                for fourcc_code in ['MJPG', 'YUYV', 'RGB3']:
-                    try:
-                        fourcc = cv2.VideoWriter_fourcc(*fourcc_code)
-                        self.cap.set(cv2.CAP_PROP_FOURCC, fourcc)
-                        # 读取一帧测试格式是否生效
-                        ret, test = self.cap.read()
-                        if ret:
-                            print(f"成功应用{fourcc_code}格式")
-                            break
-                    except Exception as e:
-                        print(f"设置{fourcc_code}格式失败: {e}")
-                
-                # 验证最终配置
-                ret, test_frame = self.cap.read()
-                if ret and test_frame is not None:
-                    actual_width = test_frame.shape[1]
-                    actual_height = test_frame.shape[0]
-                    print(f"Microdia相机配置验证成功，实际帧大小: {actual_width}x{actual_height}")
-                else:
-                    print("警告: Microdia相机配置后无法读取帧，将尝试使用默认配置")
-                    # 重新打开摄像头使用默认配置
-                    self.cap.release()
-                    self.cap = cv2.VideoCapture(6, cv2.CAP_V4L2)
-            except Exception as e:
-                print(f"应用Microdia相机专用配置失败(非致命错误): {e}")
+            # 优化摄像头配置以提高捕获帧率
+            self._optimize_camera_settings()
             
             # 验证摄像头是否能够正常读取帧
             ret, test_frame = self.cap.read()
@@ -394,12 +418,16 @@ class WebPostureMonitor:
             except:
                 print(f"摄像头最终配置: {actual_width}x{actual_height}@{actual_fps}fps")
             
+            # 测试实际帧率
+            measured_fps = self._test_camera_fps(self.cap, frames=15)
+            print(f"测量的实际摄像头帧率: {measured_fps:.1f} FPS")
+            
             # 重置帧率计数器
             self.capture_fps = FPSCounter()
             self.pose_process_fps = FPSCounter()
             self.emotion_process_fps = FPSCounter()
             
-            # 初始化遮挡计数器（之前代码中缺少这些初始化）
+            # 初始化遮挡计数器
             self.occlusion_counter = 0
             self.clear_counter = 0
             self.last_valid_angle = None
@@ -410,6 +438,76 @@ class WebPostureMonitor:
             if self.cap:
                 self.cap.release()
                 self.cap = None
+            return False
+    
+    def _optimize_camera_settings(self):
+        """优化摄像头设置以提高性能"""
+        try:
+            if not self.cap or not self.cap.isOpened():
+                return False
+            
+            # 设置缓冲区大小为1，减少延迟
+            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, self.camera_buffer_size)
+            
+            # 尝试设置目标FPS
+            self.cap.set(cv2.CAP_PROP_FPS, self.camera_fps)
+            
+            # 尝试不同的编码格式，优先使用MJPG
+            best_format = None
+            best_fps = 0
+            
+            for fourcc_code in CAMERA_FOURCC_OPTIONS:
+                try:
+                    fourcc = cv2.VideoWriter_fourcc(*fourcc_code)
+                    self.cap.set(cv2.CAP_PROP_FOURCC, fourcc)
+                    # 读取一帧测试格式是否生效
+                    ret, test = self.cap.read()
+                    if ret:
+                        # 测试这个格式下的帧率
+                        test_fps = self._test_camera_fps(self.cap, frames=10)
+                        print(f"{fourcc_code} 格式下测得帧率: {test_fps:.1f} FPS")
+                        
+                        if test_fps > best_fps:
+                            best_fps = test_fps
+                            best_format = fourcc_code
+                            self.camera_fourcc = fourcc
+                except Exception as e:
+                    print(f"设置 {fourcc_code} 格式失败: {e}")
+            
+            if best_format:
+                print(f"选择最佳格式: {best_format} 帧率: {best_fps:.1f} FPS")
+                # 再次设置最佳格式
+                fourcc = cv2.VideoWriter_fourcc(*best_format)
+                self.cap.set(cv2.CAP_PROP_FOURCC, fourcc)
+            
+            # 尝试不同的分辨率以找到最佳性能
+            resolutions_to_try = [(640, 480), (480, 360), (320, 240)]
+            
+            for width, height in resolutions_to_try:
+                self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, width)
+                self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, height)
+                
+                # 检查设置是否成功
+                actual_width = self.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
+                actual_height = self.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
+                
+                print(f"尝试设置分辨率 {width}x{height}, 实际: {actual_width}x{actual_height}")
+                
+                # 只有在成功设置到接近目标分辨率时才进行测试
+                if abs(actual_width - width) < 30 and abs(actual_height - height) < 30:
+                    ret, test = self.cap.read()
+                    if ret:
+                        fps = self._test_camera_fps(self.cap, frames=10)
+                        print(f"分辨率 {width}x{height} 下测得帧率: {fps:.1f} FPS")
+                        
+                        # 如果帧率超过15fps就可以使用这个分辨率
+                        if fps >= 15:
+                            print(f"选择分辨率 {width}x{height} 帧率足够")
+                            break
+            
+            return True
+        except Exception as e:
+            print(f"优化摄像头设置失败(非致命错误): {e}")
             return False
     
     def _test_camera_fps(self, cap, frames=20):
@@ -423,13 +521,23 @@ class WebPostureMonitor:
             
         # 测量获取指定数量帧所需的时间
         start_time = time.time()
+        frames_read = 0
+        
         for _ in range(frames):
-            cap.grab()
+            if self.use_separate_grab_retrieve:
+                if cap.grab():
+                    _, _ = cap.retrieve()
+                    frames_read += 1
+            else:
+                ret, _ = cap.read()
+                if ret:
+                    frames_read += 1
+        
         end_time = time.time()
         
         elapsed_time = end_time - start_time
-        if elapsed_time > 0:
-            return frames / elapsed_time
+        if elapsed_time > 0 and frames_read > 0:
+            return frames_read / elapsed_time
         else:
             return 0
     
@@ -450,6 +558,10 @@ class WebPostureMonitor:
             self.process_width, self.process_height = RESOLUTION_LEVELS[self.current_resolution_index]
             print(f"帧率过低 ({process_fps:.1f} FPS)，降低处理分辨率至 {self.process_width}x{self.process_height}")
             self.last_resolution_adjust_time = current_time
+            
+            # 重置帧率计数器
+            self.pose_process_fps.reset()
+            self.emotion_process_fps.reset()
         
         # 当帧率足够高时提高分辨率
         elif process_fps > FPS_THRESHOLD_HIGH and self.current_resolution_index > 0:
@@ -457,6 +569,39 @@ class WebPostureMonitor:
             self.process_width, self.process_height = RESOLUTION_LEVELS[self.current_resolution_index]
             print(f"帧率足够高 ({process_fps:.1f} FPS)，提高处理分辨率至 {self.process_width}x{self.process_height}")
             self.last_resolution_adjust_time = current_time
+            
+            # 重置帧率计数器
+            self.pose_process_fps.reset()
+            self.emotion_process_fps.reset()
+    
+    def _adjust_skip_frame_strategy(self):
+        """根据当前处理性能调整跳帧策略"""
+        if not self.skip_frames_when_slow:
+            self.skip_count = 0
+            return False
+        
+        # 计算平均处理时间
+        avg_processing_time = 0
+        if self.performance_stats['processing_times']:
+            avg_processing_time = sum(self.performance_stats['processing_times']) / len(self.performance_stats['processing_times'])
+        
+        # 处理时间超过帧间时间的90%时需要跳帧
+        frame_time = 1.0 / self.camera_fps if self.camera_fps > 0 else 0.033  # 默认30fps
+        
+        if avg_processing_time > frame_time * 0.9:
+            # 需要跳帧但不超过最大连续跳帧数
+            if self.skip_count < self.max_consecutive_skips:
+                self.skip_count += 1
+                self.performance_stats['skipped_frames'] += 1
+                return True
+            else:
+                # 达到最大跳帧数，重置计数并处理这一帧
+                self.skip_count = 0
+                return False
+        else:
+            # 处理时间可接受，不需要跳帧
+            self.skip_count = 0
+            return False
     
     def _process_frames(self):
         """处理视频帧的主循环"""
@@ -465,51 +610,105 @@ class WebPostureMonitor:
         
         last_fps_update_time = time.time()
         consecutive_read_failures = 0
+        last_frame_time = time.time()
+        last_reconnect_time = time.time()
         
         while self.is_running and self.cap and self.cap.isOpened():
             try:
-                # 读取帧，使用grabbing和retrieving分离方式提高效率
-                grabbed = self.cap.grab()
-                if not grabbed:
-                    consecutive_read_failures += 1
-                    if consecutive_read_failures > 5:
-                        print("连续多次无法获取摄像头帧，尝试重新初始化摄像头...")
-                        self._init_camera()
-                        consecutive_read_failures = 0
-                    time.sleep(0.01)
-                    continue
+                current_time = time.time()
                 
+                # 如果摄像头出现多次错误，尝试重新连接摄像头
+                if consecutive_read_failures > 5 and (current_time - self.performance_stats['last_reconnect_time']) > self.performance_stats['reconnect_interval']:
+                    print(f"连续 {consecutive_read_failures} 次读取失败，尝试重新初始化摄像头...")
+                    self.cap.release()
+                    success = self._init_camera()
+                    if not success:
+                        print("重新初始化摄像头失败，暂停1秒后重试")
+                        time.sleep(1)
+                        continue
+                    consecutive_read_failures = 0
+                    self.performance_stats['last_reconnect_time'] = current_time
+                
+                # 使用分离的grab和retrieve方法提高性能
+                if self.use_separate_grab_retrieve:
+                    grabbed = self.cap.grab()
+                    if not grabbed:
+                        consecutive_read_failures += 1
+                        self.performance_stats['camera_errors'] += 1
+                        time.sleep(0.01)
+                        continue
+                    
+                    ret, frame = self.cap.retrieve()
+                    if not ret:
+                        consecutive_read_failures += 1
+                        self.performance_stats['camera_errors'] += 1
+                        print("无法读取摄像头帧")
+                        time.sleep(0.01)
+                        continue
+                else:
+                    # 常规读取模式
+                    ret, frame = self.cap.read()
+                    if not ret:
+                        consecutive_read_failures += 1
+                        self.performance_stats['camera_errors'] += 1
+                        print("无法读取摄像头帧")
+                        time.sleep(0.01)
+                        continue
+                
+                # 重置错误计数器
                 consecutive_read_failures = 0
-                ret, frame = self.cap.retrieve()
-                if not ret:
-                    print("无法读取摄像头帧")
-                    time.sleep(0.01)
-                    continue
                 
                 # 更新捕获帧率
                 self.capture_fps.update()
                 
+                # 计算帧间隔
+                frame_interval = current_time - last_frame_time
+                last_frame_time = current_time
+                
+                # 检查是否需要跳过这一帧以提高性能
+                if self._adjust_skip_frame_strategy():
+                    # 跳过这一帧，但仍提供最后处理的结果给视频流
+                    continue
+                
                 # 每隔一段时间检查并调整处理分辨率
                 self._adjust_processing_resolution()
                 
-                # 调整帧尺寸进行处理
-                processed_frame = cv2.resize(frame, (self.process_width, self.process_height))
+                # 记录处理开始时间
+                process_start_time = time.time()
+                
+                # 调整帧尺寸进行处理 - 根据设置使用跳采样或传统缩放
+                if self.resize_method == 'subsampling':
+                    # 使用跳采样方法以保持原始视角
+                    processed_frame = self._resize_with_subsampling(frame, self.process_width, self.process_height)
+                else:
+                    # 使用传统缩放方法
+                    processed_frame = cv2.resize(frame, (self.process_width, self.process_height))
+                
                 pose_frame = processed_frame.copy()
                 emotion_frame = processed_frame.copy()
                 
                 # 处理姿势
-                pose_start_time = time.time()
                 pose_results = self._process_pose(pose_frame)
                 self.pose_process_fps.update()  # 更新姿势处理帧率
                 
                 # 处理情绪
-                emotion_start_time = time.time()
                 emotion_results = self._process_emotion(emotion_frame)
                 self.emotion_process_fps.update()  # 更新情绪处理帧率
                 
-                # 调整输出视频尺寸，确保与当前处理分辨率匹配
+                # 记录处理时间
+                process_time = time.time() - process_start_time
+                self.performance_stats['processing_times'].append(process_time)
+                
+                # 添加处理时间和分辨率信息到显示帧
+                # 姿势帧显示处理信息
+                size_text = f"{self.process_width}x{self.process_height}"
+                cv2.putText(pose_results['display_frame'], 
+                          f"Proc: {process_time*1000:.1f}ms {size_text}", 
+                          (pose_results['display_frame'].shape[1] - 200, 25), 
+                          cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 255, 255), 1)
+                
+                # 将处理后的帧放入队列供Web端点使用
                 if self.video_stream_handler:
-                    # 将处理后的帧放入队列供Web端点使用
                     self.video_stream_handler.add_pose_frame(pose_results['display_frame'])
                     self.video_stream_handler.add_emotion_frame(emotion_results['display_frame'])
                 
@@ -527,25 +726,30 @@ class WebPostureMonitor:
                 }
                 
                 # 每秒更新一次帧率信息
-                current_time = time.time()
                 if current_time - last_fps_update_time >= 1.0:
                     self.fps_info = {
                         'capture_fps': round(self.capture_fps.get_fps(), 1),
                         'pose_process_fps': round(self.pose_process_fps.get_fps(), 1),
-                        'emotion_process_fps': round(self.emotion_process_fps.get_fps(), 1)
+                        'emotion_process_fps': round(self.emotion_process_fps.get_fps(), 1),
+                        'process_resolution': f"{self.process_width}x{self.process_height}",
+                        'avg_process_time_ms': round(sum(self.performance_stats['processing_times']) / 
+                                                   max(1, len(self.performance_stats['processing_times'])) * 1000, 1)
+                        if self.performance_stats['processing_times'] else 0
                     }
                     last_fps_update_time = current_time
                 
                 # 根据实际帧率动态调整延迟时间
                 current_fps = min(self.pose_process_fps.get_fps(), self.emotion_process_fps.get_fps())
-                if current_fps > TARGET_FPS:
-                    # 如果帧率过高，增加一点延迟以减少CPU使用
-                    time.sleep(0.001)
-                else:
-                    # 帧率正常或过低，尽可能快地处理
-                    time.sleep(0.0001)
+                target_interval = 1.0 / TARGET_FPS
+                
+                # 如果处理太快，增加一点延迟以减少CPU使用
+                # 如果处理太慢，不增加延迟
+                if process_time < target_interval * 0.8:  # 如果处理时间远小于目标间隔
+                    time.sleep(min(0.001, (target_interval - process_time) * 0.5))
             except Exception as e:
                 print(f"处理帧异常: {str(e)}")
+                import traceback
+                traceback.print_exc()
                 time.sleep(0.1)
     
     def _process_pose(self, frame):
@@ -569,7 +773,8 @@ class WebPostureMonitor:
         
         try:
             # 姿势检测
-            pose_results = self.pose.process(cv2.cvtColor(frame, cv2.COLOR_BGR2RGB))
+            frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+            pose_results = self.pose.process(frame_rgb)
             if not pose_results.pose_landmarks:
                 return results
             
@@ -591,12 +796,27 @@ class WebPostureMonitor:
             
             # 绘制姿势关键点和信息
             display_frame = frame.copy()
-            mp_drawing.draw_landmarks(
-                display_frame,
-                pose_results.pose_landmarks,
-                mp_pose.POSE_CONNECTIONS,
-                landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style()
-            )
+            
+            # 根据当前帧率优化绘制效果
+            drawing_style = None
+            current_fps = min(self.pose_process_fps.get_fps(), self.emotion_process_fps.get_fps())
+            if current_fps < 10:
+                # 帧率低，使用简化绘制模式
+                mp_drawing.draw_landmarks(
+                    display_frame,
+                    pose_results.pose_landmarks,
+                    mp_pose.POSE_CONNECTIONS,
+                    mp_drawing.DrawingSpec(color=(0,255,0), thickness=1, circle_radius=1),
+                    mp_drawing.DrawingSpec(color=(255,0,0), thickness=1)
+                )
+            else:
+                # 帧率正常，使用标准绘制模式
+                mp_drawing.draw_landmarks(
+                    display_frame,
+                    pose_results.pose_landmarks,
+                    mp_pose.POSE_CONNECTIONS,
+                    landmark_drawing_spec=mp_drawing_styles.get_default_pose_landmarks_style()
+                )
             
             # 绘制状态信息
             state_text = f"State: {'Occluded' if final_occlusion else 'Tracking'}"
@@ -645,8 +865,11 @@ class WebPostureMonitor:
         }
         
         try:
-            # 更新情绪分析器参数
+            # 更新情绪分析器的所有参数
             self.emotion_analyzer.emotion_smoothing_window = posture_params['emotion_smoothing_window']
+            self.emotion_analyzer.mouth_open_ratio_threshold = posture_params['mouth_open_ratio_threshold']
+            self.emotion_analyzer.eye_open_ratio_threshold = posture_params['eye_open_ratio_threshold']
+            self.emotion_analyzer.brow_down_threshold = posture_params['brow_down_threshold']
             
             # 分析情绪
             emotion_state, face_landmarks, _ = self.emotion_analyzer.analyze(frame)
@@ -654,12 +877,25 @@ class WebPostureMonitor:
             # 绘制情绪界面
             display_frame = frame.copy()
             if face_landmarks:
-                mp_drawing.draw_landmarks(
-                    image=display_frame,
-                    landmark_list=face_landmarks,
-                    connections=mp_face_mesh.FACEMESH_CONTOURS,
-                    connection_drawing_spec=mp_drawing_styles.get_default_face_mesh_contours_style()
-                )
+                # 根据当前帧率优化绘制效果
+                current_fps = min(self.pose_process_fps.get_fps(), self.emotion_process_fps.get_fps())
+                if current_fps < 10:
+                    # 帧率低，使用简化绘制
+                    mp_drawing.draw_landmarks(
+                        image=display_frame,
+                        landmark_list=face_landmarks,
+                        connections=mp_face_mesh.FACEMESH_CONTOURS,
+                        landmark_drawing_spec=mp_drawing.DrawingSpec(color=(0,255,0), thickness=1, circle_radius=1),
+                        connection_drawing_spec=mp_drawing.DrawingSpec(color=(0,255,0), thickness=1)
+                    )
+                else:
+                    # 帧率正常，使用标准绘制
+                    mp_drawing.draw_landmarks(
+                        image=display_frame,
+                        landmark_list=face_landmarks,
+                        connections=mp_face_mesh.FACEMESH_CONTOURS,
+                        connection_drawing_spec=mp_drawing_styles.get_default_face_mesh_contours_style()
+                    )
                 
                 # 显示当前情绪状态
                 emotion_text = f"Emotion: {emotion_state.name}"
@@ -729,7 +965,15 @@ class WebPostureMonitor:
     
     def get_fps_info(self):
         """获取帧率信息"""
-        return self.fps_info
+        # 添加更多性能统计信息
+        extended_info = {
+            **self.fps_info,
+            'skipped_frames': self.performance_stats['skipped_frames'],
+            'camera_errors': self.performance_stats['camera_errors'],
+            'adaptive_resolution': self.adaptive_resolution,
+            'skip_frames_enabled': self.skip_frames_when_slow
+        }
+        return extended_info
     
     def set_resolution_mode(self, adaptive=True, resolution_index=None):
         """设置分辨率模式
@@ -744,8 +988,47 @@ class WebPostureMonitor:
             self.current_resolution_index = resolution_index
             self.process_width, self.process_height = RESOLUTION_LEVELS[self.current_resolution_index]
             print(f"手动设置处理分辨率为 {self.process_width}x{self.process_height}")
+            
+            # 重置相关计数器
+            self.pose_process_fps.reset()
+            self.emotion_process_fps.reset()
         
         return True
+    
+    def set_performance_mode(self, skip_frames=None, use_separate_grab=None):
+        """设置性能优化模式
+        
+        Args:
+            skip_frames: 是否在处理过慢时跳帧
+            use_separate_grab: 是否使用分离的grab/retrieve操作
+        """
+        if skip_frames is not None:
+            self.skip_frames_when_slow = skip_frames
+            print(f"{'启用' if skip_frames else '禁用'}处理过慢时跳帧")
+        
+        if use_separate_grab is not None:
+            self.use_separate_grab_retrieve = use_separate_grab
+            print(f"{'启用' if use_separate_grab else '禁用'}分离的grab/retrieve操作")
+        
+        return True
+    
+    def get_performance_stats(self):
+        """获取性能统计信息"""
+        avg_processing_ms = 0
+        if self.performance_stats['processing_times']:
+            avg_processing_ms = sum(self.performance_stats['processing_times']) / len(self.performance_stats['processing_times']) * 1000
+        
+        return {
+            'skipped_frames': self.performance_stats['skipped_frames'],
+            'camera_errors': self.performance_stats['camera_errors'],
+            'avg_processing_time_ms': round(avg_processing_ms, 2),
+            'capture_fps': round(self.capture_fps.get_fps(), 1),
+            'pose_process_fps': round(self.pose_process_fps.get_fps(), 1),
+            'emotion_process_fps': round(self.emotion_process_fps.get_fps(), 1),
+            'current_resolution': f"{self.process_width}x{self.process_height}",
+            'adaptive_mode': self.adaptive_resolution,
+            'skip_frames_enabled': self.skip_frames_when_slow
+        }
 
     def _find_available_cameras(self):
         """查找系统中所有可用的摄像头并返回可用的索引列表"""
@@ -754,7 +1037,7 @@ class WebPostureMonitor:
         # 尝试前10个摄像头索引
         for i in range(10):
             try:
-                cap = cv2.VideoCapture(i)
+                cap = cv2.VideoCapture(i, self.camera_api)
                 if cap.isOpened():
                     ret, frame = cap.read()
                     if ret and frame is not None:
