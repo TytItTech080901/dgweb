@@ -18,7 +18,7 @@ function initApp() {
     setInterval(function() {
         fetchAnalysisStatus();
         fetchFPSInfo();
-    }, 500);
+    }, 1000);
 }
 
 // 获取分析系统状态
@@ -138,7 +138,19 @@ function fetchFPSInfo() {
 }
 
 // 更新帧率显示
+function updateFPSDisplay(data) {
+    const captureFPS = document.getElementById('captureFPS');
+    const processFPS = document.getElementById('processFPS');
+    const streamFPS = document.getElementById('streamFPS');
+    
+    if (captureFPS) captureFPS.textContent = data.capture_fps.toFixed(1);
+    
+    // 使用姿势处理帧率作为处理帧率显示
+    if (processFPS) processFPS.textContent = data.pose_process_fps.toFixed(1);
+    
+    // 使用姿势流帧率作为流帧率显示
     if (streamFPS) streamFPS.textContent = data.pose_stream_fps.toFixed(1);
+}
 
 // 更新姿势和情绪UI状态
 function updatePostureEmotionUI(pose_data, emotion_data) {

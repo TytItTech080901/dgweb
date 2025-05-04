@@ -716,3 +716,60 @@ def frame_events():
             time.sleep(0.1)
     
     return Response(generate(), mimetype='text/event-stream')
+
+@routes.route('/api/send_data', methods=['POST'])
+def send_data():
+    """处理通用数据发送请求"""
+    try:
+        data = request.get_json()
+        send_text = data.get('data', '')
+        
+        if not send_text:
+            return jsonify({
+                'status': 'error',
+                'message': '发送的数据不能为空'
+            })
+        
+        if not serial_handler.is_connected():
+            return jsonify({
+                'status': 'error',
+                'message': '串口未连接，请先连接串口'
+            })
+        
+        # 发送数据
+        success = serial_handler.send_data(send_text)
+        
+        # 给设备一点时间处理
+        time.sleep(0.1)
+        
+        # 尝试读取响应
+        response = serial_handler.read_data()
+        
+        # 记录到数据库
+        try:
+            db.record_serial_data(
+                sent_data=send_text,
+                received_data=response,
+                status="success" if success else "error",
+                message="" if success else "发送失败"
+            )
+        except Exception as db_error:
+            print(f"记录数据到数据库失败: {str(db_error)}")
+        
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': '数据已发送',
+                'response': response or "无响应"
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': '发送数据失败'
+            })
+    except Exception as e:
+        print(f"发送数据出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f"发送数据失败: {str(e)}"
+        })

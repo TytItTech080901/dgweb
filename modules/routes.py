@@ -30,7 +30,7 @@ def index():
     return render_template('index.html')
 
 # 路由：发送文本数据
-@routes_bp.route('/send_data', methods=['POST'])
+@routes_bp.route('/api/send_data', methods=['POST'])
 def send_data():
     data = request.json.get('data')
     response = "未连接"
@@ -55,7 +55,7 @@ def send_data():
     })
 
 # 路由：获取历史记录
-@routes_bp.route('/get_history')
+@routes_bp.route('/api/get_history')
 def get_history():
     page = request.args.get('page', 1, type=int)
     per_page = request.args.get('per_page', 10, type=int)
@@ -64,7 +64,7 @@ def get_history():
     return jsonify(result)
 
 # 路由：清空历史记录
-@routes_bp.route('/clear_history', methods=['POST'])
+@routes_bp.route('/api/clear_history', methods=['POST'])
 def clear_history_route():
     if clear_history():
         return jsonify({'status': 'success', 'message': '历史记录已清空'})
@@ -72,7 +72,7 @@ def clear_history_route():
         return jsonify({'status': 'error', 'message': '清空历史记录失败'})
 
 # 路由：发送帧数据
-@routes_bp.route('/send_frame', methods=['POST'])
+@routes_bp.route('/api/send_frame', methods=['POST'])
 def send_frame():
     """发送按照帧格式打包的yaw和pitch数据"""
     try:
@@ -115,7 +115,7 @@ def send_frame():
         })
 
 # 路由：读取帧数据
-@routes_bp.route('/read_frame', methods=['GET'])
+@routes_bp.route('/api/read_frame', methods=['GET'])
 def read_frame_api():
     """读取一帧数据并解析"""
     try:
@@ -144,7 +144,7 @@ def read_frame_api():
         })
 
 # 路由：SSE帧数据事件流
-@routes_bp.route('/frame_events')
+@routes_bp.route('/api/frame_events')
 def frame_events():
     """SSE端点，向前端推送接收到的帧数据"""
     def event_stream():
@@ -186,7 +186,7 @@ def frame_events():
     )
 
 # 路由：启动姿势分析
-@routes_bp.route('/start_posture_analysis', methods=['POST'])
+@routes_bp.route('/api/start_posture_analysis', methods=['POST'])
 def start_posture_analysis():
     """启动姿势分析系统"""
     global posture_monitor
@@ -223,7 +223,7 @@ def start_posture_analysis():
         })
 
 # 路由：停止姿势分析
-@routes_bp.route('/stop_posture_analysis', methods=['POST'])
+@routes_bp.route('/api/stop_posture_analysis', methods=['POST'])
 def stop_posture_analysis():
     """停止姿势分析系统"""
     global posture_monitor
@@ -254,7 +254,7 @@ def stop_posture_analysis():
         })
 
 # 路由：获取姿势状态
-@routes_bp.route('/get_pose_status')
+@routes_bp.route('/api/get_pose_status')
 def get_pose_status():
     """获取当前姿势分析状态"""
     global posture_monitor, video_stream_handler
@@ -307,8 +307,8 @@ def get_pose_status():
             'emotion_data': None
         })
 
-# 新增路由：获取帧率信息
-@routes_bp.route('/get_fps_info')
+# 路由：获取帧率信息
+@routes_bp.route('/api/get_fps_info')
 def get_fps_info():
     """获取所有帧率信息（包括捕获帧率、处理帧率和视频流帧率）"""
     global posture_monitor, video_stream_handler
@@ -354,7 +354,7 @@ def get_fps_info():
         })
 
 # 路由：获取情绪参数
-@routes_bp.route('/get_emotion_params')
+@routes_bp.route('/api/get_emotion_params')
 def get_emotion_params():
     """获取情绪分析参数"""
     global posture_monitor, posture_params
@@ -371,7 +371,7 @@ def get_emotion_params():
         })
 
 # 路由：更新情绪参数
-@routes_bp.route('/update_emotion_params', methods=['POST'])
+@routes_bp.route('/api/update_emotion_params', methods=['POST'])
 def update_emotion_params():
     """更新情绪分析参数"""
     global posture_monitor
@@ -406,7 +406,7 @@ def update_emotion_params():
         })
 
 # 路由：姿势检测视频流
-@routes_bp.route('/video_pose')
+@routes_bp.route('/api/video_pose')
 def video_pose():
     """姿势检测视频流端点"""
     print("DEBUG: 请求姿势检测视频流")
@@ -423,7 +423,7 @@ def video_pose():
     )
 
 # 路由：情绪分析视频流
-@routes_bp.route('/video_emotion')
+@routes_bp.route('/api/video_emotion')
 def video_emotion():
     """情绪分析视频流端点"""
     print("DEBUG: 请求情绪分析视频流")
@@ -438,3 +438,209 @@ def video_emotion():
         video_stream_handler.generate_video_frames(video_stream_handler.get_emotion_frame_queue(), is_pose_stream=False),
         mimetype='multipart/x-mixed-replace; boundary=frame'
     )
+
+# 路由：获取串口状态
+@routes_bp.route('/api/get_serial_status')
+def get_serial_status():
+    """获取串口连接状态"""
+    global serial_handler
+    
+    try:
+        if not serial_handler:
+            return jsonify({
+                'status': 'error',
+                'message': '串口处理器未初始化',
+                'connected': False
+            })
+            
+        connected = serial_handler.is_connected()
+        port = serial_handler.port if connected else None
+        baudrate = serial_handler.baudrate if connected else None
+        
+        return jsonify({
+            'status': 'success',
+            'connected': connected,
+            'port': port,
+            'baudrate': baudrate
+        })
+    except Exception as e:
+        print(f"获取串口状态出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'获取串口状态失败: {str(e)}',
+            'connected': False
+        })
+
+# 路由：连接串口
+@routes_bp.route('/api/connect_serial', methods=['POST'])
+def connect_serial():
+    """连接指定的串口"""
+    global serial_handler
+    
+    try:
+        if not serial_handler:
+            return jsonify({
+                'status': 'error',
+                'message': '串口处理器未初始化',
+                'connected': False
+            })
+            
+        data = request.json
+        port = data.get('port')
+        baudrate = data.get('baudrate', 115200)
+        
+        if not port:
+            return jsonify({
+                'status': 'error',
+                'message': '必须指定串口设备路径'
+            })
+            
+        # 先断开现有连接
+        serial_handler.close()
+        
+        # 设置新的串口参数
+        serial_handler.port = port
+        serial_handler.baudrate = baudrate
+        
+        # 尝试连接
+        connection_success = serial_handler.connect()
+        
+        if connection_success:
+            return jsonify({
+                'status': 'success',
+                'message': f'成功连接到串口: {port}, 波特率: {baudrate}',
+                'port': port,
+                'baudrate': baudrate
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': f'无法连接到串口: {port}'
+            })
+    except Exception as e:
+        print(f"连接串口出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'连接串口失败: {str(e)}'
+        })# 视频流路由别名 - 兼容前端
+@routes_bp.route('/pose_video_feed')
+def pose_video_feed_alias():
+    """姿势分析视频流别名"""
+    print("DEBUG: 通过别名请求姿势分析视频流")
+    
+    if not video_stream_handler:
+        print("ERROR: 视频流处理器未初始化")
+        return Response("视频流处理器未初始化", status=500)
+    
+    return Response(
+        video_stream_handler.generate_video_frames(video_stream_handler.get_pose_frame_queue(), is_pose_stream=True),
+        mimetype='multipart/x-mixed-replace; boundary=frame'
+    )
+
+@routes_bp.route('/emotion_video_feed')
+def emotion_video_feed_alias():
+    """情绪分析视频流别名"""
+    print("DEBUG: 通过别名请求情绪分析视频流")
+    
+    if not video_stream_handler:
+        print("ERROR: 视频流处理器未初始化")
+        return Response("视频流处理器未初始化", status=500)
+    
+    return Response(
+        video_stream_handler.generate_video_frames(video_stream_handler.get_emotion_frame_queue(), is_pose_stream=False),
+        mimetype='multipart/x-mixed-replace; boundary=frame'
+    )
+
+# 添加串口指令发送路由
+@routes_bp.route('/api/send_serial_command', methods=['POST'])
+def send_serial_command():
+    """向串口发送命令"""
+    global serial_handler
+    
+    try:
+        data = request.json
+        command = data.get('command')
+        
+        if not command:
+            return jsonify({
+                'status': 'error',
+                'message': '命令不能为空'
+            })
+        
+        if not serial_handler or not serial_handler.is_connected():
+            return jsonify({
+                'status': 'error',
+                'message': '串口未连接，请先连接串口'
+            })
+        
+        # 发送命令
+        response_data, message = serial_handler.send_data(command + '\r\n')
+        
+        # 记录命令和响应到数据库
+        status = "success" if response_data else "error"
+        save_record_to_db(command, response_data, status, message)
+        
+        return jsonify({
+            'status': status,
+            'message': message or '命令已发送',
+            'command': command,
+            'response': response_data or "无响应"
+        })
+    except Exception as e:
+        print(f"发送串口命令出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'发送串口命令失败: {str(e)}'
+        })
+
+# 设置分辨率模式
+@routes_bp.route('/api/set_resolution_mode', methods=['POST'])
+def set_resolution_mode():
+    """设置分辨率调整模式"""
+    global posture_monitor, video_stream_handler
+    
+    try:
+        data = request.json
+        if not data:
+            return jsonify({
+                'status': 'error',
+                'message': '无效的请求数据'
+            })
+            
+        # 解析参数
+        adaptive = data.get('adaptive', True)
+        resolution_index = data.get('resolution_index')
+        target = data.get('target', 'both')  # 'processing', 'streaming', 'both'
+        quality = data.get('quality', 90)
+        
+        # 更新处理分辨率
+        if posture_monitor and target in ['processing', 'both']:
+            posture_monitor.set_resolution_mode(adaptive, resolution_index)
+            
+        # 更新流分辨率
+        if video_stream_handler and target in ['streaming', 'both']:
+            video_stream_handler.set_resolution_mode(adaptive, resolution_index)
+            # 如果指定了质量参数，也设置流质量
+            if quality is not None:
+                video_stream_handler.set_streaming_quality(int(quality))
+                
+        return jsonify({
+            'status': 'success',
+            'message': '分辨率模式已更新',
+            'adaptive': adaptive,
+            'resolution_index': resolution_index if resolution_index is not None else 'auto',
+            'target': target,
+            'quality': quality
+        })
+    except Exception as e:
+        print(f"设置分辨率模式出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'设置分辨率模式失败: {str(e)}'
+        })
+
+# 兼容路由 - 支持旧版前端
+@routes_bp.route('/get_pose_status')
+def get_pose_status_compat():
+    """获取姿势状态的兼容路由（无API前缀）"""
+    return get_pose_status()

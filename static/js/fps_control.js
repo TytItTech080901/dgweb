@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 获取帧率信息
 function fetchFPSInfo() {
-    fetch('/get_fps_info')
+    fetch('/api/get_fps_info')
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
@@ -26,23 +26,38 @@ function fetchFPSInfo() {
 }
 
 // 更新帧率显示
+// 更新帧率显示
+// 更新帧率显示
 function updateFPSDisplay(data) {
+    console.log('FPS数据更新:', data);
+    
     // 更新图像接收帧率
     const captureFPS = document.getElementById('captureFPS');
-    captureFPS.textContent = data.capture_fps.toFixed(1);
-    updateFPSIndicator(captureFPS, data.capture_fps);
+    if (captureFPS) {
+        captureFPS.textContent = data.capture_fps.toFixed(1);
+        updateFPSIndicator(captureFPS, data.capture_fps);
+    } else {
+        console.warn('未找到captureFPS元素');
+    }
     
-    // 更新图像处理帧率 (平均姿势和情绪处理帧率)
+    // 更新图像处理帧率 (姿势处理帧率)
     const processFPS = document.getElementById('processFPS');
-    const avgProcessFPS = (data.pose_process_fps + data.emotion_process_fps) / 2;
-    processFPS.textContent = avgProcessFPS.toFixed(1);
-    updateFPSIndicator(processFPS, avgProcessFPS);
+    if (processFPS) {
+        // 使用pose_process_fps而不是平均值，因为图像处理帧率主要由姿势处理决定
+        processFPS.textContent = data.pose_process_fps.toFixed(1);
+        updateFPSIndicator(processFPS, data.pose_process_fps);
+    } else {
+        console.warn('未找到processFPS元素');
+    }
     
-    // 更新视频流帧率 (平均姿势和情绪视频流帧率)
+    // 更新视频流帧率 (姿势视频流帧率)
     const streamFPS = document.getElementById('streamFPS');
-    const avgStreamFPS = (data.pose_stream_fps + data.emotion_stream_fps) / 2;
-    streamFPS.textContent = avgStreamFPS.toFixed(1);
-    updateFPSIndicator(streamFPS, avgStreamFPS);
+    if (streamFPS) {
+        streamFPS.textContent = data.pose_stream_fps.toFixed(1);
+        updateFPSIndicator(streamFPS, data.pose_stream_fps);
+    } else {
+        console.warn('未找到streamFPS元素');
+    }
 }
 
 // 根据帧率值更新指示器颜色
@@ -115,7 +130,7 @@ function applyResolutionSettings() {
     };
     
     // 发送请求
-    fetch('/set_resolution_mode', {
+    fetch('/api/set_resolution_mode', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -144,4 +159,5 @@ function showModalMessage(title, message, type = 'success') {
 
 // 导出公共函数
 window.fetchFPSInfo = fetchFPSInfo;
+window.updateFPSDisplay = updateFPSDisplay;
 window.applyResolutionSettings = applyResolutionSettings;

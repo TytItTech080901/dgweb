@@ -81,9 +81,8 @@ CAMERA_FOURCC_OPTIONS = ['MJPG', 'YUYV', 'RGB3']  # 优先使用MJPG编码
 # 帧率计算类
 class FPSCounter:
     """计算并跟踪帧率"""
-    def __init__(self, window_size=30):
-        """初始化帧率计数器
-        
+    def __init__(self, window_size=10):  # 减小窗口大小为10以获得更实时的帧率
+        """
         Args:
             window_size: 计算平均帧率的时间窗口大小（帧数）
         """
@@ -102,8 +101,8 @@ class FPSCounter:
             # 计算时间差（秒）
             time_diff = self.timestamps[-1] - self.timestamps[0]
             if time_diff > 0:
-                # 计算当前窗口内的平均帧率
-                self.last_fps = (len(self.timestamps) - 1) / time_diff
+                # 修正帧率计算公式: 在窗口内完成的帧数除以时间差
+                self.last_fps = len(self.timestamps) / time_diff  # 移除了 -1
             else:
                 self.last_fps = 0
         
@@ -726,7 +725,8 @@ class WebPostureMonitor:
                 }
                 
                 # 每秒更新一次帧率信息
-                if current_time - last_fps_update_time >= 1.0:
+                # 每0.5秒更新一次帧率信息
+                if current_time - last_fps_update_time >= 0.5:  # 从1.0改为0.5秒
                     self.fps_info = {
                         'capture_fps': round(self.capture_fps.get_fps(), 1),
                         'pose_process_fps': round(self.pose_process_fps.get_fps(), 1),

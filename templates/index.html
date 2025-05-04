@@ -4,6 +4,7 @@
     <title>姿势与情绪分析系统</title>
     <!-- 引入外部CSS文件 -->
     <link rel="stylesheet" href="/static/css/main.css">
+    <link rel="stylesheet" href="/static/css/serial_style.css">
     <link rel="stylesheet" href="/static/css/fps_control.css">
     <!-- 保留部分内联样式以确保兼容性 -->
     <style>
@@ -122,10 +123,9 @@
                         </div>
                         <div class="resolution-input">
                             <select id="resolutionSelector" disabled>
-                                <option value="0">高分辨率 (640x480处理/800x600流)</option>
-                                <option value="1" selected>中分辨率 (480x360处理/640x480流)</option>
-                                <option value="2">低分辨率 (320x240处理/480x360流)</option>
-                                <option value="3">极低分辨率 (240x180处理/320x240流)</option>
+                                <option value="0">高分辨率 (640x480处理)</option>
+                                <option value="1" selected>中分辨率 (480x360处理)</option>
+                                <option value="2">低分辨率 (320x240处理)</option>
                             </select>
                         </div>
                     </div>
@@ -156,7 +156,7 @@
             <div class="video-container">
                 <div class="video-box">
                     <div class="video-title">姿势分析</div>
-                    <img id="poseVideo" src="/video_pose" alt="姿势分析视频" onerror="this.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='">
+                    <img id="poseVideo" src="/pose_video_feed" alt="姿势分析视频" onerror="this.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='">
                     <div class="status-container">
                         <div class="status-item">
                             <span class="status-label">头部角度:</span>
@@ -175,7 +175,7 @@
                 
                 <div class="video-box">
                     <div class="video-title">情绪分析</div>
-                    <img id="emotionVideo" src="/video_emotion" alt="情绪分析视频" onerror="this.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='">
+                    <img id="emotionVideo" src="/emotion_video_feed" alt="情绪分析视频" onerror="this.src='data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII='">
                     <div class="status-container">
                         <div class="status-item">
                             <span class="status-label">当前情绪:</span>
@@ -230,7 +230,7 @@
                         <div class="form-group">
                             <label>眉毛下压阈值 (皱眉检测):</label>
                             <div class="param-description">
-                                <small>判断皱眉/生气表情的敏感度。值越低越容易判定为皱眉，值越高则需要更明显的皱眉动作。容易被误判为生气时，可以调高至0.05-0.08；表情丰富者可调低至0.02-0.04。</small>
+                                <<small>判断皱眉/生气表情的敏感度。值越低越容易判定为皱眉，值越高则需要更明显的皱眉动作。容易被误判为生气时，可以调高至0.05-0.08；表情丰富者可调低至0.02-0.04。</small>
                             </div>
                             <div class="range-control">
                                 <input type="range" id="browThresholdSlider" name="brow_down_threshold" min="0.01" max="0.2" step="0.01" value="0.04" oninput="updateRangeValue('browThresholdSlider', 'browThresholdValue')">
@@ -350,6 +350,7 @@
     <script src="/static/js/analysis.js"></script>
     <script src="/static/js/fps_control.js"></script>
     <script src="/static/js/serial.js"></script>
+    <script src="/static/js/serial_enhanced.js"></script>
     
     <!-- 保留部分内联脚本以确保兼容性 -->
     <script>
@@ -378,7 +379,7 @@
         function sendData() {
             const data = document.getElementById('dataInput').value;
             
-            fetch('/send_data', {
+            fetch('/api/send_data', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -398,7 +399,7 @@
             const pitch = parseFloat(document.getElementById('pitchInput').value);
             const find_bool = document.getElementById('findBoolInput').checked;
             
-            fetch('/send_frame', {
+            fetch('/api/send_frame', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'
@@ -418,7 +419,7 @@
         
         // 读取帧数据
         function readFrame() {
-            fetch('/read_frame')
+            fetch('/api/read_frame')
             .then(response => response.json())
             .then(data => {
                 if (data.status === 'success') {
@@ -442,7 +443,7 @@
         
         // 更新历史记录
         function updateHistory(page) {
-            fetch(`/get_history?page=${page}&per_page=${perPage}`)
+            fetch(`/api/get_history?page=${page}&per_page=${perPage}`)
             .then(response => response.json())
             .then(data => {
                 const historyDiv = document.getElementById('history');
@@ -514,7 +515,7 @@
         // 清空历史记录
         function clearHistory() {
             if (confirm('确定要清空所有历史记录吗？此操作不可恢复。')) {
-                fetch('/clear_history', {
+                fetch('/api/clear_history', {
                     method: 'POST'
                 })
                 .then(response => response.json())
@@ -570,7 +571,7 @@
                 stopEventSource();
             }
             
-            eventSource = new EventSource('/frame_events');
+            eventSource = new EventSource('/api/frame_events');
             
             eventSource.onmessage = function(event) {
                 const data = JSON.parse(event.data);

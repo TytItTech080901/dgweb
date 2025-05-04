@@ -42,7 +42,7 @@ function initSerialInterface() {
 
 // 获取串口状态
 function fetchSerialStatus() {
-    fetch('/get_serial_status')
+    fetch('/api/get_serial_status')
         .then(response => response.json())
         .then(data => {
             updateSerialStatusUI(data);
@@ -140,7 +140,7 @@ function connectSerial() {
         document.getElementById('connectBtn').disabled = true;
     }
     
-    fetch('/connect_serial', {
+    fetch('/api/connect_serial', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'
@@ -192,7 +192,7 @@ function disconnectSerial() {
         statusText.className = 'status-disconnecting';
     }
     
-    fetch('/disconnect_serial', {
+    fetch('/api/disconnect_serial', {
         method: 'POST'
     })
     .then(response => response.json())
@@ -227,7 +227,7 @@ function sendSerialCommand() {
     }
     
     // 获取串口状态
-    fetch('/get_serial_status')
+    fetch('/api/get_serial_status')
         .then(response => response.json())
         .then(statusData => {
             if (!statusData.connected) {
@@ -236,7 +236,7 @@ function sendSerialCommand() {
             }
             
             // 串口已连接，发送命令
-            fetch('/send_serial_command', {
+            fetch('/api/send_serial_command', {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json'

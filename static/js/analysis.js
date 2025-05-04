@@ -18,12 +18,12 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 获取情绪分析参数
 function fetchEmotionParams() {
-    fetch('/get_emotion_params')
+    fetch('/api/get_emotion_params')
         .then(response => response.json())
         .then(data => {
             if (data.status === 'success') {
-                updateEmotionParamsUI(data.params);
-                emotionParams = data.params;
+                updateEmotionParamsUI(data.emotion_params);
+                emotionParams = data.emotion_params;
             }
         })
         .catch(error => {
@@ -60,8 +60,8 @@ function saveEmotionParams() {
         params[key] = parseFloat(value);
     }
     
-    // 发送请求 - 使用正确的API路径/update_emotion_params
-    fetch('/update_emotion_params', {
+    // 发送请求 - 使用正确的API路径
+    fetch('/api/update_emotion_params', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json'

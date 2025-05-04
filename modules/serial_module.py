@@ -1,115 +1,120 @@
 """
-串口通信模块 - 处理与串口设备通信的功能
+串口通信模块 - 处理与下位机的通信
 """
-import threading
-import time
-import json
 import queue
+import math
+import time
 from serial_handler import SerialHandler
-from config import SERIAL_BAUDRATE
-from modules.database_module import save_frame_to_db
 
 class SerialCommunicationHandler:
-    """串口通信处理器类，管理串口通信相关功能"""
+    """
+    串口通信处理器 - 包装SerialHandler类，添加特定于应用的功能
+    """
+    def __init__(self, port=None, baudrate=115200):
+        self.handler = SerialHandler(port=port, baudrate=baudrate)
+        self.initialized = True
+        self.port = port  # 添加port属性
+        self.baudrate = baudrate  # 添加baudrate属性
+        self._frame_queue = queue.Queue(maxsize=100)  # 限制队列大小以避免内存溢出
+        # 启动帧监控
+        self._start_frame_monitor()
     
-    def __init__(self, baudrate=SERIAL_BAUDRATE):
-        """初始化串口通信处理器"""
-        self.frame_queue = queue.Queue(maxsize=100)
-        self.serial_handler = None
-        self.baudrate = baudrate
-        self.initialized = False
-        self._init_serial_handler()
-    
-    def _init_serial_handler(self):
-        """初始化串口处理器"""
-        try:
-            self.serial_handler = SerialHandler(port=None, baudrate=self.baudrate)
-            if self.serial_handler and self.serial_handler.port:  # 确保找到了端口再启动监控
-                self.serial_handler.start_monitoring()
+    def _start_frame_monitor(self):
+        """启动帧监控，将收到的帧数据放入队列"""
+        def frame_callback(frame_data):
+            try:
+                # 转换弧度为角度以便前端显示
+                frame_data_with_degrees = frame_data.copy()
+                frame_data_with_degrees['yaw_degrees'] = math.degrees(frame_data['yaw'])
+                frame_data_with_degrees['pitch_degrees'] = math.degrees(frame_data['pitch'])
+                # 添加时间戳
+                frame_data_with_degrees['timestamp'] = time.time()
                 
-                # 添加帧数据监控，收到数据时自动保存到数据库并添加到事件队列
-                def frame_callback(frame_data):
+                # 防止队列满时阻塞，使用非阻塞方式加入队列
+                try:
+                    self._frame_queue.put_nowait(frame_data_with_degrees)
+                    print(f"收到新帧数据: type={frame_data['type']}, yaw={frame_data_with_degrees['yaw_degrees']:.2f}°, pitch={frame_data_with_degrees['pitch_degrees']:.2f}°")
+                except queue.Full:
+                    # 如果队列已满，移除最旧的数据再添加
                     try:
-                        # 保存到数据库
-                        save_frame_to_db(frame_data)
-                        # 添加到事件队列以供前端获取
-                        if self.frame_queue.full():
-                            try:
-                                # 队列满时，移除最旧的数据
-                                self.frame_queue.get_nowait()
-                            except queue.Empty:
-                                pass
-                        self.frame_queue.put(frame_data)
-                    except Exception as e:
-                        print(f"处理帧数据回调时出错: {str(e)}")
-                
-                # 启动帧监控
-                self.serial_handler.start_frame_monitor(callback=frame_callback)
-                self.initialized = True
-                return True
-            else:
-                print("未找到可用的串口设备")
-                return False
-        except Exception as e:
-            print(f"警告：串口处理器初始化失败 - {str(e)}")
-            self.serial_handler = None  # 确保失败时 handler 为 None
-            return False
+                        self._frame_queue.get_nowait()
+                        self._frame_queue.put_nowait(frame_data_with_degrees)
+                    except:
+                        pass  # 忽略可能的错误
+            except Exception as e:
+                print(f"处理帧数据时出错: {str(e)}")
+        
+        # 启动帧监控
+        if hasattr(self.handler, 'start_frame_monitor'):
+            self.handler.start_frame_monitor(callback=frame_callback)
+            print("已启动帧数据监控")
+    
+    def _stop_frame_monitor(self):
+        """停止帧监控"""
+        if hasattr(self.handler, 'stop_frame_monitor'):
+            self.handler.stop_frame_monitor()
+            print("已停止帧数据监控")
+    
+    def close(self):
+        """关闭串口连接"""
+        self._stop_frame_monitor()
+        if hasattr(self, 'handler') and self.handler:
+            self.handler.close()
+    
+    def is_connected(self):
+        """检查串口是否已连接"""
+        return self.handler.is_connected()
+    
+    def connect(self):
+        """连接到串口"""
+        # 先设置处理器的端口和波特率
+        self.handler.port = self.port
+        self.handler.baudrate = self.baudrate
+        success = self.handler.connect()
+        if success:
+            # 重新启动帧监控
+            self._start_frame_monitor()
+        return success
     
     def send_data(self, data):
-        """发送文本数据到串口"""
-        if not self.serial_handler or not self.serial_handler.is_connected():
-            return None, "串口未连接"
-        
-        # 尝试发送数据到串口
-        if not self.serial_handler.send_data(data):
+        """发送数据到串口，并返回响应"""
+        success = self.handler.send_data(data)
+        if success:
+            # 读取响应(如果有)
+            response = self.handler.read_data()
+            return response, "数据发送成功"
+        else:
             return None, "发送数据失败"
-        
-        # 接收串口响应
-        response = self.serial_handler.read_data()
-        return response, "发送成功"
     
     def send_frame(self, find_bool, yaw, pitch):
-        """发送按照帧格式打包的yaw和pitch数据"""
-        if not self.serial_handler or not self.serial_handler.is_connected():
-            return None, "串口未连接"
+        """发送帧数据，转换为弧度制"""
+        # 将角度值转换为弧度值
+        yaw_rad = math.radians(yaw)    # 将度转换为弧度
+        pitch_rad = math.radians(pitch) # 将度转换为弧度
         
-        # 发送帧格式数据
-        if self.serial_handler.send_yaw_pitch(find_bool, yaw, pitch):
-            # 尝试读取响应帧
-            response_frame = self.serial_handler.read_frame()
-            if response_frame:
-                return response_frame, "帧数据发送成功，收到响应"
-            else:
-                return None, "帧数据发送成功，未收到响应"
+        success = self.handler.send_yaw_pitch(find_bool, yaw_rad, pitch_rad)
+        if success:
+            # 读取响应(如果有)
+            response = self.handler.read_data()
+            return response, "帧数据发送成功"
         else:
             return None, "发送帧数据失败"
     
     def read_frame(self):
-        """读取一帧数据并解析"""
-        if not self.serial_handler or not self.serial_handler.is_connected():
-            return None, "串口未连接"
-        
-        # 读取帧数据
-        frame_data = self.serial_handler.read_frame()
+        """读取一帧数据"""
+        frame_data = self.handler.read_frame()
         if frame_data:
-            return frame_data, "成功读取帧数据"
-        else:
-            return None, "未读取到帧数据"
+            # 将弧度值转换为角度值用于显示
+            frame_data['yaw_degrees'] = math.degrees(frame_data['yaw'])
+            frame_data['pitch_degrees'] = math.degrees(frame_data['pitch'])
+            return frame_data, "帧数据读取成功"
+        return None, "读取帧数据失败或无数据"
     
     def get_frame_queue(self):
-        """获取帧数据队列"""
-        return self.frame_queue
-    
-    def is_connected(self):
-        """检查串口是否连接"""
-        return self.serial_handler and self.serial_handler.is_connected()
+        """获取帧数据队列以供事件流使用"""
+        return self._frame_queue
     
     def cleanup(self):
         """清理资源"""
-        if self.serial_handler:
-            # 停止帧监控
-            if hasattr(self.serial_handler, '_frame_monitor_active'):
-                self.serial_handler.stop_frame_monitor()
-            # 停止连接监控
-            self.serial_handler.stop_monitoring()
-            self.serial_handler.close()
+        self._stop_frame_monitor()
+        self.close()
