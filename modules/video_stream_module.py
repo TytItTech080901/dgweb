@@ -30,7 +30,8 @@ RESOLUTION_ADJUST_INTERVAL = 5.0  # 分辨率调整间隔（秒）
 class FPSCounter:
     """计算并跟踪帧率"""
     def __init__(self, window_size=10):  # 减小窗口大小为10以获得更实时的帧率
-        """
+        """初始化帧率计数器
+        
         Args:
             window_size: 计算平均帧率的时间窗口大小（帧数）
         """
@@ -49,8 +50,8 @@ class FPSCounter:
             # 计算时间差（秒）
             time_diff = self.timestamps[-1] - self.timestamps[0]
             if time_diff > 0:
-                # 修正帧率计算公式: 在窗口内完成的帧数除以时间差
-                self.last_fps = len(self.timestamps) / time_diff  # 移除了 -1
+                # 计算当前窗口内的平均帧率
+                self.last_fps = (len(self.timestamps) - 1) / time_diff
             else:
                 self.last_fps = 0
         
