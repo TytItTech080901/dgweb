@@ -2,7 +2,7 @@
 数据库操作模块 - 处理所有与数据库相关的操作
 """
 import mysql.connector
-from datetime import datetime
+from datetime import datetime, timedelta
 import pytz
 import json
 import os
@@ -42,6 +42,20 @@ def init_database():
                 posture_status VARCHAR(50),
                 emotion VARCHAR(50),
                 timestamp DATETIME(6),
+                notes TEXT
+            )
+        """)
+        
+        # 创建坐姿时间记录表
+        cursor.execute("""
+            CREATE TABLE IF NOT EXISTS posture_time_records (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                start_time DATETIME(6) NOT NULL,
+                end_time DATETIME(6) NOT NULL,
+                duration_seconds FLOAT NOT NULL,
+                angle FLOAT,
+                posture_type ENUM('good', 'mild', 'moderate', 'severe') NOT NULL,
+                is_active BOOLEAN DEFAULT TRUE,
                 notes TEXT
             )
         """)
@@ -174,7 +188,7 @@ def get_posture_images(page=1, per_page=10, bad_posture_only=False):
         
         # 计算总记录数
         count_sql = "SELECT COUNT(*) as count FROM posture_images"
-        if bad_posture_only:
+        if (bad_posture_only):
             count_sql += " WHERE is_bad_posture = TRUE"
         
         cursor.execute(count_sql)
@@ -404,3 +418,200 @@ def clear_history():
     except Exception as e:
         print(f"清空历史记录失败: {str(e)}")
         return False
+
+def record_posture_time(start_time, end_time, duration_seconds, angle, posture_type, notes=""):
+    """记录坐姿时间段
+    
+    Args:
+        start_time: 开始时间 (datetime对象)
+        end_time: 结束时间 (datetime对象)
+        duration_seconds: 持续时间(秒)
+        angle: 头部角度平均值
+        posture_type: 坐姿类型('excellent', 'good', 'fair', 'poor')
+        notes: 备注信息
+        
+    Returns:
+        成功返回记录ID，失败返回None
+    """
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor()
+        
+        sql = """INSERT INTO posture_time_records 
+                (start_time, end_time, duration_seconds, angle, posture_type, notes) 
+                VALUES (%s, %s, %s, %s, %s, %s)"""
+        
+        values = (
+            start_time,
+            end_time,
+            duration_seconds,
+            angle,
+            posture_type,
+            notes
+        )
+        
+        cursor.execute(sql, values)
+        conn.commit()
+        record_id = cursor.lastrowid
+        
+        cursor.close()
+        conn.close()
+        
+        print(f"记录坐姿时间成功，ID: {record_id}, 类型: {posture_type}, 持续: {duration_seconds}秒")
+        
+        return record_id
+    except Exception as e:
+        print(f"记录坐姿时间失败: {str(e)}")
+        return None
+
+def get_posture_stats(time_range='day'):
+    """获取坐姿统计数据
+    
+    Args:
+        time_range: 时间范围 'day', 'week', 'month'
+    
+    Returns:
+        包含各类坐姿占比和时长的字典
+    """
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor(dictionary=True)
+        
+        # 根据时间范围确定查询的开始时间
+        now = datetime.now()
+        if time_range == 'day':
+            start_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif time_range == 'week':
+            # 获取本周一的日期
+            days_since_monday = now.weekday()
+            start_time = (now - timedelta(days=days_since_monday)).replace(hour=0, minute=0, second=0, microsecond=0)
+        elif time_range == 'month':
+            # 获取本月1日的日期
+            start_time = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        else:
+            # 默认为今天
+            start_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        # 查询每种坐姿类型的总时长
+        query = """
+            SELECT 
+                posture_type,
+                SUM(duration_seconds) as total_seconds
+            FROM posture_time_records
+            WHERE start_time >= %s
+            GROUP BY posture_type
+        """
+        
+        cursor.execute(query, (start_time,))
+        results = cursor.fetchall()
+        
+        # 计算总监测时间
+        cursor.execute("""
+            SELECT SUM(duration_seconds) as grand_total
+            FROM posture_time_records
+            WHERE start_time >= %s
+        """, (start_time,))
+        
+        total_result = cursor.fetchone()
+        total_time = total_result['grand_total'] if total_result and total_result['grand_total'] else 0
+        
+        # 初始化结果字典，使用新的四档坐姿类型
+        stats = {
+            'good': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
+            'mild': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
+            'moderate': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
+            'severe': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
+            'total_time': {'seconds': total_time, 'formatted_time': format_seconds(total_time)},
+            'time_range': time_range,
+            'start_time': start_time.isoformat() if start_time else None,
+            'end_time': now.isoformat()
+        }
+        
+        # 填充结果
+        for result in results:
+            posture_type = result['posture_type']
+            seconds = result['total_seconds'] if result['total_seconds'] else 0
+            
+            # 确保posture_type是有效的键
+            if posture_type in stats:
+                stats[posture_type]['seconds'] = seconds
+                stats[posture_type]['formatted_time'] = format_seconds(seconds)
+                
+                if total_time > 0:
+                    stats[posture_type]['percentage'] = round((seconds / total_time) * 100, 1)
+                else:
+                    stats[posture_type]['percentage'] = 0
+        
+        # 计算总的良好坐姿比例
+        good_posture_seconds = stats['good']['seconds']
+        if total_time > 0:
+            stats['good_posture_percentage'] = round((good_posture_seconds / total_time) * 100, 1)
+        else:
+            stats['good_posture_percentage'] = 0
+        
+        cursor.close()
+        conn.close()
+        
+        return stats
+    except Exception as e:
+        print(f"获取坐姿统计数据失败: {str(e)}")
+        return {
+            'good': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
+            'mild': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
+            'moderate': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
+            'severe': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
+            'total_time': {'seconds': 0, 'formatted_time': '0h 0m'},
+            'time_range': time_range,
+            'error': str(e)
+        }
+
+def format_seconds(seconds):
+    """将秒数格式化为可读时间格式
+    
+    Args:
+        seconds: 秒数
+        
+    Returns:
+        格式化后的时间字符串，例如: "2h 30m" 或 "45m"
+    """
+    if not seconds:
+        return "0m"
+    
+    hours = int(seconds // 3600)
+    minutes = int((seconds % 3600) // 60)
+    
+    if hours > 0:
+        return f"{hours}h {minutes}m"
+    else:
+        return f"{minutes}m"
+
+def clear_posture_time_records(days_to_keep=None):
+    """清除坐姿时间记录
+    
+    Args:
+        days_to_keep: 保留多少天内的记录，None表示全部清空
+        
+    Returns:
+        删除的记录数
+    """
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor()
+        
+        if days_to_keep is not None:
+            cutoff_date = datetime.now() - timedelta(days=days_to_keep)
+            cursor.execute("DELETE FROM posture_time_records WHERE end_time < %s", (cutoff_date,))
+        else:
+            cursor.execute("DELETE FROM posture_time_records")
+            
+        deleted_count = cursor.rowcount
+        conn.commit()
+        
+        cursor.close()
+        conn.close()
+        
+        print(f"清除了 {deleted_count} 条坐姿时间记录")
+        return deleted_count
+    except Exception as e:
+        print(f"清除坐姿时间记录失败: {str(e)}")
+        return 0

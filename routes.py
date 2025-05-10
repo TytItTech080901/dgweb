@@ -778,3 +778,67 @@ def send_data():
             'status': 'error',
             'message': f"发送数据失败: {str(e)}"
         })
+
+# 坐姿统计API路由
+
+@routes.route('/api/get_posture_stats')
+def get_posture_stats():
+    """获取坐姿统计数据"""
+    try:
+        # 获取时间范围参数
+        time_range = request.args.get('time_range', 'day')
+        if time_range not in ['day', 'week', 'month']:
+            time_range = 'day'
+        
+        # 获取姿势监测模块的坐姿统计数据
+        stats = posture_monitor.get_posture_stats(time_range)
+        
+        return jsonify({
+            'status': 'success',
+            'posture_stats': stats
+        })
+    except Exception as e:
+        print(f"获取坐姿统计数据出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f"获取坐姿统计数据失败: {str(e)}"
+        })
+
+@routes.route('/api/set_posture_thresholds', methods=['POST'])
+def set_posture_thresholds():
+    """设置坐姿类型阈值"""
+    try:
+        data = request.get_json()
+        if not data:
+            return jsonify({
+                'status': 'error',
+                'message': '无效的请求数据'
+            })
+            
+        # 解析参数
+        enabled = data.get('enabled', True)
+        thresholds = data.get('thresholds', {})
+        
+        # 将前端传来的阈值键名转换为后端使用的键名
+        backend_thresholds = {}
+        if 'good' in thresholds:
+            backend_thresholds['good'] = thresholds['good']
+        if 'mild' in thresholds:
+            backend_thresholds['mild'] = thresholds['mild']
+        if 'moderate' in thresholds:
+            backend_thresholds['moderate'] = thresholds['moderate']
+        
+        # 更新坐姿时间记录设置
+        settings = posture_monitor.set_posture_time_recording(enabled, backend_thresholds)
+        
+        return jsonify({
+            'status': 'success',
+            'message': '坐姿阈值设置已更新',
+            'settings': settings
+        })
+    except Exception as e:
+        print(f"设置坐姿阈值出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f"设置坐姿阈值失败: {str(e)}"
+        })

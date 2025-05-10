@@ -187,6 +187,74 @@
                 </div>
             </div>
             
+            <!-- 添加坐姿时间占比统计卡片 -->
+            <div class="control-panel">
+                <div class="control-panel-title">坐姿时间占比统计</div>
+                
+                <div class="time-range-selector">
+                    <button class="time-range-btn active" data-range="day">今日</button>
+                    <button class="time-range-btn" data-range="week">本周</button>
+                    <button class="time-range-btn" data-range="month">本月</button>
+                </div>
+                
+                <div class="posture-stats-container">
+                    <div class="posture-summary">
+                        <div class="total-time-display">
+                            监测总时长: <span id="totalPostureTime">0h 0m</span>
+                        </div>
+                        <div class="good-posture-percentage">
+                            良好坐姿占比: <span id="goodPosturePercentage">0%</span>
+                        </div>
+                    </div>
+                    
+                    <div class="posture-types-container">
+                        <div class="posture-type-card good">
+                            <div class="posture-type-title">良好坐姿</div>
+                            <div class="posture-type-percentage" id="goodPercentage">0%</div>
+                            <div class="posture-type-time" id="goodTime">0h 0m</div>
+                            <div class="posture-type-desc">0-30°</div>
+                        </div>
+                        <div class="posture-type-card mild">
+                            <div class="posture-type-title">轻度不良</div>
+                            <div class="posture-type-percentage" id="mildPercentage">0%</div>
+                            <div class="posture-type-time" id="mildTime">0h 0m</div>
+                            <div class="posture-type-desc">30-45°</div>
+                        </div>
+                        <div class="posture-type-card moderate">
+                            <div class="posture-type-title">中度不良</div>
+                            <div class="posture-type-percentage" id="moderatePercentage">0%</div>
+                            <div class="posture-type-time" id="moderateTime">0h 0m</div>
+                            <div class="posture-type-desc">45-60°</div>
+                        </div>
+                        <div class="posture-type-card severe">
+                            <div class="posture-type-title">严重不良</div>
+                            <div class="posture-type-percentage" id="severePercentage">0%</div>
+                            <div class="posture-type-time" id="severeTime">0h 0m</div>
+                            <div class="posture-type-desc">60°以上</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="posture-thresholds-container">
+                    <h4>坐姿分类阈值设置</h4>
+                    <div class="threshold-controls">
+                        <div class="threshold-item">
+                            <label>良好坐姿上限(°):</label>
+                            <input type="number" id="goodThreshold" min="10" max="40" step="1" value="30">
+                        </div>
+                        <div class="threshold-item">
+                            <label>轻度不良上限(°):</label>
+                            <input type="number" id="mildThreshold" min="30" max="55" step="1" value="45">
+                        </div>
+                        <div class="threshold-item">
+                            <label>中度不良上限(°):</label>
+                            <input type="number" id="moderateThreshold" min="45" max="70" step="1" value="60">
+                        </div>
+                    </div>
+                    <button id="applyThresholdsBtn" class="apply-button">应用阈值设置</button>
+                </div>
+            </div>
+            
             <div class="video-container">
                 <div class="video-box">
                     <div class="video-title">姿势分析</div>

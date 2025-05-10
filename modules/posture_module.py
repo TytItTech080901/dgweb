@@ -155,7 +155,8 @@ class WebPostureMonitor:
             'angle': 0,
             'is_bad_posture': False,
             'is_occluded': False,
-            'status': 'Initialized'
+            'status': 'Initialized',
+            'posture_type': 'unknown'  # 新增坐姿类型
         }
         self.emotion_result = {
             'emotion': 'NEUTRAL',
@@ -190,7 +191,7 @@ class WebPostureMonitor:
         }
         
         # 采样策略
-        self.resize_method = 'subsampling'  # 'resize' 或 'subsampling'
+        self.resize_method = 'subsampling'  # 'resize'  or 'subsampling'
         
         # 坐姿图像记录配置
         self.posture_recording_enabled = True  # 是否启用坐姿图像记录
@@ -208,6 +209,18 @@ class WebPostureMonitor:
         self.continuous_good_posture = False  # 是否持续处于良好坐姿
         self.good_posture_start_time = None  # 良好坐姿开始时间
         self.last_good_recording_time = 0  # 上次良好坐姿记录时间
+        
+        # 坐姿类型划分阈值（四档）
+        self.posture_thresholds = {
+            'good': 30.0,       # 0-30度：良好坐姿
+            'mild': 45.0,       # 30-45度：轻度不良
+            'moderate': 60.0    # 45-60度：中度不良，60度以上：严重不良
+        }
+        
+        # 坐姿时间记录
+        self.current_posture_type = None    # 当前坐姿类型
+        self.posture_start_time = None      # 当前坐姿开始时间
+        self.posture_time_recording_enabled = True  # 是否启用坐姿时间记录
     
     # 新增跳采样方法
     def _resize_with_subsampling(self, frame, target_width, target_height):
@@ -588,7 +601,7 @@ class WebPostureMonitor:
             
             # 重置帧率计数器
             self.pose_process_fps.reset()
-            self.emotion_process_fps.reset
+            self.emotion_process_fps.reset()
     
     def _adjust_skip_frame_strategy(self):
         """根据当前处理性能调整跳帧策略"""
@@ -780,7 +793,8 @@ class WebPostureMonitor:
                 'angle': None,
                 'is_bad_posture': False,
                 'is_occluded': True,
-                'status': 'Module Not Available'
+                'status': 'Module Not Available',
+                'posture_type': 'unknown'
             }
         
         results = {
@@ -788,7 +802,8 @@ class WebPostureMonitor:
             'angle': None,
             'is_bad_posture': False,
             'is_occluded': True,
-            'status': 'No Detection'
+            'status': 'No Detection',
+            'posture_type': 'unknown'
         }
         
         try:
@@ -809,10 +824,24 @@ class WebPostureMonitor:
             angle = None
             is_bad_posture = False
             points = {}
+            posture_type = 'unknown'
             
             if angle_info[0] is not None:
                 angle, is_bad_posture, points = angle_info
                 self.last_valid_angle = angle
+                
+                # 根据角度确定坐姿类型
+                if angle <= self.posture_thresholds['good']:
+                    posture_type = 'good'  # 良好坐姿
+                elif angle <= self.posture_thresholds['mild']:
+                    posture_type = 'mild'  # 轻度不良
+                elif angle <= self.posture_thresholds['moderate']:
+                    posture_type = 'moderate'  # 中度不良
+                else:
+                    posture_type = 'severe'  # 严重不良
+                
+                # 记录坐姿时间
+                self._record_posture_time(angle, posture_type)
             
             # 绘制姿势关键点和信息
             display_frame = frame.copy()
@@ -845,9 +874,23 @@ class WebPostureMonitor:
             
             # 绘制角度信息
             if angle is not None and valid_detection and not final_occlusion:
-                status_color = (0, 0, 255) if is_bad_posture else (0, 255, 0)
-                text = f"Angle: {angle:.1f}° {'[BAD]' if is_bad_posture else '[GOOD]'}"
-                cv2.putText(display_frame, text, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, status_color, 2)
+                # 根据不同坐姿类型设置不同颜色
+                posture_color = {
+                    'good': (0, 255, 0),   # 绿色
+                    'mild': (0, 255, 128),      # 浅绿色
+                    'moderate': (0, 128, 255),      # 橙色
+                    'severe': (0, 0, 255)         # 红色
+                }.get(posture_type, (0, 0, 255))
+                
+                posture_text = {
+                    'good': '良好',
+                    'mild': '轻度不良',
+                    'moderate': '中度不良',
+                    'severe': '严重不良'
+                }.get(posture_type, '未知')
+                
+                text = f"Angle: {angle:.1f}° [{posture_text}]"
+                cv2.putText(display_frame, text, (10, 60), cv2.FONT_HERSHEY_SIMPLEX, 0.6, posture_color, 2)
                 
                 if points:
                     cv2.line(display_frame, tuple(points['mid_shoulder']), tuple(points['nose']), (0, 255, 0), 2)
@@ -861,7 +904,8 @@ class WebPostureMonitor:
                 'angle': angle if angle is not None else (self.last_valid_angle if final_occlusion else None),
                 'is_bad_posture': is_bad_posture,
                 'is_occluded': final_occlusion,
-                'status': occlusion_status if final_occlusion else 'Tracking'
+                'status': occlusion_status if final_occlusion else 'Tracking',
+                'posture_type': posture_type
             }
             
             return results
@@ -1115,7 +1159,7 @@ class WebPostureMonitor:
             
             # 不良坐姿持续时间超过阈值且间隔时间足够长，进行记录
             if (self.bad_posture_start_time and 
-                current_time - self.bad_posture_start_time >= self.bad_posture_duration_threshold and
+                current_time - self.bad_posture_start_time >= self.bad_posture_duration_threshold and 
                 current_time - self.last_recording_time >= self.recording_interval):
                 
                 # 记录不良坐姿图像
@@ -1136,15 +1180,15 @@ class WebPostureMonitor:
             self.bad_posture_start_time = None
             
             # 处理良好坐姿（角度小于设定阈值）
-            if angle <= self.good_posture_angle_threshold and self.good_posture_recording_enabled:
+            if angle <= self.good_posture_angle_threshold and  self.good_posture_recording_enabled:
                 # 记录良好坐姿的开始时间
                 if not self.continuous_good_posture:
                     self.continuous_good_posture = True
                     self.good_posture_start_time = current_time
                 
                 # 良好坐姿持续时间超过阈值且间隔时间足够长，进行记录
-                if (self.good_posture_start_time and 
-                    current_time - self.good_posture_start_time >= self.good_posture_duration_threshold and
+                if (self.good_posture_start_time and  
+                    current_time - self.good_posture_start_time >= self.good_posture_duration_threshold and  
                     current_time - self.last_good_recording_time >= self.good_posture_interval):
                     
                     # 记录良好坐姿图像
@@ -1233,23 +1277,23 @@ class WebPostureMonitor:
         """
         self.posture_recording_enabled = enabled
         
-        if duration_threshold is not None and duration_threshold > 0:
+        if duration_threshold is not None and  duration_threshold > 0:
             self.bad_posture_duration_threshold = duration_threshold
             
-        if interval is not None and interval > 0:
+        if interval is not None and  interval > 0:
             self.recording_interval = interval
             
         # 更新良好坐姿记录设置
         if good_posture_enabled is not None:
             self.good_posture_recording_enabled = good_posture_enabled
             
-        if good_posture_angle_threshold is not None and 0 < good_posture_angle_threshold <= 60:
+        if good_posture_angle_threshold is not None and  0 < good_posture_angle_threshold <= 60:
             self.good_posture_angle_threshold = good_posture_angle_threshold
             
-        if good_posture_duration_threshold is not None and good_posture_duration_threshold > 0:
+        if good_posture_duration_threshold is not None and  good_posture_duration_threshold > 0:
             self.good_posture_duration_threshold = good_posture_duration_threshold
             
-        if good_posture_interval is not None and good_posture_interval > 0:
+        if good_posture_interval is not None and  good_posture_interval > 0:
             self.good_posture_interval = good_posture_interval
             
         print(f"坐姿记录设置已更新: 记录不良坐姿={self.posture_recording_enabled}, " 
@@ -1275,3 +1319,108 @@ class WebPostureMonitor:
             'good_posture_interval': self.good_posture_interval,
             'last_good_recording_time': self.last_good_recording_time
         }
+
+    def _record_posture_time(self, angle, posture_type):
+        """记录坐姿时间
+        
+        根据当前姿势类型记录持续时间，当姿势类型改变时保存上一次记录
+        
+        Args:
+            angle: 当前头部角度
+            posture_type: 当前坐姿类型 ('good', 'mild', 'moderate', 'severe')
+        """
+        from datetime import datetime
+        from modules.database_module import record_posture_time
+        
+        if not self.posture_time_recording_enabled:
+            return
+            
+        current_time = datetime.now()
+        
+        # 如果是第一次记录或者坐姿类型改变
+        if self.current_posture_type is None:
+            # 初始化记录
+            self.current_posture_type = posture_type
+            self.posture_start_time = current_time
+            return
+            
+        # 如果坐姿类型改变，记录上一种类型的持续时间
+        if posture_type != self.current_posture_type:
+            if self.posture_start_time:
+                # 计算持续时间（秒）
+                duration = (current_time - self.posture_start_time).total_seconds()
+                
+                # 只记录持续超过1秒的姿势
+                if duration >= 1.0:
+                    try:
+                        # 记录到数据库
+                        record_posture_time(
+                            start_time=self.posture_start_time,
+                            end_time=current_time,
+                            duration_seconds=duration,
+                            angle=self.last_valid_angle,
+                            posture_type=self.current_posture_type,
+                            notes=f"自动记录的坐姿时间，角度：{self.last_valid_angle:.1f}°"
+                        )
+                    except Exception as e:
+                        print(f"记录坐姿时间失败: {str(e)}")
+            
+            # 更新当前坐姿类型和开始时间
+            self.current_posture_type = posture_type
+            self.posture_start_time = current_time
+    
+    def set_posture_time_recording(self, enabled=True, thresholds=None):
+        """设置坐姿时间记录参数
+        
+        Args:
+            enabled: 是否启用坐姿时间记录
+            thresholds: 坐姿类型阈值字典，包含 'good', 'mild', 'moderate' 键
+        
+        Returns:
+            更新后的设置
+        """
+        self.posture_time_recording_enabled = enabled
+        
+        if thresholds:
+            if 'good' in thresholds and 0 < thresholds['good'] < 90:
+                self.posture_thresholds['good'] = thresholds['good']
+                
+            if 'mild' in thresholds and 0 < thresholds['mild'] < 90:
+                self.posture_thresholds['mild'] = thresholds['mild']
+                
+            if 'moderate' in thresholds and 0 < thresholds['moderate'] < 90:
+                self.posture_thresholds['moderate'] = thresholds['moderate']
+        
+        print(f"坐姿时间记录设置已更新: 启用={self.posture_time_recording_enabled}, "
+              f"阈值设置: 良好坐姿={self.posture_thresholds['good']}°, "
+              f"轻度不良={self.posture_thresholds['mild']}°, "
+              f"中度不良={self.posture_thresholds['moderate']}°")
+              
+        return self.get_posture_time_recording_settings()
+    
+    def get_posture_time_recording_settings(self):
+        """获取坐姿时间记录设置"""
+        return {
+            'enabled': self.posture_time_recording_enabled,
+            'thresholds': self.posture_thresholds
+        }
+        
+    def get_posture_stats(self, time_range='day'):
+        """获取坐姿统计数据
+        
+        Args:
+            time_range: 时间范围 'day', 'week', 'month'
+            
+        Returns:
+            坐姿统计数据字典
+        """
+        from modules.database_module import get_posture_stats
+        
+        try:
+            stats = get_posture_stats(time_range)
+            return stats
+        except Exception as e:
+            print(f"获取坐姿统计数据失败: {str(e)}")
+            return {
+                'error': str(e)
+            }
