@@ -905,3 +905,161 @@ def capture_posture_image():
 def posture_records_page():
     """显示坐姿图像记录详情页面"""
     return render_template('posture_records.html')
+
+# 路由：获取坐姿统计数据
+@routes_bp.route('/api/get_posture_stats')
+def get_posture_stats():
+    """获取坐姿统计数据
+    
+    支持的参数:
+    - time_range: 预设时间范围 'day', 'week', 'month', 'custom'
+    - start_date: 自定义开始日期 (格式: YYYY-MM-DD，仅当time_range为'custom'时有效)
+    - end_date: 自定义结束日期 (格式: YYYY-MM-DD，仅当time_range为'custom'时有效)
+    - with_hourly_data: 是否返回每小时数据，'true'或'false'，默认为'false'
+    """
+    global posture_monitor
+    
+    try:
+        # 获取时间范围参数
+        time_range = request.args.get('time_range', 'day')
+        if time_range not in ['day', 'week', 'month', 'custom']:
+            time_range = 'day'
+        
+        # 处理自定义日期范围
+        custom_start_date = None
+        custom_end_date = None
+        
+        if time_range == 'custom':
+            try:
+                from datetime import datetime
+                # 解析自定义日期参数
+                start_date_str = request.args.get('start_date')
+                end_date_str = request.args.get('end_date')
+                
+                if start_date_str and end_date_str:
+                    custom_start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+                    custom_end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+                    # 设置start_date的时间为00:00:00
+                    custom_start_date = custom_start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                    # 设置end_date的时间为23:59:59
+                    custom_end_date = custom_end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+                else:
+                    # 如果未提供有效的自定义日期，则使用"今天"作为默认值
+                    time_range = 'day'
+            except ValueError:
+                # 日期格式无效，回退到"今天"
+                time_range = 'day'
+        
+        # 是否需要返回每小时数据
+        with_hourly_data = request.args.get('with_hourly_data', 'false').lower() == 'true'
+        
+        # 检查姿势监测器是否已初始化
+        if not posture_monitor:
+            return jsonify({
+                'status': 'error',
+                'message': '姿势分析系统未初始化',
+                'posture_stats': {
+                    'good': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
+                    'mild': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
+                    'moderate': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
+                    'severe': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
+                    'total_time': {'seconds': 0, 'formatted_time': '0h 0m'},
+                    'good_posture_percentage': 0,
+                    'time_range': time_range
+                }
+            })
+        
+        # 直接从模块导入函数
+        from modules.database_module import get_posture_stats as db_get_posture_stats
+        
+        # 获取姿势统计数据
+        stats = db_get_posture_stats(
+            time_range=time_range, 
+            custom_start_date=custom_start_date, 
+            custom_end_date=custom_end_date,
+            with_hourly_data=with_hourly_data
+        )
+        
+        # 添加查询区间的文字描述
+        time_range_description = ""
+        if time_range == 'day':
+            time_range_description = "今日数据"
+        elif time_range == 'week':
+            time_range_description = "本周数据"
+        elif time_range == 'month':
+            time_range_description = "本月数据"
+        elif time_range == 'custom':
+            from datetime import datetime
+            time_range_description = f"{custom_start_date.strftime('%Y-%m-%d')}至{custom_end_date.strftime('%Y-%m-%d')}数据"
+        
+        stats['time_range_description'] = time_range_description
+        
+        return jsonify({
+            'status': 'success',
+            'posture_stats': stats
+        })
+    except Exception as e:
+        print(f"获取坐姿统计数据出错: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'message': f"获取坐姿统计数据失败: {str(e)}",
+            'posture_stats': {
+                'good': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
+                'mild': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
+                'moderate': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
+                'severe': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
+                'total_time': {'seconds': 0, 'formatted_time': '0h 0m'},
+                'good_posture_percentage': 0,
+                'time_range': time_range
+            }
+        })
+
+# 路由：设置坐姿类型阈值
+@routes_bp.route('/api/set_posture_thresholds', methods=['POST'])
+def set_posture_thresholds():
+    """设置坐姿类型阈值"""
+    global posture_monitor
+    
+    try:
+        data = request.json
+        if not data:
+            return jsonify({
+                'status': 'error',
+                'message': '无效的请求数据'
+            })
+            
+        # 解析参数
+        enabled = data.get('enabled', True)
+        thresholds = data.get('thresholds', {})
+        
+        if not posture_monitor:
+            return jsonify({
+                'status': 'error',
+                'message': '姿势分析系统未初始化'
+            })
+        
+        # 将前端传来的阈值键名转换为后端使用的键名
+        backend_thresholds = {}
+        if 'good' in thresholds:
+            backend_thresholds['good'] = thresholds['good']
+        if 'mild' in thresholds:
+            backend_thresholds['mild'] = thresholds['mild']
+        if 'moderate' in thresholds:
+            backend_thresholds['moderate'] = thresholds['moderate']
+        
+        # 更新坐姿时间记录设置
+        settings = posture_monitor.set_posture_time_recording(enabled, backend_thresholds)
+        
+        return jsonify({
+            'status': 'success',
+            'message': '坐姿阈值设置已更新',
+            'settings': settings
+        })
+    except Exception as e:
+        print(f"设置坐姿阈值出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f"设置坐姿阈值失败: {str(e)}"
+        })

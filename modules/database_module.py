@@ -464,12 +464,15 @@ def record_posture_time(start_time, end_time, duration_seconds, angle, posture_t
         print(f"记录坐姿时间失败: {str(e)}")
         return None
 
-def get_posture_stats(time_range='day'):
+def get_posture_stats(time_range='day', custom_start_date=None, custom_end_date=None, with_hourly_data=False):
     """获取坐姿统计数据
     
     Args:
-        time_range: 时间范围 'day', 'week', 'month'
-    
+        time_range: 时间范围 'day', 'week', 'month', 'custom'
+        custom_start_date: 自定义开始日期 (datetime对象)，仅当time_range为'custom'时有效
+        custom_end_date: 自定义结束日期 (datetime对象)，仅当time_range为'custom'时有效
+        with_hourly_data: 是否返回每小时数据统计
+        
     Returns:
         包含各类坐姿占比和时长的字典
     """
@@ -488,29 +491,33 @@ def get_posture_stats(time_range='day'):
         elif time_range == 'month':
             # 获取本月1日的日期
             start_time = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        elif time_range == 'custom' and custom_start_date and custom_end_date:
+            # 使用自定义日期范围
+            start_time = custom_start_date
+            now = custom_end_date
         else:
             # 默认为今天
             start_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
         
-        # 查询每种坐姿类型的总时长
+        # 优化查询 - 添加索引提示
         query = """
             SELECT 
                 posture_type,
                 SUM(duration_seconds) as total_seconds
             FROM posture_time_records
-            WHERE start_time >= %s
+            WHERE start_time >= %s AND end_time <= %s
             GROUP BY posture_type
         """
         
-        cursor.execute(query, (start_time,))
+        cursor.execute(query, (start_time, now))
         results = cursor.fetchall()
         
         # 计算总监测时间
         cursor.execute("""
             SELECT SUM(duration_seconds) as grand_total
             FROM posture_time_records
-            WHERE start_time >= %s
-        """, (start_time,))
+            WHERE start_time >= %s AND end_time <= %s
+        """, (start_time, now))
         
         total_result = cursor.fetchone()
         total_time = total_result['grand_total'] if total_result and total_result['grand_total'] else 0
@@ -549,12 +556,19 @@ def get_posture_stats(time_range='day'):
         else:
             stats['good_posture_percentage'] = 0
         
+        # 添加每小时数据
+        if with_hourly_data:
+            hourly_data = get_hourly_posture_data(start_time, now)
+            stats['hourly_data'] = hourly_data
+        
         cursor.close()
         conn.close()
         
         return stats
     except Exception as e:
         print(f"获取坐姿统计数据失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {
             'good': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
             'mild': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
@@ -615,3 +629,120 @@ def clear_posture_time_records(days_to_keep=None):
     except Exception as e:
         print(f"清除坐姿时间记录失败: {str(e)}")
         return 0
+
+def get_hourly_posture_data(start_time, end_time):
+    """获取按小时统计的坐姿数据
+    
+    Args:
+        start_time: 开始时间 (datetime对象)
+        end_time: 结束时间 (datetime对象)
+    
+    Returns:
+        包含每小时坐姿分布的列表
+    """
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor(dictionary=True)
+        
+        # 初始化结果
+        hourly_data = []
+        
+        # 根据时间跨度调整查询粒度
+        time_diff = end_time - start_time
+        
+        # 如果时间跨度大于3天，按日统计
+        if time_diff.days > 3:
+            # 生成日期范围
+            current_date = start_time.replace(hour=0, minute=0, second=0, microsecond=0)
+            while current_date <= end_time:
+                next_date = current_date + timedelta(days=1)
+                
+                # 查询各类坐姿时长
+                query = """
+                    SELECT 
+                        posture_type,
+                        SUM(duration_seconds) as total_seconds
+                    FROM posture_time_records
+                    WHERE start_time >= %s AND end_time < %s
+                    GROUP BY posture_type
+                """
+                
+                cursor.execute(query, (current_date, next_date))
+                results = cursor.fetchall()
+                
+                # 初始化当天数据
+                day_data = {
+                    'timestamp': current_date.isoformat(),
+                    'label': current_date.strftime('%m-%d'),
+                    'good': 0,
+                    'mild': 0, 
+                    'moderate': 0,
+                    'severe': 0,
+                    'total': 0
+                }
+                
+                # 填充坐姿数据
+                for result in results:
+                    posture_type = result['posture_type']
+                    seconds = float(result['total_seconds']) if result['total_seconds'] else 0
+                    
+                    if posture_type in day_data:
+                        day_data[posture_type] = seconds
+                        day_data['total'] += seconds
+                
+                hourly_data.append(day_data)
+                current_date = next_date
+                
+        # 否则按小时统计
+        else:
+            # 生成小时范围
+            current_hour = start_time.replace(minute=0, second=0, microsecond=0)
+            while current_hour <= end_time:
+                next_hour = current_hour + timedelta(hours=1)
+                
+                # 查询各类坐姿时长
+                query = """
+                    SELECT 
+                        posture_type,
+                        SUM(duration_seconds) as total_seconds
+                    FROM posture_time_records
+                    WHERE start_time >= %s AND end_time < %s
+                    GROUP BY posture_type
+                """
+                
+                cursor.execute(query, (current_hour, next_hour))
+                results = cursor.fetchall()
+                
+                # 初始化当小时数据
+                hour_data = {
+                    'timestamp': current_hour.isoformat(),
+                    'label': current_hour.strftime('%H:%M'),
+                    'good': 0,
+                    'mild': 0, 
+                    'moderate': 0,
+                    'severe': 0,
+                    'total': 0
+                }
+                
+                # 填充坐姿数据
+                for result in results:
+                    posture_type = result['posture_type']
+                    seconds = float(result['total_seconds']) if result['total_seconds'] else 0
+                    
+                    if posture_type in hour_data:
+                        hour_data[posture_type] = seconds
+                        hour_data['total'] += seconds
+                
+                hourly_data.append(hour_data)
+                current_hour = next_hour
+        
+        cursor.close()
+        conn.close()
+        
+        return hourly_data
+        
+    except Exception as e:
+        print(f"获取按小时坐姿数据失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return []

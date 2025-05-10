@@ -575,7 +575,7 @@ class WebPostureMonitor:
         current_time = time.time()
         
         # 检查是否到达调整间隔
-        if not self.adaptive_resolution or (current_time - self.last_resolution_adjust_time) < RESOLUTION_ADJUST_INTERVAL:
+        if not self.adaptive_resolution or  (current_time - self.last_resolution_adjust_time) < RESOLUTION_ADJUST_INTERVAL:
             return
             
         capture_fps = self.capture_fps.get_fps()
@@ -1342,8 +1342,33 @@ class WebPostureMonitor:
             # 初始化记录
             self.current_posture_type = posture_type
             self.posture_start_time = current_time
+            self.last_periodic_record_time = current_time
             return
             
+        # 定期记录当前状态（每30秒记录一次当前状态，即使坐姿类型没有改变）
+        time_since_last_record = (current_time - self.last_periodic_record_time).total_seconds()
+        if time_since_last_record >= 30:  # 每30秒记录一次
+            # 计算此周期的持续时间
+            duration = time_since_last_record
+            
+            try:
+                # 记录到数据库
+                record_posture_time(
+                    start_time=self.last_periodic_record_time,
+                    end_time=current_time,
+                    duration_seconds=duration,
+                    angle=angle,
+                    posture_type=self.current_posture_type,
+                    notes=f"周期性记录的坐姿时间，角度：{angle:.1f}°"
+                )
+                print(f"周期性记录坐姿：{self.current_posture_type}，持续时间：{duration:.1f}秒")
+                
+                # 更新上次记录时间
+                self.last_periodic_record_time = current_time
+                
+            except Exception as e:
+                print(f"记录坐姿时间失败: {str(e)}")
+        
         # 如果坐姿类型改变，记录上一种类型的持续时间
         if posture_type != self.current_posture_type:
             if self.posture_start_time:
@@ -1360,14 +1385,16 @@ class WebPostureMonitor:
                             duration_seconds=duration,
                             angle=self.last_valid_angle,
                             posture_type=self.current_posture_type,
-                            notes=f"自动记录的坐姿时间，角度：{self.last_valid_angle:.1f}°"
+                            notes=f"状态变化记录的坐姿时间，角度：{self.last_valid_angle:.1f}°"
                         )
+                        print(f"状态变化记录坐姿：{self.current_posture_type} -> {posture_type}，持续时间：{duration:.1f}秒")
                     except Exception as e:
                         print(f"记录坐姿时间失败: {str(e)}")
             
             # 更新当前坐姿类型和开始时间
             self.current_posture_type = posture_type
             self.posture_start_time = current_time
+            self.last_periodic_record_time = current_time
     
     def set_posture_time_recording(self, enabled=True, thresholds=None):
         """设置坐姿时间记录参数
@@ -1405,11 +1432,14 @@ class WebPostureMonitor:
             'thresholds': self.posture_thresholds
         }
         
-    def get_posture_stats(self, time_range='day'):
+    def get_posture_stats(self, time_range='day', custom_start_date=None, custom_end_date=None, with_hourly_data=False):
         """获取坐姿统计数据
         
         Args:
-            time_range: 时间范围 'day', 'week', 'month'
+            time_range: 时间范围 'day', 'week', 'month', 'custom'
+            custom_start_date: 自定义开始日期，仅当time_range为'custom'时有效
+            custom_end_date: 自定义结束日期，仅当time_range为'custom'时有效
+            with_hourly_data: 是否返回每小时数据统计
             
         Returns:
             坐姿统计数据字典
@@ -1417,7 +1447,12 @@ class WebPostureMonitor:
         from modules.database_module import get_posture_stats
         
         try:
-            stats = get_posture_stats(time_range)
+            stats = get_posture_stats(
+                time_range=time_range, 
+                custom_start_date=custom_start_date, 
+                custom_end_date=custom_end_date,
+                with_hourly_data=with_hourly_data
+            )
             return stats
         except Exception as e:
             print(f"获取坐姿统计数据失败: {str(e)}")

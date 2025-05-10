@@ -444,20 +444,21 @@
         </div>
     </div>
 
+    <script src="/static/js/analysis.js"></script>
     <script>
         // 初始化图表
         document.addEventListener('DOMContentLoaded', function () {
             // 加载最近的坐姿图像记录
             loadRecentPostureImages();
             
-            // 坐姿时间占比环形图
+            // 初始化坐姿饼图
             const pieCtx = document.getElementById('posturePieChart').getContext('2d');
-            const pieChart = new Chart(pieCtx, {
+            const pieChartConfig = {
                 type: 'doughnut',
                 data: {
                     labels: ['良好坐姿', '轻度不良', '中度不良', '严重不良'],
                     datasets: [{
-                        data: [64, 18, 12, 6],
+                        data: [0, 0, 0, 0], // 初始为0，将通过API获取实际数据
                         backgroundColor: [
                             '#34a853',
                             '#fbbc05',
@@ -488,8 +489,9 @@
                     },
                     maintainAspectRatio: false
                 }
-            });
-
+            };
+            const posturePieChart = new Chart(pieCtx, pieChartConfig);
+            
             // 坐姿评分趋势图
             const trendCtx = document.getElementById('scoreTrendChart').getContext('2d');
             const trendChart = new Chart(trendCtx, {
@@ -675,6 +677,12 @@
                     maintainAspectRatio: false
                 }
             });
+            
+            // 加载坐姿数据，并更新饼图
+            loadPostureData();
+            
+            // 设置定时刷新
+            setInterval(loadPostureData, 60000); // 每分钟更新一次
         });
 
         // 加载最近的坐姿图像记录
@@ -736,6 +744,76 @@
                     console.error('获取坐姿图像记录失败:', error);
                     container.innerHTML = '<div style="text-align: center; width: 100%; padding: 20px; color: #ea4335;">加载失败，请稍后重试</div>';
                 });
+        }
+        
+        // 加载坐姿统计数据并更新饼图
+        function loadPostureData() {
+            // 获取当前选中的时间范围
+            const timeRangeButtons = document.querySelectorAll('.time-range-btn');
+            let currentTimeRange = 'day'; // 默认为今日
+            
+            timeRangeButtons.forEach(btn => {
+                if (btn.classList.contains('active')) {
+                    if (btn.textContent.includes('周')) {
+                        currentTimeRange = 'week';
+                    } else if (btn.textContent.includes('月')) {
+                        currentTimeRange = 'month';
+                    }
+                }
+            });
+            
+            // 发起API请求获取坐姿统计数据
+            fetch(`/api/get_posture_stats?time_range=${currentTimeRange}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        updatePostureUI(data.posture_stats);
+                    } else {
+                        console.error('获取坐姿统计数据失败:', data.message);
+                    }
+                })
+                .catch(error => {
+                    console.error('请求坐姿统计数据出错:', error);
+                });
+        }
+        
+        // 更新坐姿统计UI
+        function updatePostureUI(stats) {
+            // 获取饼图实例
+            const posturePieChart = Chart.getChart('posturePieChart');
+            
+            if (posturePieChart) {
+                // 更新饼图数据
+                posturePieChart.data.datasets[0].data = [
+                    stats.good.percentage,
+                    stats.mild.percentage,
+                    stats.moderate.percentage,
+                    stats.severe.percentage
+                ];
+                posturePieChart.update();
+            }
+            
+            // 更新统计卡片信息
+            const statItems = document.querySelectorAll('.stat-item');
+            if (statItems.length >= 3) {
+                // 良好坐姿时间
+                statItems[0].querySelector('.stat-value').textContent = stats.good.formatted_time;
+                
+                // 不良坐姿时间 (mild + moderate + severe)
+                const badTime = stats.mild.seconds + stats.moderate.seconds + stats.severe.seconds;
+                let badTimeFormatted = '';
+                const hours = Math.floor(badTime / 3600);
+                const minutes = Math.floor((badTime % 3600) / 60);
+                if (hours > 0) {
+                    badTimeFormatted = `${hours}h ${minutes}m`;
+                } else {
+                    badTimeFormatted = `${minutes}m`;
+                }
+                statItems[1].querySelector('.stat-value').textContent = badTimeFormatted;
+                
+                // 良好率
+                statItems[2].querySelector('.stat-value').textContent = `${stats.good_posture_percentage}%`;
+            }
         }
         
         // 查看单张坐姿图像
@@ -843,8 +921,8 @@
                 }
             });
 
-            // 这里可以添加实际更新图表数据的逻辑
-            console.log(`切换至${range}数据范围`);
+            // 加载新时间范围的数据
+            loadPostureData();
         }
 
         // 生成PDF周报
