@@ -27,7 +27,12 @@ def setup_services(posture_monitor_instance=None, video_stream_instance=None, se
 # 路由：首页
 @routes_bp.route('/')
 def index():
-    return render_template('index.html')
+    return render_template('main.html')
+
+# 路由：调试页面
+@routes_bp.route('/debug')
+def debug():
+    return render_template('debug.html')
 
 # 路由：发送文本数据
 @routes_bp.route('/api/send_data', methods=['POST'])
@@ -522,7 +527,9 @@ def connect_serial():
         return jsonify({
             'status': 'error',
             'message': f'连接串口失败: {str(e)}'
-        })# 视频流路由别名 - 兼容前端
+        })
+
+# 视频流路由别名 - 兼容前端
 @routes_bp.route('/pose_video_feed')
 def pose_video_feed_alias():
     """姿势分析视频流别名"""
@@ -644,3 +651,257 @@ def set_resolution_mode():
 def get_pose_status_compat():
     """获取姿势状态的兼容路由（无API前缀）"""
     return get_pose_status()
+
+# 路由：获取坐姿图像记录设置
+@routes_bp.route('/api/get_posture_recording_settings')
+def get_posture_recording_settings():
+    """获取坐姿图像记录设置"""
+    global posture_monitor
+    
+    try:
+        if not posture_monitor:
+            return jsonify({
+                'status': 'error',
+                'message': '姿势分析系统未初始化',
+                'settings': None
+            })
+        
+        settings = posture_monitor.get_posture_recording_settings()
+        
+        return jsonify({
+            'status': 'success',
+            'message': '获取坐姿图像记录设置成功',
+            'settings': settings
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'获取坐姿图像记录设置失败: {str(e)}',
+            'settings': None
+        })
+
+# 路由：更新坐姿图像记录设置
+@routes_bp.route('/api/update_posture_recording_settings', methods=['POST'])
+def update_posture_recording_settings():
+    """更新坐姿图像记录设置"""
+    global posture_monitor
+    
+    try:
+        if not posture_monitor:
+            return jsonify({
+                'status': 'error',
+                'message': '姿势分析系统未初始化'
+            })
+        
+        # 获取请求参数
+        data = request.json
+        enabled = data.get('enabled')
+        duration_threshold = data.get('duration_threshold')
+        interval = data.get('interval')
+        
+        # 新增良好坐姿记录参数
+        good_posture_enabled = data.get('good_posture_enabled')
+        good_posture_angle_threshold = data.get('good_posture_angle_threshold')
+        good_posture_duration_threshold = data.get('good_posture_duration_threshold')
+        good_posture_interval = data.get('good_posture_interval')
+        
+        if (enabled is None and duration_threshold is None and interval is None and
+            good_posture_enabled is None and good_posture_angle_threshold is None and
+            good_posture_duration_threshold is None and good_posture_interval is None):
+            return jsonify({
+                'status': 'error',
+                'message': '未提供任何更新参数'
+            })
+        
+        # 更新设置
+        settings = posture_monitor.set_posture_recording(
+            enabled=enabled,
+            duration_threshold=duration_threshold,
+            interval=interval,
+            good_posture_enabled=good_posture_enabled,
+            good_posture_angle_threshold=good_posture_angle_threshold,
+            good_posture_duration_threshold=good_posture_duration_threshold,
+            good_posture_interval=good_posture_interval
+        )
+        
+        return jsonify({
+            'status': 'success',
+            'message': '坐姿图像记录设置已更新',
+            'settings': settings
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'更新坐姿图像记录设置失败: {str(e)}'
+        })
+
+# 路由：获取坐姿图像记录列表
+@routes_bp.route('/api/get_posture_images')
+def get_posture_images():
+    """获取坐姿图像记录列表，支持分页和筛选"""
+    try:
+        from modules.database_module import get_posture_images as db_get_posture_images
+        
+        # 获取请求参数
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 10, type=int)
+        bad_posture_only = request.args.get('bad_posture_only', 'false').lower() == 'true'
+        
+        # 查询数据库
+        result = db_get_posture_images(page, per_page, bad_posture_only)
+        
+        return jsonify({
+            'status': 'success',
+            'message': '获取坐姿图像记录成功',
+            **result
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'获取坐姿图像记录失败: {str(e)}',
+            'records': [],
+            'pagination': {
+                'total': 0,
+                'page': 1,
+                'per_page': 10,
+                'total_pages': 0
+            }
+        })
+
+# 路由：删除坐姿图像记录
+@routes_bp.route('/api/delete_posture_image', methods=['POST'])
+def delete_posture_image():
+    """删除指定的坐姿图像记录"""
+    try:
+        from modules.database_module import delete_posture_image as db_delete_posture_image
+        
+        # 获取请求参数
+        data = request.json
+        image_id = data.get('image_id')
+        
+        if not image_id:
+            return jsonify({
+                'status': 'error',
+                'message': '未提供图像ID'
+            })
+        
+        # 执行删除
+        success = db_delete_posture_image(image_id)
+        
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': f'已删除坐姿图像记录 (ID: {image_id})'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': f'未找到ID为 {image_id} 的坐姿图像记录'
+            })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'删除坐姿图像记录失败: {str(e)}'
+        })
+
+# 路由：清空坐姿图像记录
+@routes_bp.route('/api/clear_posture_images', methods=['POST'])
+def clear_posture_images():
+    """清空坐姿图像记录"""
+    try:
+        from modules.database_module import clear_posture_images as db_clear_posture_images
+        
+        # 获取请求参数
+        data = request.json
+        days_to_keep = data.get('days_to_keep')
+        
+        # 执行清空
+        deleted_count = db_clear_posture_images(days_to_keep)
+        
+        message = f'已删除 {deleted_count} 条坐姿图像记录'
+        if days_to_keep:
+            message = f'已删除 {deleted_count} 条{days_to_keep}天前的坐姿图像记录'
+            
+        return jsonify({
+            'status': 'success',
+            'message': message,
+            'deleted_count': deleted_count
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'清空坐姿图像记录失败: {str(e)}'
+        })
+
+# 路由：手动记录当前坐姿图像
+@routes_bp.route('/api/capture_posture_image', methods=['POST'])
+def capture_posture_image():
+    """手动记录当前坐姿图像"""
+    global posture_monitor
+    
+    try:
+        if not posture_monitor or not posture_monitor.is_running:
+            return jsonify({
+                'status': 'error',
+                'message': '姿势分析系统未运行'
+            })
+        
+        from modules.database_module import save_posture_image
+        
+        # 获取请求参数
+        data = request.json
+        notes = data.get('notes', '手动记录的坐姿图像')
+        
+        # 获取当前帧
+        if not hasattr(posture_monitor, 'cap') or not posture_monitor.cap.isOpened():
+            return jsonify({
+                'status': 'error',
+                'message': '摄像头未就绪'
+            })
+            
+        # 读取当前帧
+        ret, frame = posture_monitor.cap.read()
+        if not ret:
+            return jsonify({
+                'status': 'error',
+                'message': '无法获取当前摄像头帧'
+            })
+        
+        # 获取当前姿势状态
+        angle = posture_monitor.pose_result.get('angle', 0)
+        is_bad_posture = posture_monitor.pose_result.get('is_bad_posture', False)
+        posture_status = f"{'Bad' if is_bad_posture else 'Good'} Posture - Angle: {angle:.1f}°"
+        emotion = posture_monitor.emotion_result.get('emotion', 'UNKNOWN')
+        
+        # 保存图像记录
+        result = save_posture_image(
+            image=frame,
+            angle=angle,
+            is_bad_posture=is_bad_posture,
+            posture_status=posture_status,
+            emotion=emotion,
+            notes=notes
+        )
+        
+        if result:
+            return jsonify({
+                'status': 'success',
+                'message': '成功记录当前坐姿图像',
+                'image': result
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': '保存坐姿图像失败'
+            })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'记录坐姿图像失败: {str(e)}'
+        })
+
+# 路由：查看更多坐姿图像记录页面
+@routes_bp.route('/posture-records')
+def posture_records_page():
+    """显示坐姿图像记录详情页面"""
+    return render_template('posture_records.html')

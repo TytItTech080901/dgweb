@@ -26,16 +26,16 @@ function fetchFPSInfo() {
 }
 
 // 更新帧率显示
-// 更新帧率显示
-// 更新帧率显示
 function updateFPSDisplay(data) {
     console.log('FPS数据更新:', data);
     
     // 更新图像接收帧率
     const captureFPS = document.getElementById('captureFPS');
     if (captureFPS) {
-        captureFPS.textContent = data.capture_fps.toFixed(1);
-        updateFPSIndicator(captureFPS, data.capture_fps);
+        // 确保数据存在并且是数字
+        const captureRate = parseFloat(data.capture_fps || 0);
+        captureFPS.textContent = captureRate.toFixed(1);
+        updateFPSIndicator(captureFPS, captureRate);
     } else {
         console.warn('未找到captureFPS元素');
     }
@@ -43,9 +43,10 @@ function updateFPSDisplay(data) {
     // 更新图像处理帧率 (姿势处理帧率)
     const processFPS = document.getElementById('processFPS');
     if (processFPS) {
-        // 使用pose_process_fps而不是平均值，因为图像处理帧率主要由姿势处理决定
-        processFPS.textContent = data.pose_process_fps.toFixed(1);
-        updateFPSIndicator(processFPS, data.pose_process_fps);
+        // 确保数据存在并且是数字
+        const processRate = parseFloat(data.pose_process_fps || 0);
+        processFPS.textContent = processRate.toFixed(1);
+        updateFPSIndicator(processFPS, processRate);
     } else {
         console.warn('未找到processFPS元素');
     }
@@ -53,8 +54,10 @@ function updateFPSDisplay(data) {
     // 更新视频流帧率 (姿势视频流帧率)
     const streamFPS = document.getElementById('streamFPS');
     if (streamFPS) {
-        streamFPS.textContent = data.pose_stream_fps.toFixed(1);
-        updateFPSIndicator(streamFPS, data.pose_stream_fps);
+        // 确保数据存在并且是数字
+        const streamRate = parseFloat(data.pose_stream_fps || 0);
+        streamFPS.textContent = streamRate.toFixed(1);
+        updateFPSIndicator(streamFPS, streamRate);
     } else {
         console.warn('未找到streamFPS元素');
     }

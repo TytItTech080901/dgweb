@@ -191,6 +191,23 @@ class WebPostureMonitor:
         
         # 采样策略
         self.resize_method = 'subsampling'  # 'resize' 或 'subsampling'
+        
+        # 坐姿图像记录配置
+        self.posture_recording_enabled = True  # 是否启用坐姿图像记录
+        self.bad_posture_duration_threshold = 3  # 连续不良坐姿超过此秒数才记录
+        self.recording_interval = 60  # 两次记录的最小间隔(秒)
+        self.bad_posture_start_time = None  # 不良坐姿开始时间
+        self.last_recording_time = 0  # 上次记录时间
+        self.continuous_bad_posture = False  # 是否持续处于不良坐姿
+        
+        # 良好坐姿记录配置
+        self.good_posture_recording_enabled = True  # 是否启用良好坐姿记录
+        self.good_posture_angle_threshold = 40.0  # 良好坐姿角度阈值(度)，小于此值视为良好坐姿
+        self.good_posture_duration_threshold = 5  # 连续良好坐姿超过此秒数才记录(秒)
+        self.good_posture_interval = 120  # 良好坐姿记录间隔(秒)
+        self.continuous_good_posture = False  # 是否持续处于良好坐姿
+        self.good_posture_start_time = None  # 良好坐姿开始时间
+        self.last_good_recording_time = 0  # 上次良好坐姿记录时间
     
     # 新增跳采样方法
     def _resize_with_subsampling(self, frame, target_width, target_height):
@@ -571,7 +588,7 @@ class WebPostureMonitor:
             
             # 重置帧率计数器
             self.pose_process_fps.reset()
-            self.emotion_process_fps.reset()
+            self.emotion_process_fps.reset
     
     def _adjust_skip_frame_strategy(self):
         """根据当前处理性能调整跳帧策略"""
@@ -723,6 +740,9 @@ class WebPostureMonitor:
                     'emotion': emotion_results['emotion'].name if emotion_results['emotion'] else 'UNKNOWN',
                     'emotion_code': emotion_results['emotion'].value if emotion_results['emotion'] else -1
                 }
+                
+                # 检查并记录不良坐姿
+                self._check_and_record_bad_posture(frame, pose_results)
                 
                 # 每秒更新一次帧率信息
                 # 每0.5秒更新一次帧率信息
@@ -1055,3 +1075,203 @@ class WebPostureMonitor:
             print("未找到任何可用摄像头")
         
         return available_cameras
+
+    def _check_and_record_bad_posture(self, frame, pose_results):
+        """检查并记录不良坐姿
+        
+        Args:
+            frame: 原始视频帧
+            pose_results: 姿势分析结果
+            
+        Returns:
+            是否记录了坐姿图像
+        """
+        if not self.posture_recording_enabled:
+            return False
+            
+        # 检查是否是有效的姿势检测（非遮挡状态）
+        if pose_results['is_occluded'] or pose_results['angle'] is None:
+            self.continuous_bad_posture = False
+            self.bad_posture_start_time = None
+            self.continuous_good_posture = False
+            self.good_posture_start_time = None
+            return False
+        
+        # 获取当前角度和时间
+        angle = pose_results['angle']
+        current_time = time.time()
+        recorded = False
+            
+        # 处理不良坐姿
+        if pose_results['is_bad_posture']:
+            # 重置良好坐姿状态
+            self.continuous_good_posture = False
+            self.good_posture_start_time = None
+            
+            # 记录不良坐姿的开始时间
+            if not self.continuous_bad_posture:
+                self.continuous_bad_posture = True
+                self.bad_posture_start_time = current_time
+            
+            # 不良坐姿持续时间超过阈值且间隔时间足够长，进行记录
+            if (self.bad_posture_start_time and 
+                current_time - self.bad_posture_start_time >= self.bad_posture_duration_threshold and
+                current_time - self.last_recording_time >= self.recording_interval):
+                
+                # 记录不良坐姿图像
+                recorded = self._save_posture_image(
+                    frame=frame,
+                    angle=angle,
+                    is_bad_posture=True,
+                    posture_type="Bad",
+                    record_type="auto"
+                )
+                
+                if recorded:
+                    self.last_recording_time = current_time
+            
+        else:
+            # 恢复良好坐姿，重置不良坐姿状态
+            self.continuous_bad_posture = False
+            self.bad_posture_start_time = None
+            
+            # 处理良好坐姿（角度小于设定阈值）
+            if angle <= self.good_posture_angle_threshold and self.good_posture_recording_enabled:
+                # 记录良好坐姿的开始时间
+                if not self.continuous_good_posture:
+                    self.continuous_good_posture = True
+                    self.good_posture_start_time = current_time
+                
+                # 良好坐姿持续时间超过阈值且间隔时间足够长，进行记录
+                if (self.good_posture_start_time and 
+                    current_time - self.good_posture_start_time >= self.good_posture_duration_threshold and
+                    current_time - self.last_good_recording_time >= self.good_posture_interval):
+                    
+                    # 记录良好坐姿图像
+                    recorded = self._save_posture_image(
+                        frame=frame,
+                        angle=angle,
+                        is_bad_posture=False,
+                        posture_type="Good",
+                        record_type="auto"
+                    )
+                    
+                    if recorded:
+                        self.last_good_recording_time = current_time
+            else:
+                # 角度不符合良好坐姿标准，重置良好坐姿状态
+                self.continuous_good_posture = False
+                self.good_posture_start_time = None
+            
+        return recorded
+        
+    def _save_posture_image(self, frame, angle, is_bad_posture, posture_type="Unknown", record_type="manual"):
+        """保存坐姿图像
+        
+        Args:
+            frame: 原始视频帧
+            angle: 头部角度
+            is_bad_posture: 是否是不良坐姿
+            posture_type: 坐姿类型描述
+            record_type: 记录类型，如'auto'或'manual'
+            
+        Returns:
+            是否成功保存
+        """
+        try:
+            from modules.database_module import save_posture_image
+            
+            # 获取状态信息
+            posture_status = f"{posture_type} Posture - Angle: {angle:.1f}°"
+            emotion = self.emotion_result['emotion']
+            
+            # 添加记录说明
+            notes = (
+                f"{record_type}记录的{posture_type.lower()}坐姿，角度: {angle:.1f}°, "
+                f"情绪: {emotion}, "
+                f"处理分辨率: {self.process_width}x{self.process_height}, "
+                f"姿势处理帧率: {self.pose_process_fps.get_fps():.1f} FPS"
+            )
+            
+            # 保存图像记录
+            result = save_posture_image(
+                image=frame,             # 使用原始未处理帧以获得最佳图像质量
+                angle=angle,
+                is_bad_posture=is_bad_posture,
+                posture_status=posture_status,
+                emotion=emotion,
+                notes=notes
+            )
+            
+            if result:
+                print(f"记录{posture_type}坐姿图像成功，ID: {result['id']}")
+                return True
+            else:
+                print(f"记录{posture_type}坐姿图像失败")
+                return False
+                
+        except Exception as e:
+            print(f"记录坐姿图像时出错: {str(e)}")
+            return False
+        
+    def set_posture_recording(self, enabled=True, duration_threshold=None, interval=None, 
+                         good_posture_enabled=None, good_posture_angle_threshold=None, 
+                         good_posture_duration_threshold=None, good_posture_interval=None):
+        """设置坐姿图像记录参数
+        
+        Args:
+            enabled: 是否启用坐姿图像记录
+            duration_threshold: 连续不良坐姿超过多少秒才记录
+            interval: 两次记录的最小间隔(秒)
+            good_posture_enabled: 是否启用良好坐姿记录
+            good_posture_angle_threshold: 良好坐姿角度阈值(度)，小于此值视为标准良好坐姿
+            good_posture_duration_threshold: 连续良好坐姿超过此秒数才记录
+            good_posture_interval: 良好坐姿记录间隔(秒)
+            
+        Returns:
+            更新后的设置
+        """
+        self.posture_recording_enabled = enabled
+        
+        if duration_threshold is not None and duration_threshold > 0:
+            self.bad_posture_duration_threshold = duration_threshold
+            
+        if interval is not None and interval > 0:
+            self.recording_interval = interval
+            
+        # 更新良好坐姿记录设置
+        if good_posture_enabled is not None:
+            self.good_posture_recording_enabled = good_posture_enabled
+            
+        if good_posture_angle_threshold is not None and 0 < good_posture_angle_threshold <= 60:
+            self.good_posture_angle_threshold = good_posture_angle_threshold
+            
+        if good_posture_duration_threshold is not None and good_posture_duration_threshold > 0:
+            self.good_posture_duration_threshold = good_posture_duration_threshold
+            
+        if good_posture_interval is not None and good_posture_interval > 0:
+            self.good_posture_interval = good_posture_interval
+            
+        print(f"坐姿记录设置已更新: 记录不良坐姿={self.posture_recording_enabled}, " 
+              f"不良姿势持续时间阈值={self.bad_posture_duration_threshold}秒, "
+              f"不良姿势记录间隔={self.recording_interval}秒, "
+              f"记录良好坐姿={self.good_posture_recording_enabled}, "
+              f"良好坐姿角度阈值={self.good_posture_angle_threshold}°, "
+              f"良好坐姿持续时间={self.good_posture_duration_threshold}秒, "
+              f"良好坐姿记录间隔={self.good_posture_interval}秒")
+              
+        return self.get_posture_recording_settings()
+        
+    def get_posture_recording_settings(self):
+        """获取坐姿图像记录设置"""
+        return {
+            'enabled': self.posture_recording_enabled,
+            'duration_threshold': self.bad_posture_duration_threshold,
+            'interval': self.recording_interval,
+            'last_recording_time': self.last_recording_time,
+            'good_posture_enabled': self.good_posture_recording_enabled,
+            'good_posture_angle_threshold': self.good_posture_angle_threshold,
+            'good_posture_duration_threshold': self.good_posture_duration_threshold,
+            'good_posture_interval': self.good_posture_interval,
+            'last_good_recording_time': self.last_good_recording_time
+        }

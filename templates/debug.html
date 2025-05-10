@@ -1,7 +1,7 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>姿势与情绪分析系统</title>
+    <title>姿势与情绪分析系统 - 调试页面</title>
     <!-- 引入外部CSS文件 -->
     <link rel="stylesheet" href="/static/css/main.css">
     <link rel="stylesheet" href="/static/css/serial_style.css">
@@ -68,11 +68,45 @@
             color: red;
             font-weight: bold;
         }
+        
+        /* 添加返回按钮样式 */
+        .btn-return {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #ea4335;
+            color: white;
+            padding: 8px 16px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 1rem;
+            font-weight: bold;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+            z-index: 1000;
+        }
+        
+        .btn-return:hover {
+            background-color: #c62828;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+        }
+        
+        .debug-header {
+            position: relative;
+            margin-bottom: 20px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>姿势与情绪分析系统</h1>
+        <div class="debug-header">
+            <h1>姿势与情绪分析系统 - 调试页面</h1>
+            <button onclick="goToMainPage()" class="btn-return">返回主页面</button>
+        </div>
         
         <div class="tab-container">
             <div class="tab active" data-tab="analysisTab">姿势与情绪分析</div>
@@ -230,7 +264,7 @@
                         <div class="form-group">
                             <label>眉毛下压阈值 (皱眉检测):</label>
                             <div class="param-description">
-                                <<small>判断皱眉/生气表情的敏感度。值越低越容易判定为皱眉，值越高则需要更明显的皱眉动作。容易被误判为生气时，可以调高至0.05-0.08；表情丰富者可调低至0.02-0.04。</small>
+                                <small>判断皱眉/生气表情的敏感度。值越低越容易判定为皱眉，值越高则需要更明显的皱眉动作。容易被误判为生气时，可以调高至0.05-0.08；表情丰富者可调低至0.02-0.04。</small>
                             </div>
                             <div class="range-control">
                                 <input type="range" id="browThresholdSlider" name="brow_down_threshold" min="0.01" max="0.2" step="0.01" value="0.04" oninput="updateRangeValue('browThresholdSlider', 'browThresholdValue')">
@@ -361,6 +395,11 @@
         let analysisStatusInterval = null;
         let autoUpdateEnabled = true;
         let eventSource = null;
+        
+        // 跳转到主页面函数
+        function goToMainPage() {
+            window.location.href = '/';
+        }
         
         // 以下函数需要保留为内联脚本以确保兼容性
         function updateRangeValue(sliderId, valueId) {

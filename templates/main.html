@@ -1,0 +1,894 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>儿童坐姿监测家长端</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <style>
+        :root {
+            --primary-color: #4285f4;
+            --secondary-color: #34a853;
+            --warning-color: #fbbc05;
+            --danger-color: #ea4335;
+            --light-gray: #f5f5f5;
+            --dark-gray: #333;
+            --text-color: #444;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        body {
+            background-color: #f9f9f9;
+            color: var(--text-color);
+            line-height: 1.6;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        header {
+            text-align: center;
+            margin-bottom: 30px;
+            padding: 20px;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            color: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            position: relative;
+        }
+
+        h1 {
+            font-size: 2.2rem;
+            margin-bottom: 10px;
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            opacity: 0.9;
+        }
+
+        .dashboard {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
+            gap: 25px;
+            margin-bottom: 30px;
+        }
+
+        .card {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+            padding: 20px;
+            transition: transform 0.3s ease, box-shadow 0.3s ease;
+        }
+
+            .card:hover {
+                transform: translateY(-5px);
+                box-shadow: 0 8px 16px rgba(0, 0, 0, 0.12);
+            }
+
+        .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 1px solid #eee;
+        }
+
+        .card-title {
+            font-size: 1.2rem;
+            font-weight: 600;
+            color: var(--dark-gray);
+        }
+
+        .card-icon {
+            width: 30px;
+            height: 30px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: var(--light-gray);
+            border-radius: 50%;
+            color: var(--primary-color);
+            font-size: 1rem;
+        }
+
+        .chart-container {
+            position: relative;
+            height: 250px;
+            width: 100%;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 15px;
+            margin-top: 20px;
+        }
+
+        .stat-item {
+            text-align: center;
+            padding: 15px;
+            background-color: var(--light-gray);
+            border-radius: 8px;
+        }
+
+        .stat-value {
+            font-size: 1.8rem;
+            font-weight: 700;
+            color: var(--primary-color);
+            margin-bottom: 5px;
+        }
+
+        .stat-label {
+            font-size: 0.9rem;
+            color: var(--text-color);
+            opacity: 0.8;
+        }
+
+        .badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            font-weight: 600;
+        }
+
+        .badge-success {
+            background-color: rgba(52, 168, 83, 0.2);
+            color: var(--secondary-color);
+        }
+
+        .badge-warning {
+            background-color: rgba(251, 188, 5, 0.2);
+            color: var(--warning-color);
+        }
+
+        .badge-danger {
+            background-color: rgba(234, 67, 53, 0.2);
+            color: var(--danger-color);
+        }
+
+        .time-range-selector {
+            display: flex;
+            justify-content: center;
+            margin-bottom: 20px;
+        }
+
+        .time-range-btn {
+            padding: 8px 16px;
+            margin: 0 5px;
+            border: none;
+            background-color: var(--light-gray);
+            color: var(--text-color);
+            border-radius: 20px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+            .time-range-btn.active {
+                background-color: var(--primary-color);
+                color: white;
+            }
+
+        .actions {
+            display: flex;
+            justify-content: center;
+            margin: 30px 0;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 12px 24px;
+            border: none;
+            border-radius: 30px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .btn-primary {
+            background-color: var(--primary-color);
+            color: white;
+        }
+
+            .btn-primary:hover {
+                background-color: #3367d6;
+                transform: translateY(-2px);
+            }
+
+        .btn-secondary {
+            background-color: white;
+            color: var(--primary-color);
+            border: 1px solid var(--primary-color);
+        }
+
+            .btn-secondary:hover {
+                background-color: var(--light-gray);
+                transform: translateY(-2px);
+            }
+
+        .btn-debug {
+            position: absolute;
+            top: 10px;
+            right: 10px;
+            background-color: #ea4335;
+            color: white;
+            font-size: 0.8rem;
+            padding: 6px 12px;
+            border-radius: 20px;
+            border: none;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            opacity: 0.7;
+        }
+
+        .btn-debug:hover {
+            opacity: 1;
+            transform: translateY(-2px);
+        }
+
+        .alert {
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+        }
+
+        .alert-warning {
+            background-color: rgba(251, 188, 5, 0.2);
+            border-left: 4px solid var(--warning-color);
+        }
+
+        .alert-icon {
+            margin-right: 10px;
+            font-size: 1.5rem;
+            color: var(--warning-color);
+        }
+
+        .alert-content h3 {
+            margin-bottom: 5px;
+            color: var(--dark-gray);
+        }
+
+        .alert-content p {
+            font-size: 0.9rem;
+            color: var(--text-color);
+        }
+
+        .image-gallery {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 15px;
+        }
+
+        .gallery-item {
+            border-radius: 8px;
+            overflow: hidden;
+            position: relative;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        }
+
+            .gallery-item img {
+                width: 100%;
+                height: 120px;
+                object-fit: cover;
+                display: block;
+            }
+
+            .gallery-item .time {
+                position: absolute;
+                bottom: 0;
+                left: 0;
+                right: 0;
+                background-color: rgba(0, 0, 0, 0.6);
+                color: white;
+                padding: 5px;
+                font-size: 0.7rem;
+                text-align: center;
+            }
+
+        @media (max-width: 768px) {
+            .dashboard {
+                grid-template-columns: 1fr;
+            }
+
+            .stats-grid {
+                grid-template-columns: 1fr;
+            }
+
+            h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container" id="dashboard">
+        <header>
+            <h1>儿童坐姿监测家长端</h1>
+            <p class="subtitle">全面了解孩子的坐姿习惯及改善效果</p>
+            <button onclick="goToDebugPage()" class="btn-debug">调试页面</button>
+        </header>
+
+        <div class="time-range-selector">
+            <button class="time-range-btn active" onclick="changeTimeRange('day')">今日</button>
+            <button class="time-range-btn" onclick="changeTimeRange('week')">本周</button>
+            <button class="time-range-btn" onclick="changeTimeRange('month')">本月</button>
+        </div>
+
+        <div class="alert alert-warning">
+            <div class="alert-icon">⚠️</div>
+            <div class="alert-content">
+                <h3>坐姿改善建议</h3>
+                <p>根据数据分析，您孩子在下午3-5点时段坐姿不良率较高，建议加强这个时段的监督或调整学习环境。</p>
+            </div>
+        </div>
+
+        <div class="dashboard">
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">坐姿时间占比</h2>
+                    <div class="card-icon">📊</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="posturePieChart"></canvas>
+                </div>
+                <div class="stats-grid">
+                    <div class="stat-item">
+                        <div class="stat-value">3.2h</div>
+                        <div class="stat-label">良好坐姿</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">1.8h</div>
+                        <div class="stat-label">不良坐姿</div>
+                    </div>
+                    <div class="stat-item">
+                        <div class="stat-value">64%</div>
+                        <div class="stat-label">良好率</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">坐姿评分趋势</h2>
+                    <div class="card-icon">📈</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="scoreTrendChart"></canvas>
+                </div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <span class="badge badge-success">本周提升 +12%</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">不良坐姿时段分布</h2>
+                    <div class="card-icon">⏰</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="heatmapChart"></canvas>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">提醒响应情况</h2>
+                    <div class="card-icon">📣</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="radarChart"></canvas>
+                </div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <span class="badge badge-warning">响应率可提升</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">脊柱健康风险评估</h2>
+                    <div class="card-icon">🏥</div>
+                </div>
+                <div class="chart-container">
+                    <canvas id="riskChart"></canvas>
+                </div>
+                <div style="text-align: center; margin-top: 10px;">
+                    <span class="badge badge-success">低风险</span>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-header">
+                    <h2 class="card-title">坐姿图像记录</h2>
+                    <div class="card-icon">🧍‍♂️</div>
+                </div>
+                <div id="posture-images-container" class="image-gallery">
+                    <!-- 坐姿图像将通过JS动态加载 -->
+                    <div class="loading-indicator" style="text-align: center; width: 100%; padding: 20px;">
+                        加载中...
+                    </div>
+                </div>
+                <div style="text-align: center; margin-top: 15px;">
+                    <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.9rem;" onclick="openPostureRecordsPage()">查看更多记录</button>
+                </div>
+            </div>
+        </div>
+
+        <div class="actions">
+            <button class="btn btn-primary" onclick="generatePDF()">
+                <span>📄 导出周报</span>
+            </button>
+            <button class="btn btn-secondary">
+                <span>⚙️ 设置提醒</span>
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // 初始化图表
+        document.addEventListener('DOMContentLoaded', function () {
+            // 加载最近的坐姿图像记录
+            loadRecentPostureImages();
+            
+            // 坐姿时间占比环形图
+            const pieCtx = document.getElementById('posturePieChart').getContext('2d');
+            const pieChart = new Chart(pieCtx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['良好坐姿', '轻度不良', '中度不良', '严重不良'],
+                    datasets: [{
+                        data: [64, 18, 12, 6],
+                        backgroundColor: [
+                            '#34a853',
+                            '#fbbc05',
+                            '#ff9800',
+                            '#ea4335'
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    cutout: '70%',
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                padding: 20,
+                                usePointStyle: true,
+                                pointStyle: 'circle'
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return `${context.label}: ${context.raw}%`;
+                                }
+                            }
+                        }
+                    },
+                    maintainAspectRatio: false
+                }
+            });
+
+            // 坐姿评分趋势图
+            const trendCtx = document.getElementById('scoreTrendChart').getContext('2d');
+            const trendChart = new Chart(trendCtx, {
+                type: 'line',
+                data: {
+                    labels: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                    datasets: [{
+                        label: '坐姿评分',
+                        data: [72, 68, 75, 80, 78, 82, 85],
+                        borderColor: '#4285f4',
+                        backgroundColor: 'rgba(66, 133, 244, 0.1)',
+                        borderWidth: 3,
+                        tension: 0.3,
+                        fill: true,
+                        pointBackgroundColor: '#4285f4',
+                        pointRadius: 5,
+                        pointHoverRadius: 7
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: false,
+                            min: 60,
+                            max: 100,
+                            ticks: {
+                                callback: function (value) {
+                                    return value + '分';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return `评分: ${context.raw}分`;
+                                }
+                            }
+                        }
+                    },
+                    maintainAspectRatio: false
+                }
+            });
+
+            // 不良坐姿热力图
+            const heatmapCtx = document.getElementById('heatmapChart').getContext('2d');
+            const heatmapChart = new Chart(heatmapCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['8-10', '10-12', '12-14', '14-16', '16-18', '18-20'],
+                    datasets: [{
+                        label: '不良坐姿次数',
+                        data: [5, 3, 2, 8, 6, 4],
+                        backgroundColor: function (context) {
+                            const value = context.dataset.data[context.dataIndex];
+                            if (value >= 7) return '#ea4335';
+                            if (value >= 5) return '#ff9800';
+                            if (value >= 3) return '#fbbc05';
+                            return '#34a853';
+                        },
+                        borderWidth: 0,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            title: {
+                                display: true,
+                                text: '不良次数'
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        }
+                    },
+                    maintainAspectRatio: false
+                }
+            });
+
+            // 提醒响应雷达图
+            const radarCtx = document.getElementById('radarChart').getContext('2d');
+            const radarChart = new Chart(radarCtx, {
+                type: 'radar',
+                data: {
+                    labels: ['即时纠正率', '提醒响应速度', '持续坐姿时间', '重复提醒次数', '自主调整率'],
+                    datasets: [{
+                        label: '本周',
+                        data: [75, 60, 65, 40, 55],
+                        backgroundColor: 'rgba(66, 133, 244, 0.2)',
+                        borderColor: '#4285f4',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#4285f4',
+                        pointRadius: 4
+                    }, {
+                        label: '上周',
+                        data: [65, 50, 55, 60, 45],
+                        backgroundColor: 'rgba(234, 67, 53, 0.2)',
+                        borderColor: '#ea4335',
+                        borderWidth: 2,
+                        pointBackgroundColor: '#ea4335',
+                        pointRadius: 4,
+                        borderDash: [5, 5]
+                    }]
+                },
+                options: {
+                    scales: {
+                        r: {
+                            angleLines: {
+                                display: true
+                            },
+                            suggestedMin: 0,
+                            suggestedMax: 100,
+                            ticks: {
+                                stepSize: 20
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            position: 'bottom'
+                        }
+                    },
+                    maintainAspectRatio: false
+                }
+            });
+
+            // 脊柱健康风险图
+            const riskCtx = document.getElementById('riskChart').getContext('2d');
+            const riskChart = new Chart(riskCtx, {
+                type: 'bar',
+                data: {
+                    labels: ['颈椎风险', '腰椎风险', '胸椎风险', '整体风险'],
+                    datasets: [{
+                        label: '风险指数',
+                        data: [32, 28, 25, 30],
+                        backgroundColor: [
+                            'rgba(66, 133, 244, 0.7)',
+                            'rgba(52, 168, 83, 0.7)',
+                            'rgba(251, 188, 5, 0.7)',
+                            'rgba(234, 67, 53, 0.7)'
+                        ],
+                        borderColor: [
+                            '#4285f4',
+                            '#34a853',
+                            '#fbbc05',
+                            '#ea4335'
+                        ],
+                        borderWidth: 1
+                    }]
+                },
+                options: {
+                    scales: {
+                        y: {
+                            beginAtZero: true,
+                            max: 100,
+                            ticks: {
+                                callback: function (value) {
+                                    return value + '%';
+                                }
+                            }
+                        }
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: function (context) {
+                                    return `风险指数: ${context.raw}%`;
+                                }
+                            }
+                        }
+                    },
+                    maintainAspectRatio: false
+                }
+            });
+        });
+
+        // 加载最近的坐姿图像记录
+        function loadRecentPostureImages() {
+            const container = document.getElementById('posture-images-container');
+            
+            // 发起API请求获取最近的坐姿图像
+            fetch('/api/get_posture_images?page=1&per_page=4')
+                .then(response => response.json())
+                .then(data => {
+                    // 清空加载指示器
+                    container.innerHTML = '';
+                    
+                    if (data.status === 'success' && data.records && data.records.length > 0) {
+                        // 渲染图像记录
+                        data.records.forEach(record => {
+                            // 创建图像项
+                            const galleryItem = document.createElement('div');
+                            galleryItem.className = 'gallery-item';
+                            
+                            // 创建图像元素
+                            const img = document.createElement('img');
+                            img.src = record.image_path; // 使用服务器返回的图像路径
+                            img.alt = record.is_bad_posture ? '不良坐姿' : '良好坐姿';
+                            img.onerror = function() {
+                                // 图像加载失败时显示占位符
+                                this.src = record.is_bad_posture 
+                                    ? 'https://via.placeholder.com/150x120/ea4335/ffffff?text=不良坐姿'
+                                    : 'https://via.placeholder.com/150x120/34a853/ffffff?text=良好坐姿';
+                            };
+                            
+                            // 创建时间标签
+                            const timeDiv = document.createElement('div');
+                            timeDiv.className = 'time';
+                            // 解析时间戳并格式化
+                            const recordTime = new Date(record.timestamp);
+                            const timeString = recordTime.toLocaleTimeString('zh-CN', {
+                                hour: '2-digit',
+                                minute: '2-digit'
+                            });
+                            timeDiv.textContent = timeString;
+                            
+                            // 添加点击查看大图功能
+                            galleryItem.onclick = function() {
+                                viewPostureImage(record);
+                            };
+                            
+                            // 组合元素
+                            galleryItem.appendChild(img);
+                            galleryItem.appendChild(timeDiv);
+                            container.appendChild(galleryItem);
+                        });
+                    } else {
+                        // 没有记录时显示提示
+                        container.innerHTML = '<div style="text-align: center; width: 100%; padding: 20px;">暂无坐姿图像记录</div>';
+                    }
+                })
+                .catch(error => {
+                    console.error('获取坐姿图像记录失败:', error);
+                    container.innerHTML = '<div style="text-align: center; width: 100%; padding: 20px; color: #ea4335;">加载失败，请稍后重试</div>';
+                });
+        }
+        
+        // 查看单张坐姿图像
+        function viewPostureImage(record) {
+            // 创建模态框
+            const modal = document.createElement('div');
+            modal.style.position = 'fixed';
+            modal.style.left = '0';
+            modal.style.top = '0';
+            modal.style.width = '100%';
+            modal.style.height = '100%';
+            modal.style.backgroundColor = 'rgba(0,0,0,0.8)';
+            modal.style.zIndex = '1000';
+            modal.style.display = 'flex';
+            modal.style.flexDirection = 'column';
+            modal.style.alignItems = 'center';
+            modal.style.justifyContent = 'center';
+            
+            // 创建图像容器
+            const imgContainer = document.createElement('div');
+            imgContainer.style.position = 'relative';
+            imgContainer.style.width = '90%';
+            imgContainer.style.maxWidth = '700px';
+            imgContainer.style.background = 'white';
+            imgContainer.style.padding = '10px';
+            imgContainer.style.borderRadius = '8px';
+            
+            // 创建关闭按钮
+            const closeBtn = document.createElement('div');
+            closeBtn.textContent = '×';
+            closeBtn.style.position = 'absolute';
+            closeBtn.style.right = '10px';
+            closeBtn.style.top = '5px';
+            closeBtn.style.fontSize = '24px';
+            closeBtn.style.cursor = 'pointer';
+            closeBtn.style.color = '#333';
+            closeBtn.onclick = function() {
+                document.body.removeChild(modal);
+            };
+            
+            // 创建图像
+            const img = document.createElement('img');
+            img.src = record.image_path;
+            img.style.width = '100%';
+            img.style.maxHeight = '70vh';
+            img.style.objectFit = 'contain';
+            
+            // 创建图像信息
+            const infoDiv = document.createElement('div');
+            infoDiv.style.padding = '15px';
+            infoDiv.style.textAlign = 'left';
+            
+            // 记录时间
+            const timeDiv = document.createElement('div');
+            const recordTime = new Date(record.timestamp);
+            timeDiv.innerHTML = `<strong>记录时间:</strong> ${recordTime.toLocaleString('zh-CN')}`;
+            
+            // 坐姿状态
+            const statusDiv = document.createElement('div');
+            statusDiv.innerHTML = `<strong>坐姿状态:</strong> ${record.posture_status}`;
+            statusDiv.style.marginTop = '5px';
+            statusDiv.style.color = record.is_bad_posture ? '#ea4335' : '#34a853';
+            
+            // 情绪状态
+            const emotionDiv = document.createElement('div');
+            emotionDiv.innerHTML = `<strong>情绪状态:</strong> ${record.emotion || 'Unknown'}`;
+            emotionDiv.style.marginTop = '5px';
+            
+            // 添加备注信息
+            if (record.notes) {
+                const notesDiv = document.createElement('div');
+                notesDiv.innerHTML = `<strong>备注:</strong> ${record.notes}`;
+                notesDiv.style.marginTop = '5px';
+                infoDiv.appendChild(notesDiv);
+            }
+            
+            // 组合所有元素
+            infoDiv.appendChild(timeDiv);
+            infoDiv.appendChild(statusDiv);
+            infoDiv.appendChild(emotionDiv);
+            
+            imgContainer.appendChild(closeBtn);
+            imgContainer.appendChild(img);
+            imgContainer.appendChild(infoDiv);
+            
+            modal.appendChild(imgContainer);
+            
+            // 点击模态框背景关闭
+            modal.onclick = function(event) {
+                if (event.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            };
+            
+            document.body.appendChild(modal);
+        }
+
+        // 切换时间范围
+        function changeTimeRange(range) {
+            const buttons = document.querySelectorAll('.time-range-btn');
+            buttons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.toLowerCase().includes(range)) {
+                    btn.classList.add('active');
+                }
+            });
+
+            // 这里可以添加实际更新图表数据的逻辑
+            console.log(`切换至${range}数据范围`);
+        }
+
+        // 生成PDF周报
+        function generatePDF() {
+            const { jsPDF } = window.jspdf;
+            const element = document.getElementById('dashboard');
+
+            html2canvas(element, {
+                scale: 2,
+                logging: false,
+                useCORS: true,
+                allowTaint: true
+            }).then(canvas => {
+                const imgData = canvas.toDataURL('image/png');
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210;
+                const pageHeight = 295;
+                const imgHeight = canvas.height * imgWidth / canvas.width;
+                let heightLeft = imgHeight;
+                let position = 0;
+
+                pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                heightLeft -= pageHeight;
+
+                while (heightLeft >= 0) {
+                    position = heightLeft - imgHeight;
+                    pdf.addPage();
+                    pdf.addImage(imgData, 'PNG', 0, position, imgWidth, imgHeight);
+                    heightLeft -= pageHeight;
+                }
+
+                pdf.save('儿童坐姿监测周报.pdf');
+            });
+        }
+
+        // 跳转到调试页面
+        function goToDebugPage() {
+            window.location.href = '/debug';
+        }
+
+        // 打开详细记录页面
+        function openPostureRecordsPage() {
+            window.location.href = '/posture-records';
+        }
+    </script>
+</body>
+</html>
