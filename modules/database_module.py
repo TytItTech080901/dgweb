@@ -545,7 +545,7 @@ def get_posture_stats(time_range='day', custom_start_date=None, custom_end_date=
         total_result = cursor.fetchone()
         total_time = total_result['grand_total'] if total_result and total_result['grand_total'] else 0
         
-        # 初始化结果字典，使用新的四档坐姿类型
+        # 初始化结果字典，使用前端期望的类型名称格式
         stats = {
             'good': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
             'mild': {'seconds': 0, 'percentage': 0, 'formatted_time': '0h 0m'},
@@ -557,20 +557,31 @@ def get_posture_stats(time_range='day', custom_start_date=None, custom_end_date=
             'end_time': now.isoformat()
         }
         
+        # 数据库类型到前端类型的映射
+        type_mapping = {
+            'excellent': 'good',   # 数据库中的excellent映射到前端的good
+            'good': 'good',        # 数据库中的good也映射到前端的good
+            'fair': 'mild',        # 数据库中的fair映射到前端的mild
+            'poor': 'moderate'     # 数据库中的poor映射到前端的moderate
+            # 其他未知类型自动映射为severe
+        }
+        
         # 填充结果
         for result in results:
-            posture_type = result['posture_type']
+            db_posture_type = result['posture_type']
             seconds = result['total_seconds'] if result['total_seconds'] else 0
             
-            # 确保posture_type是有效的键
-            if posture_type in stats:
-                stats[posture_type]['seconds'] = seconds
-                stats[posture_type]['formatted_time'] = format_seconds(seconds)
+            # 映射数据库类型到前端类型
+            frontend_type = type_mapping.get(db_posture_type, 'severe')
+            
+            if frontend_type in stats:
+                stats[frontend_type]['seconds'] += seconds
+                stats[frontend_type]['formatted_time'] = format_seconds(stats[frontend_type]['seconds'])
                 
                 if total_time > 0:
-                    stats[posture_type]['percentage'] = round((seconds / total_time) * 100, 1)
+                    stats[frontend_type]['percentage'] = round((stats[frontend_type]['seconds'] / total_time) * 100, 1)
                 else:
-                    stats[posture_type]['percentage'] = 0
+                    stats[frontend_type]['percentage'] = 0
         
         # 计算总的良好坐姿比例
         good_posture_seconds = stats['good']['seconds']
@@ -1037,17 +1048,17 @@ def calculate_posture_stats(time_records):
     severe_seconds = 0
     
     for record in time_records:
-        if 'duration_seconds' in record and 'posture_quality' in record:
+        if 'duration_seconds' in record and 'posture_type' in record:
             seconds = record['duration_seconds']
             total_seconds += seconds
             
-            if record['posture_quality'] == 'good':
+            if record['posture_type'] == 'good':
                 good_seconds += seconds
-            elif record['posture_quality'] == 'mild':
+            elif record['posture_type'] == 'mild':
                 mild_seconds += seconds
-            elif record['posture_quality'] == 'moderate':
+            elif record['posture_type'] == 'moderate':
                 moderate_seconds += seconds
-            elif record['posture_quality'] == 'severe':
+            elif record['posture_type'] == 'severe':
                 severe_seconds += seconds
     
     # 格式化时间

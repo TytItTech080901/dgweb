@@ -807,10 +807,10 @@
                 statItems[0].querySelector('.stat-value').textContent = stats.good.formatted_time;
                 
                 // 不良坐姿时间 (mild + moderate + severe)
-                const badTime = stats.mild.seconds + stats.moderate.seconds + stats.severe.seconds;
+                const badSeconds = stats.mild.seconds + stats.moderate.seconds + stats.severe.seconds;
                 let badTimeFormatted = '';
-                const hours = Math.floor(badTime / 3600);
-                const minutes = Math.floor((badTime % 3600) / 60);
+                const hours = Math.floor(badSeconds / 3600);
+                const minutes = Math.floor((badSeconds % 3600) / 60);
                 if (hours > 0) {
                     badTimeFormatted = `${hours}h ${minutes}m`;
                 } else {

@@ -18,8 +18,13 @@ document.addEventListener('DOMContentLoaded', function() {
     // 初始化时间范围切换按钮
     initTimeRangeButtons();
     
-    // 初始化阈值设置按钮
-    document.getElementById('applyThresholdsBtn').addEventListener('click', applyPostureThresholds);
+    // 初始化阈值设置按钮 - 检查元素是否存在
+    const applyThresholdsBtn = document.getElementById('applyThresholdsBtn');
+    if (applyThresholdsBtn) {
+        applyThresholdsBtn.addEventListener('click', applyPostureThresholds);
+    } else {
+        console.log('警告: 未找到应用阈值按钮元素');
+    }
     
     // 从后端获取坐姿统计数据
     updatePostureStats();
@@ -167,11 +172,17 @@ function updatePostureStats() {
 
 // 显示坐姿统计数据
 function displayPostureStats(stats) {
-    // 更新总时长
-    document.getElementById('totalPostureTime').textContent = stats.total_time.formatted_time;
+    // 更新总时长 - 添加元素存在性检查
+    const totalPostureTimeElement = document.getElementById('totalPostureTime');
+    if (totalPostureTimeElement) {
+        totalPostureTimeElement.textContent = stats.total_time.formatted_time;
+    }
     
-    // 更新良好坐姿占比
-    document.getElementById('goodPosturePercentage').textContent = `${stats.good_posture_percentage}%`;
+    // 更新良好坐姿占比 - 添加元素存在性检查
+    const goodPosturePercentageElement = document.getElementById('goodPosturePercentage');
+    if (goodPosturePercentageElement) {
+        goodPosturePercentageElement.textContent = `${stats.good_posture_percentage}%`;
+    }
     
     // 更新各类型坐姿数据
     const types = ['good', 'mild', 'moderate', 'severe'];
@@ -181,24 +192,123 @@ function displayPostureStats(stats) {
         const typeData = stats[type] || {seconds: 0, percentage: 0, formatted_time: '0h 0m'};
         
         // 更新百分比
-        document.getElementById(`${type}Percentage`).textContent = `${typeData.percentage}%`;
+        const percentageElement = document.getElementById(`${type}Percentage`);
+        if (percentageElement) {
+            percentageElement.textContent = `${typeData.percentage}%`;
+        }
         
         // 更新时长
-        document.getElementById(`${type}Time`).textContent = typeData.formatted_time;
+        const timeElement = document.getElementById(`${type}Time`);
+        if (timeElement) {
+            timeElement.textContent = typeData.formatted_time;
+        }
         
         // 更新描述文本 - 根据当前阈值动态更新
-        const typeDescElement = document.querySelector(`.posture-type-card.${type} .posture-type-desc`);
+        const goodThresholdElement = document.getElementById('goodThreshold');
+        const mildThresholdElement = document.getElementById('mildThreshold');
+        const moderateThresholdElement = document.getElementById('moderateThreshold');
         
-        if (type === 'good') {
-            typeDescElement.textContent = `0-${document.getElementById('goodThreshold').value}°`;
-        } else if (type === 'mild') {
-            typeDescElement.textContent = `${document.getElementById('goodThreshold').value}-${document.getElementById('mildThreshold').value}°`;
-        } else if (type === 'moderate') {
-            typeDescElement.textContent = `${document.getElementById('mildThreshold').value}-${document.getElementById('moderateThreshold').value}°`;
-        } else if (type === 'severe') {
-            typeDescElement.textContent = `${document.getElementById('moderateThreshold').value}°以上`;
+        if (goodThresholdElement && mildThresholdElement && moderateThresholdElement) {
+            const typeDescElement = document.querySelector(`.posture-type-card.${type} .posture-type-desc`);
+            if (typeDescElement) {
+                if (type === 'good') {
+                    typeDescElement.textContent = `0-${goodThresholdElement.value}°`;
+                } else if (type === 'mild') {
+                    typeDescElement.textContent = `${goodThresholdElement.value}-${mildThresholdElement.value}°`;
+                } else if (type === 'moderate') {
+                    typeDescElement.textContent = `${mildThresholdElement.value}-${moderateThresholdElement.value}°`;
+                } else if (type === 'severe') {
+                    typeDescElement.textContent = `${moderateThresholdElement.value}°以上`;
+                }
+            }
         }
     });
+
+    // 计算并更新不良坐姿总时间（mild + moderate + severe）
+    const badTimeElement = document.querySelector('.stat-item:nth-child(2) .stat-value');
+    if (badTimeElement) {
+        // 计算不良坐姿总秒数
+        const badSeconds = (stats.mild ? stats.mild.seconds : 0) + 
+                          (stats.moderate ? stats.moderate.seconds : 0) + 
+                          (stats.severe ? stats.severe.seconds : 0);
+        
+        // 格式化不良坐姿总时间
+        let badTimeFormatted = '';
+        const hours = Math.floor(badSeconds / 3600);
+        const minutes = Math.floor((badSeconds % 3600) / 60);
+        
+        if (hours > 0) {
+            badTimeFormatted = `${hours}h ${minutes}m`;
+        } else {
+            badTimeFormatted = `${minutes}m`;
+        }
+        
+        badTimeElement.textContent = badTimeFormatted;
+    }
+    
+    // 更新主页面上的不良坐姿时间（如果存在）
+    updateMainPagePostureStats(stats);
+}
+
+// 更新主页面上的坐姿统计数据
+function updateMainPagePostureStats(stats) {
+    // 首先检查Chart对象是否存在
+    if (typeof Chart === 'undefined') {
+        console.log('Chart.js未加载，跳过饼图更新');
+        // 继续执行其他不依赖Chart.js的统计更新
+    } else {
+        // 获取主页面上的坐姿饼图
+        const posturePieChart = Chart.getChart('posturePieChart');
+        
+        if (posturePieChart) {
+            // 更新饼图数据
+            posturePieChart.data.datasets[0].data = [
+                stats.good.percentage,
+                stats.mild.percentage,
+                stats.moderate.percentage,
+                stats.severe.percentage
+            ];
+            posturePieChart.update();
+        }
+    }
+    
+    // 查找主页面上的统计卡片
+    const mainPageStatItems = document.querySelectorAll('.dashboard .stat-item');
+    if (mainPageStatItems && mainPageStatItems.length >= 3) {
+        // 更新良好坐姿时间
+        const goodTimeElement = mainPageStatItems[0].querySelector('.stat-value');
+        if (goodTimeElement) {
+            goodTimeElement.textContent = stats.good.formatted_time;
+        }
+        
+        // 更新不良坐姿时间
+        const badTimeElement = mainPageStatItems[1].querySelector('.stat-value');
+        if (badTimeElement) {
+            // 计算不良坐姿总秒数（mild + moderate + severe）
+            const badSeconds = (stats.mild ? stats.mild.seconds : 0) + 
+                              (stats.moderate ? stats.moderate.seconds : 0) + 
+                              (stats.severe ? stats.severe.seconds : 0);
+            
+            // 格式化不良坐姿总时间
+            let badTimeFormatted = '';
+            const hours = Math.floor(badSeconds / 3600);
+            const minutes = Math.floor((badSeconds % 3600) / 60);
+            
+            if (hours > 0) {
+                badTimeFormatted = `${hours}h ${minutes}m`;
+            } else {
+                badTimeFormatted = `${minutes}m`;
+            }
+            
+            badTimeElement.textContent = badTimeFormatted;
+        }
+        
+        // 更新良好率
+        const goodRateElement = mainPageStatItems[2].querySelector('.stat-value');
+        if (goodRateElement) {
+            goodRateElement.textContent = `${stats.good_posture_percentage}%`;
+        }
+    }
 }
 
 // 应用坐姿阈值设置

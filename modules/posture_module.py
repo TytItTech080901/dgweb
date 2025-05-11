@@ -212,9 +212,10 @@ class WebPostureMonitor:
         
         # 坐姿类型划分阈值（四档）
         self.posture_thresholds = {
-            'good': 30.0,       # 0-30度：良好坐姿
-            'mild': 45.0,       # 30-45度：轻度不良
-            'moderate': 60.0    # 45-60度：中度不良，60度以上：严重不良
+            'excellent': 30.0,  # 0-30度：优秀坐姿
+            'good': 40.0,       # 30-40度：良好坐姿
+            'fair': 50.0,       # 40-50度：一般坐姿
+            'poor': 60.0        # 50-60度：不良坐姿，60度以上：极差坐姿
         }
         
         # 坐姿时间记录
@@ -575,7 +576,7 @@ class WebPostureMonitor:
         current_time = time.time()
         
         # 检查是否到达调整间隔
-        if not self.adaptive_resolution or  (current_time - self.last_resolution_adjust_time) < RESOLUTION_ADJUST_INTERVAL:
+        if not self.adaptive_resolution or (current_time - self.last_resolution_adjust_time) < RESOLUTION_ADJUST_INTERVAL:
             return
             
         capture_fps = self.capture_fps.get_fps()
@@ -831,14 +832,14 @@ class WebPostureMonitor:
                 self.last_valid_angle = angle
                 
                 # 根据角度确定坐姿类型
-                if angle <= self.posture_thresholds['good']:
+                if angle <= self.posture_thresholds['excellent']:
+                    posture_type = 'excellent'  # 优秀坐姿
+                elif angle <= self.posture_thresholds['good']:
                     posture_type = 'good'  # 良好坐姿
-                elif angle <= self.posture_thresholds['mild']:
-                    posture_type = 'mild'  # 轻度不良
-                elif angle <= self.posture_thresholds['moderate']:
-                    posture_type = 'moderate'  # 中度不良
+                elif angle <= self.posture_thresholds['fair']:
+                    posture_type = 'fair'  # 一般坐姿
                 else:
-                    posture_type = 'severe'  # 严重不良
+                    posture_type = 'poor'  # 不良坐姿
                 
                 # 记录坐姿时间
                 self._record_posture_time(angle, posture_type)
@@ -876,17 +877,17 @@ class WebPostureMonitor:
             if angle is not None and valid_detection and not final_occlusion:
                 # 根据不同坐姿类型设置不同颜色
                 posture_color = {
-                    'good': (0, 255, 0),   # 绿色
-                    'mild': (0, 255, 128),      # 浅绿色
-                    'moderate': (0, 128, 255),      # 橙色
-                    'severe': (0, 0, 255)         # 红色
+                    'excellent': (0, 255, 0),   # 绿色
+                    'good': (0, 255, 128),      # 浅绿色
+                    'fair': (0, 128, 255),      # 橙色
+                    'poor': (0, 0, 255)         # 红色
                 }.get(posture_type, (0, 0, 255))
                 
                 posture_text = {
+                    'excellent': '优秀',
                     'good': '良好',
-                    'mild': '轻度不良',
-                    'moderate': '中度不良',
-                    'severe': '严重不良'
+                    'fair': '一般',
+                    'poor': '不良'
                 }.get(posture_type, '未知')
                 
                 text = f"Angle: {angle:.1f}° [{posture_text}]"
@@ -1327,7 +1328,7 @@ class WebPostureMonitor:
         
         Args:
             angle: 当前头部角度
-            posture_type: 当前坐姿类型 ('good', 'mild', 'moderate', 'severe')
+            posture_type: 当前坐姿类型 ('excellent', 'good', 'fair', 'poor')
         """
         from datetime import datetime
         from modules.database_module import record_posture_time
@@ -1401,7 +1402,7 @@ class WebPostureMonitor:
         
         Args:
             enabled: 是否启用坐姿时间记录
-            thresholds: 坐姿类型阈值字典，包含 'good', 'mild', 'moderate' 键
+            thresholds: 坐姿类型阈值字典，包含 'excellent', 'good', 'fair', 'poor' 键
         
         Returns:
             更新后的设置
@@ -1409,19 +1410,23 @@ class WebPostureMonitor:
         self.posture_time_recording_enabled = enabled
         
         if thresholds:
+            if 'excellent' in thresholds and 0 < thresholds['excellent'] < 90:
+                self.posture_thresholds['excellent'] = thresholds['excellent']
+                
             if 'good' in thresholds and 0 < thresholds['good'] < 90:
                 self.posture_thresholds['good'] = thresholds['good']
                 
-            if 'mild' in thresholds and 0 < thresholds['mild'] < 90:
-                self.posture_thresholds['mild'] = thresholds['mild']
+            if 'fair' in thresholds and 0 < thresholds['fair'] < 90:
+                self.posture_thresholds['fair'] = thresholds['fair']
                 
-            if 'moderate' in thresholds and 0 < thresholds['moderate'] < 90:
-                self.posture_thresholds['moderate'] = thresholds['moderate']
+            if 'poor' in thresholds and 0 < thresholds['poor'] < 90:
+                self.posture_thresholds['poor'] = thresholds['poor']
         
         print(f"坐姿时间记录设置已更新: 启用={self.posture_time_recording_enabled}, "
-              f"阈值设置: 良好坐姿={self.posture_thresholds['good']}°, "
-              f"轻度不良={self.posture_thresholds['mild']}°, "
-              f"中度不良={self.posture_thresholds['moderate']}°")
+              f"阈值设置: 优秀坐姿={self.posture_thresholds['excellent']}°, "
+              f"良好坐姿={self.posture_thresholds['good']}°, "
+              f"一般坐姿={self.posture_thresholds['fair']}°, "
+              f"不良坐姿={self.posture_thresholds['poor']}°")
               
         return self.get_posture_time_recording_settings()
     

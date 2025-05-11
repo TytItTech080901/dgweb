@@ -680,6 +680,21 @@ def get_posture_recording_settings():
             'settings': None
         })
 
+@routes_bp.route('/api/check_posture_time_recording', methods=['GET'])
+def check_posture_time_recording():
+    """检查坐姿时间记录设置"""
+    if posture_monitor:
+        settings = posture_monitor.get_posture_time_recording_settings()
+        return jsonify({
+            'status': 'success',
+            'settings': settings
+        })
+    else:
+        return jsonify({
+            'status': 'error',
+            'message': '姿势监测器未初始化'
+        })
+
 # 路由：更新坐姿图像记录设置
 @routes_bp.route('/api/update_posture_recording_settings', methods=['POST'])
 def update_posture_recording_settings():
@@ -1216,3 +1231,131 @@ def clear_posture_history():
 def view_posture_history():
     """渲染坐姿历史记录页面"""
     return render_template('posture_history.html', title='坐姿历史记录')
+
+@routes_bp.route('/api/debug/posture_records')
+def debug_posture_records():
+    """诊断接口：获取所有坐姿时间记录的原始数据（仅用于调试）"""
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor(dictionary=True)
+        
+        # 获取最近100条记录
+        query = """
+            SELECT 
+                id, start_time, end_time, duration_seconds, 
+                angle, posture_type, notes
+            FROM posture_time_records
+            ORDER BY start_time DESC
+            LIMIT 100
+        """
+        
+        cursor.execute(query)
+        records = cursor.fetchall()
+        
+        # 处理时间戳格式
+        for record in records:
+            if 'start_time' in record and record['start_time']:
+                record['start_time'] = record['start_time'].isoformat()
+            if 'end_time' in record and record['end_time']:
+                record['end_time'] = record['end_time'].isoformat()
+        
+        # 获取坐姿类型分布统计
+        type_query = """
+            SELECT 
+                posture_type, 
+                COUNT(*) as count, 
+                SUM(duration_seconds) as total_seconds
+            FROM posture_time_records
+            GROUP BY posture_type
+        """
+        
+        cursor.execute(type_query)
+        type_stats = cursor.fetchall()
+        
+        # 获取总记录数
+        cursor.execute("SELECT COUNT(*) as total FROM posture_time_records")
+        total_count = cursor.fetchone()['total']
+        
+        cursor.close()
+        conn.close()
+        
+        return jsonify({
+            'status': 'success',
+            'total_records': total_count,
+            'type_distribution': type_stats,
+            'records': records
+        })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'message': f'获取坐姿时间记录失败: {str(e)}'
+        })
+
+@routes_bp.route('/api/debug/add_test_posture_record', methods=['POST'])
+def add_test_posture_record():
+    """调试接口：添加测试坐姿时间记录"""
+    try:
+        from datetime import datetime, timedelta
+        from modules.database_module import record_posture_time
+        
+        data = request.json
+        if not data:
+            return jsonify({
+                'status': 'error',
+                'message': '无效的数据格式'
+            })
+        
+        # 获取参数
+        posture_type = data.get('posture_type', 'mild')  # 默认为轻度不良
+        duration_seconds = float(data.get('duration_seconds', 120))  # 默认2分钟
+        angle = float(data.get('angle', 40))  # 默认角度40度
+        
+        # 验证坐姿类型
+        valid_types = ['good', 'mild', 'moderate', 'severe']
+        if posture_type not in valid_types:
+            return jsonify({
+                'status': 'error',
+                'message': f'无效的坐姿类型，有效类型: {", ".join(valid_types)}'
+            })
+        
+        # 计算开始和结束时间
+        end_time = datetime.now()
+        start_time = end_time - timedelta(seconds=duration_seconds)
+        
+        # 记录到数据库
+        record_id = record_posture_time(
+            start_time=start_time,
+            end_time=end_time,
+            duration_seconds=duration_seconds,
+            angle=angle,
+            posture_type=posture_type,
+            notes=f"测试添加的{posture_type}坐姿记录，角度：{angle}°"
+        )
+        
+        if record_id:
+            return jsonify({
+                'status': 'success',
+                'message': f'成功添加{posture_type}坐姿测试记录，ID: {record_id}',
+                'record': {
+                    'id': record_id,
+                    'start_time': start_time.isoformat(),
+                    'end_time': end_time.isoformat(),
+                    'duration_seconds': duration_seconds,
+                    'angle': angle,
+                    'posture_type': posture_type
+                }
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': '添加测试记录失败'
+            })
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'message': f'添加测试记录出错: {str(e)}'
+        })
