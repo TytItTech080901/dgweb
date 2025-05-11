@@ -252,7 +252,9 @@ def delete_posture_image(image_id):
     Returns:
         操作是否成功
     """
+    print(f"尝试删除坐姿图像记录，ID: {image_id}")
     try:
+        # 尝试连接数据库
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor()
         
@@ -261,43 +263,64 @@ def delete_posture_image(image_id):
         result = cursor.fetchone()
         
         if not result:
+            print(f"错误：未找到ID为 {image_id} 的坐姿图像记录")
             cursor.close()
             conn.close()
             return False
             
         image_path = result[0]
+        print(f"找到图像记录，路径: {image_path}")
         
         # 从数据库中删除记录
         cursor.execute("DELETE FROM posture_images WHERE id = %s", (image_id,))
         conn.commit()
         
+        db_deleted = cursor.rowcount > 0
+        if db_deleted:
+            print(f"已从数据库删除图像记录，ID: {image_id}")
+        else:
+            print(f"警告：数据库删除操作未影响任何记录，ID: {image_id}")
+        
         cursor.close()
         conn.close()
         
         # 删除物理文件
+        file_deleted = False
         try:
-            # 正确处理路径：从/static/posture_images/filename.jpg转换为实际的文件系统路径
+            # 处理文件路径
+            # 如果路径以/static/开头
             if image_path.startswith('/static/'):
                 # 获取项目根目录
                 project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                # 构建完整路径 (不需要重复添加'static'目录)
+                # 构建完整路径
                 full_path = os.path.join(project_root, image_path[1:])  # 移除开头的'/'
+                print(f"尝试删除文件: {full_path}")
             else:
                 # 如果路径不是以/static/开头，尝试在posture_images目录中查找
                 filename = os.path.basename(image_path)
                 full_path = os.path.join(POSTURE_IMAGES_DIR, filename)
+                print(f"尝试删除文件: {full_path}")
             
             if os.path.exists(full_path):
                 os.remove(full_path)
-                print(f"已删除文件: {full_path}")
+                file_deleted = True
+                print(f"成功删除文件: {full_path}")
             else:
                 print(f"警告: 文件不存在: {full_path}")
+                # 尽管文件不存在，我们仍然认为操作成功，因为数据库记录已删除
+                file_deleted = True
         except Exception as e:
             print(f"删除图像文件时出错: {str(e)}")
+            # 文件删除失败，但数据库记录已删除，我们仍然返回True
+            # 因为主要目标是从数据库中删除记录
         
-        return True
+        # 如果数据库删除成功，即使文件删除失败也返回True
+        return db_deleted
+        
     except Exception as e:
         print(f"删除坐姿图像记录失败: {str(e)}")
+        import traceback
+        traceback.print_exc()  # 打印完整的堆栈跟踪以便调试
         return False
 
 def clear_posture_images(days_to_keep=None):
@@ -1074,52 +1097,55 @@ def clear_all_posture_records(days_to_keep=None):
     返回:
     - 包含操作结果的字典
     """
-    import sqlite3
-    import os
-    from datetime import datetime, timedelta
-    from config import DATABASE_PATH, POSTURE_IMAGES_DIR
-    
     try:
-        # 连接数据库
-        conn = sqlite3.connect(DATABASE_PATH)
+        # 使用已定义的MySQL连接配置
+        conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor()
         
         # 删除指定时间范围外的数据
         if days_to_keep is not None and days_to_keep > 0:
             # 计算保留日期的时间戳
-            keep_after = (datetime.now() - timedelta(days=days_to_keep)).strftime('%Y-%m-%d %H:%M:%S')
+            keep_after = datetime.now() - timedelta(days=days_to_keep)
             
             # 删除老数据
-            cursor.execute("DELETE FROM posture_images WHERE timestamp < ?", (keep_after,))
-            cursor.execute("DELETE FROM posture_time_records WHERE start_time < ?", (keep_after,))
-            
-            # 获取已删除的图像文件名
-            deleted_count = cursor.rowcount
+            cursor.execute("DELETE FROM posture_images WHERE timestamp < %s", (keep_after,))
+            image_deleted_count = cursor.rowcount
+            cursor.execute("DELETE FROM posture_time_records WHERE start_time < %s", (keep_after,))
+            time_deleted_count = cursor.rowcount
             
             # 获取保留的图像文件名
             cursor.execute("SELECT image_path FROM posture_images")
             kept_images = [row[0] for row in cursor.fetchall()]
             
             # 删除不在数据库中的图像文件
+            image_count = 0
             for root, dirs, files in os.walk(POSTURE_IMAGES_DIR):
                 for file in files:
                     if file.startswith("posture_") and file.endswith((".jpg", ".png", ".jpeg")):
                         file_path = os.path.join(root, file)
-                        if os.path.basename(file_path) not in kept_images:
-                            os.remove(file_path)
+                        relative_path = f"/static/posture_images/{file}"
+                        if relative_path not in kept_images:
+                            try:
+                                os.remove(file_path)
+                                image_count += 1
+                            except Exception as e:
+                                print(f"删除图像文件 {file} 失败: {str(e)}")
             
             # 提交事务
             conn.commit()
             
-            msg = f"已清除 {days_to_keep} 天前的所有坐姿记录"
+            msg = f"已清除 {days_to_keep} 天前的所有坐姿记录，删除了 {image_deleted_count} 条图像记录和 {time_deleted_count} 条时间记录"
+            print(msg)
         else:
             # 获取要删除的图像文件路径
             cursor.execute("SELECT image_path FROM posture_images")
-            image_paths = [row[0] for row in cursor.fetchall()]
+            image_paths = cursor.fetchall()
             
             # 清空表
             cursor.execute("DELETE FROM posture_images")
+            image_deleted_count = cursor.rowcount
             cursor.execute("DELETE FROM posture_time_records")
+            time_deleted_count = cursor.rowcount
             
             # 删除图像文件
             image_count = 0
@@ -1135,9 +1161,11 @@ def clear_all_posture_records(days_to_keep=None):
             # 提交事务
             conn.commit()
             
-            msg = f"已清空所有坐姿记录，删除了 {image_count} 个图像文件"
+            msg = f"已清空所有坐姿记录，删除了 {image_deleted_count} 条图像记录和 {time_deleted_count} 条时间记录，共 {image_count} 个图像文件"
+            print(msg)
         
         # 关闭数据库连接
+        cursor.close()
         conn.close()
         
         return {
@@ -1145,6 +1173,9 @@ def clear_all_posture_records(days_to_keep=None):
             'message': msg
         }
     except Exception as e:
+        print(f"清空坐姿记录失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {
             'status': 'error',
             'message': f"清空坐姿记录失败: {str(e)}"

@@ -5,7 +5,7 @@ from flask import Blueprint, render_template, jsonify, request, Response, stream
 import json
 import queue
 import time
-from modules.database_module import save_record_to_db, get_history_records, clear_history
+from modules.database_module import save_record_to_db, get_history_records, clear_history, clear_all_posture_records
 from modules.posture_module import WebPostureMonitor, posture_params
 
 # 创建蓝图
@@ -1139,34 +1139,32 @@ def export_all_posture_records():
 
 # 路由：清空所有坐姿记录
 @routes_bp.route('/api/clear_all_posture_records', methods=['POST'])
-def clear_all_posture_records():
-    """清空所有坐姿记录（包括图像记录和时间记录）"""
+def clear_all_posture_records_route():
+    """清空所有坐姿记录，包括图像记录和时间记录"""
     try:
-        from modules.database_module import clear_posture_images, clear_posture_time_records
+        print("正在执行清空所有坐姿记录...")
+        result = clear_all_posture_records()
+        print(f"清空结果: {result}")
         
-        # 获取请求参数
-        data = request.json
-        days_to_keep = data.get('days_to_keep')
-        
-        # 执行清空操作
-        deleted_images = clear_posture_images(days_to_keep)
-        deleted_time_records = clear_posture_time_records(days_to_keep)
-        
-        message = f'已删除 {deleted_images} 条图像记录和 {deleted_time_records} 条时间记录'
-        if days_to_keep:
-            message = f'已删除 {days_to_keep} 天前的 {deleted_images} 条图像记录和 {deleted_time_records} 条时间记录'
-            
-        return jsonify({
-            'status': 'success',
-            'message': message,
-            'deleted_images': deleted_images,
-            'deleted_time_records': deleted_time_records
-        })
+        if result and result.get('status') == 'success':
+            return jsonify({
+                'status': 'success', 
+                'message': result.get('message', '所有坐姿记录已清空')
+            })
+        else:
+            error_msg = result.get('message', '清空坐姿记录失败') if result else '清空坐姿记录失败'
+            print(f"清空失败: {error_msg}")
+            return jsonify({
+                'status': 'error', 
+                'message': error_msg
+            })
     except Exception as e:
-        print(f"清空所有坐姿记录出错: {str(e)}")
+        print(f"执行清空所有坐姿记录时出错: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'status': 'error',
-            'message': f'清空所有坐姿记录失败: {str(e)}'
+            'message': f'清空坐姿记录时发生错误: {str(e)}'
         })
 
 @routes_bp.route('/api/posture/history/all', methods=['GET'])

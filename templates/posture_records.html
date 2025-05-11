@@ -432,6 +432,36 @@
             background-color: #e0e0e0;
         }
 
+        .btn-clear-all {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            padding: 8px 15px;
+            background-color: var(--danger-color);
+            color: white;
+            border: none;
+            border-radius: 5px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+
+        .btn-clear-all:hover {
+            background-color: #d32f2f;
+            transform: translateY(-2px);
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.2);
+        }
+
+        .delete-icon {
+            font-size: 1.1rem;
+        }
+
+        .stat-action {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
         @media (max-width: 768px) {
             .filter-bar {
                 flex-direction: column;
@@ -541,6 +571,11 @@
                 <div class="stat-value" id="bad-posture-rate">0%</div>
                 <div class="stat-label">不良比例</div>
             </div>
+            <div class="stat-item stat-action">
+                <button id="clear-all-records" class="btn btn-danger btn-clear-all">
+                    <i class="delete-icon">🗑️</i> 清空所有记录
+                </button>
+            </div>
         </div>
 
         <div class="filter-bar">
@@ -629,6 +664,9 @@
         // 当页面加载完成时，获取记录数据
         document.addEventListener('DOMContentLoaded', function() {
             loadPostureRecords();
+            
+            // 添加清空所有记录按钮的事件监听器
+            document.getElementById('clear-all-records').addEventListener('click', clearAllRecords);
         });
 
         // 加载坐姿记录
@@ -1007,6 +1045,59 @@
                 .catch(error => {
                     console.error('删除记录时出错:', error);
                     alert('删除失败，请稍后重试');
+                });
+            }
+        }
+
+        // 清空所有坐姿记录
+        function clearAllRecords() {
+            if (confirm('警告：此操作将删除所有坐姿图像记录、数据库索引以及本地图像文件。此操作不可撤销！\n\n您确定要继续吗？')) {
+                // 显示加载指示器
+                const loadingIndicator = document.getElementById('loading-indicator');
+                if (loadingIndicator) {
+                    loadingIndicator.style.display = 'flex';
+                }
+                
+                // 发起API请求清空所有记录
+                fetch('/api/clear_all_posture_records', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    }
+                })
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        // 清空本地记录数组
+                        allRecords = [];
+                        filteredRecords = [];
+                        
+                        // 更新UI
+                        updateStats();
+                        showEmptyState('所有坐姿记录已清空');
+                        
+                        // 隐藏分页控件
+                        const paginationContainer = document.getElementById('pagination-container');
+                        if (paginationContainer) {
+                            paginationContainer.innerHTML = '';
+                        }
+                        
+                        // 显示成功消息
+                        alert('成功清空所有坐姿记录！');
+                    } else {
+                        alert('清空记录失败: ' + (data.message || '未知错误'));
+                    }
+                })
+                .catch(error => {
+                    console.error('清空记录时出错:', error);
+                    alert('清空记录失败，请稍后重试');
+                })
+                .finally(() => {
+                    // 隐藏加载指示器
+                    const loadingIndicator = document.getElementById('loading-indicator');
+                    if (loadingIndicator) {
+                        loadingIndicator.style.display = 'none';
+                    }
                 });
             }
         }
