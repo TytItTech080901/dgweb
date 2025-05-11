@@ -331,9 +331,48 @@ function updatePostureDistributionChart() {
                 // 更新图表数据
                 const distribution = data.distribution;
                 
-                // 更新图表数据集
-                heatmapChart.data.labels = distribution.labels;
-                heatmapChart.data.datasets[0].data = distribution.data;
+                // 过滤掉不良次数为0的时段
+                const filteredLabels = [];
+                const filteredData = [];
+                
+                distribution.labels.forEach((label, index) => {
+                    if (distribution.data[index] > 0) {
+                        filteredLabels.push(label);
+                        filteredData.push(distribution.data[index]);
+                    }
+                });
+                
+                // 如果过滤后没有数据，显示提示信息
+                if (filteredData.length === 0) {
+                    // 清空图表并显示无数据提示
+                    heatmapChart.data.labels = [];
+                    heatmapChart.data.datasets[0].data = [];
+                    
+                    // 获取图表容器
+                    const chartContainer = heatmapChart.canvas.parentNode;
+                    
+                    // 移除旧的图例（如果存在）
+                    const oldLegend = chartContainer.querySelector('.custom-legend');
+                    if (oldLegend) {
+                        oldLegend.remove();
+                    }
+                    
+                    // 创建无数据提示
+                    const noDataMessage = document.createElement('div');
+                    noDataMessage.className = 'custom-legend';
+                    noDataMessage.style.marginTop = '15px';
+                    noDataMessage.style.fontSize = '14px';
+                    noDataMessage.style.textAlign = 'center';
+                    noDataMessage.style.color = '#666';
+                    noDataMessage.textContent = '当前时段无不良坐姿记录数据';
+                    
+                    // 添加到图表容器
+                    chartContainer.appendChild(noDataMessage);
+                } else {
+                    // 更新图表数据集
+                    heatmapChart.data.labels = filteredLabels;
+                    heatmapChart.data.datasets[0].data = filteredData;
+                }
                 
                 // 重新渲染图表
                 heatmapChart.update();
