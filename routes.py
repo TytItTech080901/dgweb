@@ -1023,3 +1023,63 @@ def clear_posture_records():
             'status': 'error',
             'message': f"清空坐姿记录失败: {str(e)}"
         })
+
+@routes.route('/api/get_posture_distribution')
+def get_posture_distribution():
+    """获取不良坐姿时段分布数据
+    
+    支持的参数:
+    - time_range: 预设时间范围 'day', 'week', 'month', 'custom'
+    - start_date: 自定义开始日期 (格式: YYYY-MM-DD，仅当time_range为'custom'时有效)
+    - end_date: 自定义结束日期 (格式: YYYY-MM-DD，仅当time_range为'custom'时有效)
+    """
+    try:
+        # 获取时间范围参数
+        time_range = request.args.get('time_range', 'day')
+        if time_range not in ['day', 'week', 'month', 'custom']:
+            time_range = 'day'
+        
+        # 处理自定义日期范围
+        custom_start_date = None
+        custom_end_date = None
+        
+        if time_range == 'custom':
+            try:
+                # 解析自定义日期参数
+                start_date_str = request.args.get('start_date')
+                end_date_str = request.args.get('end_date')
+                
+                if start_date_str and end_date_str:
+                    from datetime import datetime
+                    custom_start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+                    custom_end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+                    # 设置start_date的时间为00:00:00
+                    custom_start_date = custom_start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                    # 设置end_date的时间为23:59:59
+                    custom_end_date = custom_end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+                else:
+                    # 如果未提供有效的自定义日期，则使用"今天"作为默认值
+                    time_range = 'day'
+            except ValueError:
+                # 日期格式无效，回退到"今天"
+                time_range = 'day'
+        
+        # 获取不良坐姿时段分布数据
+        distribution = db.get_hourly_posture_distribution(
+            time_range=time_range, 
+            custom_start_date=custom_start_date, 
+            custom_end_date=custom_end_date
+        )
+        
+        return jsonify({
+            'status': 'success',
+            'distribution': distribution
+        })
+    except Exception as e:
+        print(f"获取不良坐姿时段分布数据出错: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'message': f"获取不良坐姿时段分布数据失败: {str(e)}"
+        })

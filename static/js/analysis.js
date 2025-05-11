@@ -270,6 +270,9 @@ function updateMainPagePostureStats(stats) {
             ];
             posturePieChart.update();
         }
+        
+        // 更新不良坐姿时段分布图
+        updatePostureDistributionChart();
     }
     
     // 查找主页面上的统计卡片
@@ -309,6 +312,38 @@ function updateMainPagePostureStats(stats) {
             goodRateElement.textContent = `${stats.good_posture_percentage}%`;
         }
     }
+}
+
+// 更新不良坐姿时段分布图
+function updatePostureDistributionChart() {
+    // 获取不良坐姿时段分布图实例
+    const heatmapChart = Chart.getChart('heatmapChart');
+    if (!heatmapChart) {
+        console.log('找不到不良坐姿时段分布图表实例');
+        return;
+    }
+    
+    // 发送请求获取不良坐姿时段分布数据
+    fetch(`/api/get_posture_distribution?time_range=${currentTimeRange}`)
+        .then(response => response.json())
+        .then(data => {
+            if (data.status === 'success') {
+                // 更新图表数据
+                const distribution = data.distribution;
+                
+                // 更新图表数据集
+                heatmapChart.data.labels = distribution.labels;
+                heatmapChart.data.datasets[0].data = distribution.data;
+                
+                // 重新渲染图表
+                heatmapChart.update();
+            } else {
+                console.error('获取不良坐姿时段分布数据失败:', data.message);
+            }
+        })
+        .catch(error => {
+            console.error('请求不良坐姿时段分布数据出错:', error);
+        });
 }
 
 // 应用坐姿阈值设置

@@ -557,11 +557,38 @@
                         label: '不良坐姿次数',
                         data: [5, 3, 2, 8, 6, 4],
                         backgroundColor: function (context) {
-                            const value = context.dataset.data[context.dataIndex];
-                            if (value >= 7) return '#ea4335';
-                            if (value >= 5) return '#ff9800';
-                            if (value >= 3) return '#fbbc05';
-                            return '#34a853';
+                            // 获取数据集中的最大值和最小值，用于计算渐变
+                            const values = context.dataset.data;
+                            const max = Math.max(...values);
+                            const min = Math.min(...values);
+                            const value = values[context.dataIndex];
+                            
+                            // 定义颜色端点
+                            const redColor = '#ea4335';  // 红色 - 最大值
+                            const yellowColor = '#fbbc05';  // 黄色 - 最小值
+                            
+                            // 如果是最大值，直接返回红色
+                            if (value === max) {
+                                return redColor;
+                            }
+                            
+                            // 如果是最小值，直接返回黄色
+                            if (value === min) {
+                                return yellowColor;
+                            }
+                            
+                            // 计算当前值在最大值和最小值之间的比例
+                            const range = max - min;
+                            const ratio = range === 0 ? 0 : (value - min) / range;
+                            
+                            // 计算颜色渐变
+                            // 从红色 rgb(234, 67, 53) 到黄色 rgb(251, 188, 5)
+                            // 计算RGB通道的渐变值
+                            const r = Math.round(234 + (251 - 234) * (1 - ratio));
+                            const g = Math.round(67 + (188 - 67) * (1 - ratio));
+                            const b = Math.round(53 + (5 - 53) * (1 - ratio));
+                            
+                            return `rgb(${r}, ${g}, ${b})`;
                         },
                         borderWidth: 0,
                         borderRadius: 4
@@ -582,7 +609,59 @@
                             display: false
                         }
                     },
-                    maintainAspectRatio: false
+                    maintainAspectRatio: false,
+                    // 添加动画完成事件，用于添加图例信息
+                    animation: {
+                        onComplete: function() {
+                            // 获取数据
+                            const data = this.data.datasets[0].data;
+                            const labels = this.data.labels;
+                            
+                            // 找出最大值和最小值及其对应的时段
+                            const maxValue = Math.max(...data);
+                            const minValue = Math.min(...data);
+                            const maxIndex = data.indexOf(maxValue);
+                            const minIndex = data.indexOf(minValue);
+                            
+                            const maxTimeRange = labels[maxIndex];
+                            const minTimeRange = labels[minIndex];
+                            
+                            // 获取图表容器
+                            const chartContainer = this.canvas.parentNode;
+                            
+                            // 移除旧的图例（如果存在）
+                            const oldLegend = chartContainer.querySelector('.custom-legend');
+                            if (oldLegend) {
+                                oldLegend.remove();
+                            }
+                            
+                            // 创建图例容器
+                            const legendContainer = document.createElement('div');
+                            legendContainer.className = 'custom-legend';
+                            legendContainer.style.marginTop = '15px';
+                            legendContainer.style.fontSize = '14px';
+                            legendContainer.style.textAlign = 'center';
+                            
+                            // 创建最大值图例
+                            const maxLegend = document.createElement('div');
+                            maxLegend.style.marginBottom = '5px';
+                            maxLegend.innerHTML = `<span style="display:inline-block; width:12px; height:12px; background-color:#ea4335; margin-right:5px;"></span>
+                                                  <strong>最高时段:</strong> ${maxTimeRange} (${maxValue}次)`;
+                            
+                            // 创建最小值图例
+                            const minLegend = document.createElement('div');
+                            minLegend.style.marginBottom = '5px';
+                            minLegend.innerHTML = `<span style="display:inline-block; width:12px; height:12px; background-color:#fbbc05; margin-right:5px;"></span>
+                                                  <strong>最低时段:</strong> ${minTimeRange} (${minValue}次)`;
+                            
+                            // 添加到图例容器
+                            legendContainer.appendChild(maxLegend);
+                            legendContainer.appendChild(minLegend);
+                            
+                            // 添加到图表容器
+                            chartContainer.appendChild(legendContainer);
+                        }
+                    }
                 }
             });
 
@@ -1054,7 +1133,7 @@
                 
                 radio.onchange = function() {
                     selectedTimeRange = this.value;
-                    customDateContainer.style.display = this.value === 'custom' ? 'flex' : 'none';
+                    customDateContainer.style.display = this.value === 'custom' ? 'none' : 'none';
                 };
                 
                 const label = document.createElement('label');

@@ -1359,3 +1359,144 @@ def add_test_posture_record():
             'status': 'error',
             'message': f'添加测试记录出错: {str(e)}'
         })
+
+@routes_bp.route('/api/get_posture_distribution')
+def get_posture_distribution():
+    """获取不良坐姿时段分布数据
+    
+    支持的参数:
+    - time_range: 预设时间范围 'day', 'week', 'month', 'custom'
+    - start_date: 自定义开始日期 (格式: YYYY-MM-DD，仅当time_range为'custom'时有效)
+    - end_date: 自定义结束日期 (格式: YYYY-MM-DD，仅当time_range为'custom'时有效)
+    """
+    try:
+        from datetime import datetime, timedelta
+        import traceback
+        from modules.database_module import get_hourly_posture_data
+        
+        # 获取时间范围参数
+        time_range = request.args.get('time_range', 'day')
+        if time_range not in ['day', 'week', 'month', 'custom']:
+            time_range = 'day'
+        
+        # 处理自定义日期范围
+        custom_start_date = None
+        custom_end_date = None
+        
+        if time_range == 'custom':
+            try:
+                # 解析自定义日期参数
+                start_date_str = request.args.get('start_date')
+                end_date_str = request.args.get('end_date')
+                
+                if start_date_str and end_date_str:
+                    custom_start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+                    custom_end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+                    # 设置start_date的时间为00:00:00
+                    custom_start_date = custom_start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                    # 设置end_date的时间为23:59:59
+                    custom_end_date = custom_end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+                else:
+                    # 如果未提供有效的自定义日期，则使用"今天"作为默认值
+                    time_range = 'day'
+            except ValueError:
+                # 日期格式无效，回退到"今天"
+                time_range = 'day'
+        
+        # 确定查询的日期范围
+        now = datetime.now()
+        start_date = None
+        end_date = None
+        
+        if time_range == 'day':
+            # 今天的数据
+            start_date = datetime(now.year, now.month, now.day, 0, 0, 0)
+            end_date = now
+        elif time_range == 'week':
+            # 本周的数据（从周一开始）
+            days_since_monday = now.weekday()
+            start_date = datetime(now.year, now.month, now.day, 0, 0, 0) - timedelta(days=days_since_monday)
+            end_date = now
+        elif time_range == 'month':
+            # 本月的数据
+            start_date = datetime(now.year, now.month, 1, 0, 0, 0)
+            end_date = now
+        elif time_range == 'custom' and custom_start_date and custom_end_date:
+            # 自定义日期范围
+            start_date = custom_start_date
+            end_date = custom_end_date
+        else:
+            # 默认使用今天的数据
+            start_date = datetime(now.year, now.month, now.day, 0, 0, 0)
+            end_date = now
+            
+        # 定义时段范围
+        time_periods = [
+            {"start": 8, "end": 10, "label": "8-10"},
+            {"start": 10, "end": 12, "label": "10-12"},
+            {"start": 12, "end": 14, "label": "12-14"},
+            {"start": 14, "end": 16, "label": "14-16"},
+            {"start": 16, "end": 18, "label": "16-18"},
+            {"start": 18, "end": 20, "label": "18-20"}
+        ]
+        
+        # 初始化时段数据
+        period_counts = {period["label"]: 0 for period in time_periods}
+        
+        # 获取全部坐姿时间记录
+        import mysql.connector
+        from config import DB_CONFIG
+        
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor(dictionary=True)
+        
+        # 查询不良坐姿记录
+        query = """
+            SELECT 
+                start_time,
+                HOUR(start_time) as hour,
+                posture_type
+            FROM posture_time_records
+            WHERE start_time >= %s AND end_time <= %s
+            AND (posture_type = 'fair' OR posture_type = 'poor')
+        """
+        
+        cursor.execute(query, (start_date, end_date))
+        records = cursor.fetchall()
+        
+        # 统计每个时段的不良坐姿次数
+        for record in records:
+            hour = record['hour']
+            
+            # 找到对应的时段
+            for period in time_periods:
+                if period["start"] <= hour < period["end"]:
+                    period_counts[period["label"]] += 1
+                    break
+        
+        cursor.close()
+        conn.close()
+        
+        # 形成最终结果
+        labels = [period["label"] for period in time_periods]
+        data = [period_counts[period["label"]] for period in time_periods]
+        
+        distribution = {
+            'labels': labels,
+            'data': data,
+            'time_range': time_range,
+            'start_date': start_date.isoformat() if start_date else None,
+            'end_date': end_date.isoformat() if end_date else None
+        }
+        
+        return jsonify({
+            'status': 'success',
+            'distribution': distribution
+        })
+    except Exception as e:
+        print(f"获取不良坐姿时段分布数据出错: {str(e)}")
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'message': f"获取不良坐姿时段分布数据失败: {str(e)}"
+        })

@@ -71,7 +71,7 @@ class DBHandler:
             
             # 检查是否有默认设置，如果没有则添加
             cursor.execute("SELECT COUNT(*) FROM posture_settings")
-            if cursor.fetchone()[0] == 0:
+            if (cursor.fetchone()[0] == 0):
                 cursor.execute("""
                     INSERT INTO posture_settings 
                     (threshold_good, threshold_warning, detection_interval) 
@@ -453,3 +453,112 @@ class DBHandler:
         except Exception as e:
             print(f"获取坐姿统计信息失败: {str(e)}")
             return {}
+            
+    def get_hourly_posture_distribution(self, time_range='day', custom_start_date=None, custom_end_date=None):
+        """获取不同时段的不良坐姿分布数据
+        
+        Args:
+            time_range: 时间范围 'day', 'week', 'month', 'custom'
+            custom_start_date: 自定义开始日期（datetime对象）
+            custom_end_date: 自定义结束日期（datetime对象）
+            
+        Returns:
+            不同时段的不良坐姿分布数据字典
+        """
+        try:
+            from datetime import datetime, timedelta
+            import traceback
+            
+            conn = self.get_connection()
+            if not conn:
+                print("获取时段坐姿分布数据失败: 数据库连接失败")
+                return {}
+            
+            cursor = conn.cursor(dictionary=True)
+            
+            # 确定查询的日期范围
+            now = datetime.now()
+            start_date = None
+            end_date = None
+            
+            if time_range == 'day':
+                # 今天的数据
+                start_date = datetime(now.year, now.month, now.day, 0, 0, 0)
+                end_date = now
+            elif time_range == 'week':
+                # 本周的数据（从周一开始）
+                days_since_monday = now.weekday()
+                start_date = datetime(now.year, now.month, now.day, 0, 0, 0) - timedelta(days=days_since_monday)
+                end_date = now
+            elif time_range == 'month':
+                # 本月的数据
+                start_date = datetime(now.year, now.month, 1, 0, 0, 0)
+                end_date = now
+            elif time_range == 'custom' and custom_start_date and custom_end_date:
+                # 自定义日期范围
+                start_date = custom_start_date
+                end_date = custom_end_date
+            else:
+                # 默认使用今天的数据
+                start_date = datetime(now.year, now.month, now.day, 0, 0, 0)
+                end_date = now
+            
+            # 定义时段范围
+            time_periods = [
+                {"start": 8, "end": 10, "label": "8-10"},
+                {"start": 10, "end": 12, "label": "10-12"},
+                {"start": 12, "end": 14, "label": "12-14"},
+                {"start": 14, "end": 16, "label": "14-16"},
+                {"start": 16, "end": 18, "label": "16-18"},
+                {"start": 18, "end": 20, "label": "18-20"}
+            ]
+            
+            # 初始化时段数据
+            period_counts = {period["label"]: 0 for period in time_periods}
+            
+            # 查询不良坐姿记录
+            query = """
+                SELECT 
+                    start_time,
+                    HOUR(start_time) as hour,
+                    posture_type
+                FROM posture_time_records
+                WHERE start_time >= %s AND end_time <= %s
+                AND (posture_type = 'fair' OR posture_type = 'poor')
+            """
+            
+            cursor.execute(query, (start_date, end_date))
+            records = cursor.fetchall()
+            
+            # 统计每个时段的不良坐姿次数
+            for record in records:
+                hour = record['hour']
+                
+                # 找到对应的时段
+                for period in time_periods:
+                    if period["start"] <= hour < period["end"]:
+                        period_counts[period["label"]] += 1
+                        break
+            
+            # 形成最终结果
+            labels = [period["label"] for period in time_periods]
+            data = [period_counts[period["label"]] for period in time_periods]
+            
+            cursor.close()
+            conn.close()
+            
+            return {
+                'labels': labels,
+                'data': data,
+                'time_range': time_range,
+                'start_date': start_date.isoformat() if start_date else None,
+                'end_date': end_date.isoformat() if end_date else None
+            }
+        except Exception as e:
+            print(f"获取时段坐姿分布数据失败: {str(e)}")
+            traceback.print_exc()
+            return {
+                'error': str(e),
+                'labels': ["8-10", "10-12", "12-14", "14-16", "16-18", "18-20"],
+                'data': [0, 0, 0, 0, 0, 0]
+            }
