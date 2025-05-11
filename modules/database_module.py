@@ -163,6 +163,9 @@ def save_posture_image(image, angle, is_bad_posture, posture_status, emotion, no
         
         print(f"保存坐姿图像成功，ID: {image_id}, 路径: {relative_path}")
         
+        # 自动清理旧图片，保留最新的100张
+        cleanup_old_images(100)
+        
         return {
             "id": image_id,
             "path": relative_path
@@ -255,9 +258,6 @@ def delete_posture_image(image_id):
     print(f"尝试删除坐姿图像记录，ID: {image_id}")
     try:
         # 尝试连接数据库
-        conn = mysql.connector.connect(**DB_CONFIG)
-        cursor = conn.cursor()
-        
         # 先获取图像路径
         cursor.execute("SELECT image_path FROM posture_images WHERE id = %s", (image_id,))
         result = cursor.fetchone()
@@ -1191,3 +1191,74 @@ def clear_all_posture_records(days_to_keep=None):
             'status': 'error',
             'message': f"清空坐姿记录失败: {str(e)}"
         }
+
+def cleanup_old_images(max_images_to_keep=100):
+    """清理旧的图片文件，只保留最新的指定数量图片
+    
+    Args:
+        max_images_to_keep: 要保留的最大图片数量
+        
+    Returns:
+        删除的图片数量
+    """
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor()
+        
+        # 获取当前图片总数
+        cursor.execute("SELECT COUNT(*) FROM posture_images")
+        total_images = cursor.fetchone()[0]
+        
+        # 如果图片数量不超过保留限制，则不需要删除
+        if (total_images <= max_images_to_keep):
+            cursor.close()
+            conn.close()
+            print(f"当前图片数量({total_images})未超过保留限制({max_images_to_keep})，无需清理")
+            return 0
+        
+        # 计算需要删除的图片数量
+        images_to_delete = total_images - max_images_to_keep
+        
+        # 获取需要删除的图片记录，按时间升序（最老的先删）
+        cursor.execute("""
+            SELECT id, image_path FROM posture_images
+            ORDER BY timestamp ASC
+            LIMIT %s
+        """, (images_to_delete,))
+        
+        delete_records = cursor.fetchall()
+        deleted_count = 0
+        
+        # 逐个删除图片文件和数据库记录
+        for image_id, image_path in delete_records:
+            # 构建完整文件路径
+            if image_path.startswith('/static/'):
+                # 获取项目根目录
+                project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                # 构建完整路径
+                full_path = os.path.join(project_root, image_path[1:])  # 移除开头的'/'
+            else:
+                # 如果路径不是以/static/开头，尝试在posture_images目录中查找
+                filename = os.path.basename(image_path)
+                full_path = os.path.join(POSTURE_IMAGES_DIR, filename)
+            
+            # 删除物理文件
+            if os.path.exists(full_path):
+                os.remove(full_path)
+            
+            # 删除数据库记录
+            cursor.execute("DELETE FROM posture_images WHERE id = %s", (image_id,))
+            deleted_count += 1
+        
+        conn.commit()
+        cursor.close()
+        conn.close()
+        
+        print(f"成功清理了 {deleted_count} 张旧图片，保留了最新的 {max_images_to_keep} 张图片")
+        return deleted_count
+        
+    except Exception as e:
+        print(f"清理旧图片失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return 0
