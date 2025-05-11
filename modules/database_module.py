@@ -746,3 +746,406 @@ def get_hourly_posture_data(start_time, end_time):
         import traceback
         traceback.print_exc()
         return []
+
+def export_all_posture_records(time_range='all', start_date=None, end_date=None):
+    """导出所有坐姿相关记录，包括图像记录和时间记录
+    
+    Args:
+        time_range: 时间范围 'all', 'day', 'week', 'month', 'custom'
+        start_date: 自定义开始日期 (datetime对象)，仅当time_range为'custom'时有效
+        end_date: 自定义结束日期 (datetime对象)，仅当time_range为'custom'时有效
+        
+    Returns:
+        包含所有坐姿记录的字典
+    """
+    try:
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor(dictionary=True)
+        
+        # 根据时间范围确定查询的开始时间
+        now = datetime.now()
+        if time_range == 'day':
+            start_time = now.replace(hour=0, minute=0, second=0, microsecond=0)
+        elif time_range == 'week':
+            # 获取本周一的日期
+            days_since_monday = now.weekday()
+            start_time = (now - timedelta(days=days_since_monday)).replace(hour=0, minute=0, second=0, microsecond=0)
+        elif time_range == 'month':
+            # 获取本月1日的日期
+            start_time = now.replace(day=1, hour=0, minute=0, second=0, microsecond=0)
+        elif time_range == 'custom' and start_date and end_date:
+            # 使用自定义日期范围
+            start_time = start_date
+            now = end_date
+        else:
+            # 默认为全部
+            start_time = datetime(2000, 1, 1)  # 很早的日期
+        
+        # 获取图像记录
+        image_query = """
+            SELECT id, image_path, angle, is_bad_posture, posture_status, emotion, 
+                   timestamp, notes
+            FROM posture_images
+            WHERE timestamp >= %s AND timestamp <= %s
+            ORDER BY timestamp DESC
+        """
+        
+        cursor.execute(image_query, (start_time, now))
+        image_records = cursor.fetchall()
+        
+        # 处理时间戳格式
+        for record in image_records:
+            if 'timestamp' in record and record['timestamp']:
+                record['timestamp'] = record['timestamp'].isoformat()
+        
+        # 获取时间记录
+        time_query = """
+            SELECT id, start_time, end_time, duration_seconds, angle, 
+                   posture_type, notes
+            FROM posture_time_records
+            WHERE start_time >= %s AND end_time <= %s
+            ORDER BY start_time DESC
+        """
+        
+        cursor.execute(time_query, (start_time, now))
+        time_records = cursor.fetchall()
+        
+        # 处理时间戳格式
+        for record in time_records:
+            if 'start_time' in record and record['start_time']:
+                record['start_time'] = record['start_time'].isoformat()
+            if 'end_time' in record and record['end_time']:
+                record['end_time'] = record['end_time'].isoformat()
+        
+        cursor.close()
+        conn.close()
+        
+        # 构建结果
+        result = {
+            'image_records': {
+                'count': len(image_records),
+                'records': image_records
+            },
+            'time_records': {
+                'count': len(time_records),
+                'records': time_records
+            },
+            'time_range': time_range,
+            'start_time': start_time.isoformat() if start_time else None,
+            'end_time': now.isoformat()
+        }
+        
+        # 获取统计数据
+        stats = get_posture_stats(time_range, start_date, end_date, with_hourly_data=False)
+        result['stats'] = stats
+        
+        return result
+    except Exception as e:
+        print(f"导出所有坐姿记录失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return {
+            'image_records': {
+                'count': 0,
+                'records': []
+            },
+            'time_records': {
+                'count': 0,
+                'records': []
+            },
+            'time_range': time_range,
+            'error': str(e)
+        }
+
+def get_all_posture_records(time_range='all', start_date=None, end_date=None):
+    """
+    获取所有坐姿历史记录，包括图像记录和时间记录
+    
+    参数:
+    - time_range: 时间范围，可以是 'all', 'day', 'week', 'month', 'custom'
+    - start_date: 自定义时间范围的开始日期，格式为 'YYYY-MM-DD'
+    - end_date: 自定义时间范围的结束日期，格式为 'YYYY-MM-DD'
+    
+    返回:
+    - 包含所有记录的字典
+    """
+    import sqlite3
+    from datetime import datetime, timedelta
+    import os
+    from config import DATABASE_PATH
+    
+    # 确定日期范围
+    today = datetime.now().replace(hour=0, minute=0, second=0, microsecond=0)
+    time_range_description = "所有记录"
+    
+    if time_range == 'day':
+        # 今天的记录
+        start_time = today
+        end_time = today + timedelta(days=1) - timedelta(microseconds=1)
+        time_range_description = f"今日记录 ({today.strftime('%Y-%m-%d')})"
+    
+    elif time_range == 'week':
+        # 本周的记录（从周一开始）
+        days_since_monday = today.weekday()
+        start_time = today - timedelta(days=days_since_monday)
+        end_time = start_time + timedelta(days=7) - timedelta(microseconds=1)
+        time_range_description = f"本周记录 ({start_time.strftime('%Y-%m-%d')} 至 {end_time.strftime('%Y-%m-%d')})"
+    
+    elif time_range == 'month':
+        # 本月的记录
+        start_time = today.replace(day=1)
+        if start_time.month == 12:
+            end_time = datetime(start_time.year + 1, 1, 1) - timedelta(microseconds=1)
+        else:
+            end_time = datetime(start_time.year, start_time.month + 1, 1) - timedelta(microseconds=1)
+        time_range_description = f"本月记录 ({start_time.strftime('%Y-%m-%d')} 至 {end_time.strftime('%Y-%m-%d')})"
+    
+    elif time_range == 'custom' and start_date and end_date:
+        # 自定义时间范围
+        try:
+            start_time = datetime.strptime(start_date, '%Y-%m-%d')
+            end_time = datetime.strptime(end_date, '%Y-%m-%d') + timedelta(days=1) - timedelta(microseconds=1)
+            time_range_description = f"自定义时间范围 ({start_date} 至 {end_date})"
+        except ValueError:
+            # 日期格式错误，使用所有记录
+            start_time = None
+            end_time = None
+            time_range_description = "所有记录（日期格式错误）"
+    
+    else:
+        # 默认为所有记录
+        start_time = None
+        end_time = None
+    
+    # 连接数据库
+    conn = sqlite3.connect(DATABASE_PATH)
+    conn.row_factory = sqlite3.Row
+    cursor = conn.cursor()
+    
+    # 准备时间条件字符串
+    time_condition = ""
+    params = []
+    
+    if start_time and end_time:
+        time_condition = "WHERE timestamp BETWEEN ? AND ?"
+        params = [start_time.strftime('%Y-%m-%d %H:%M:%S'), end_time.strftime('%Y-%m-%d %H:%M:%S')]
+    
+    # 获取坐姿图像记录
+    cursor.execute(f"""
+        SELECT * FROM posture_images {time_condition} ORDER BY timestamp DESC
+    """, params)
+    
+    image_records = []
+    for row in cursor.fetchall():
+        record = dict(row)
+        # 转换时间戳格式
+        if 'timestamp' in record:
+            record['formatted_timestamp'] = record['timestamp']
+            try:
+                dt = datetime.strptime(record['timestamp'], '%Y-%m-%d %H:%M:%S')
+                record['formatted_timestamp'] = dt.strftime('%Y年%m月%d日 %H:%M:%S')
+            except ValueError:
+                pass
+        image_records.append(record)
+    
+    # 获取坐姿时间记录
+    cursor.execute(f"""
+        SELECT * FROM posture_time_records {time_condition} ORDER BY start_time DESC
+    """, params)
+    
+    time_records = []
+    for row in cursor.fetchall():
+        record = dict(row)
+        # 转换时间戳格式
+        for time_field in ['start_time', 'end_time']:
+            if time_field in record:
+                field_formatted = f"formatted_{time_field}"
+                record[field_formatted] = record[time_field]
+                try:
+                    dt = datetime.strptime(record[time_field], '%Y-%m-%d %H:%M:%S')
+                    record[field_formatted] = dt.strftime('%Y年%m月%d日 %H:%M:%S')
+                except ValueError:
+                    pass
+        
+        # 计算持续时间（秒）
+        try:
+            start = datetime.strptime(record['start_time'], '%Y-%m-%d %H:%M:%S')
+            end = datetime.strptime(record['end_time'], '%Y-%m-%d %H:%M:%S')
+            duration_seconds = (end - start).total_seconds()
+            record['duration_seconds'] = duration_seconds
+            
+            # 格式化持续时间
+            minutes, seconds = divmod(duration_seconds, 60)
+            hours, minutes = divmod(minutes, 60)
+            record['formatted_duration'] = f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+        except (ValueError, KeyError):
+            record['duration_seconds'] = 0
+            record['formatted_duration'] = "00:00:00"
+        
+        time_records.append(record)
+    
+    # 关闭数据库连接
+    conn.close()
+    
+    # 计算统计数据
+    stats = calculate_posture_stats(time_records)
+    
+    return {
+        'status': 'success',
+        'time_range': time_range,
+        'time_range_description': time_range_description,
+        'image_records': {
+            'count': len(image_records),
+            'records': image_records
+        },
+        'time_records': {
+            'count': len(time_records),
+            'records': time_records
+        },
+        'stats': stats
+    }
+
+def calculate_posture_stats(time_records):
+    """计算坐姿记录的统计数据"""
+    total_seconds = 0
+    good_seconds = 0
+    mild_seconds = 0
+    moderate_seconds = 0
+    severe_seconds = 0
+    
+    for record in time_records:
+        if 'duration_seconds' in record and 'posture_quality' in record:
+            seconds = record['duration_seconds']
+            total_seconds += seconds
+            
+            if record['posture_quality'] == 'good':
+                good_seconds += seconds
+            elif record['posture_quality'] == 'mild':
+                mild_seconds += seconds
+            elif record['posture_quality'] == 'moderate':
+                moderate_seconds += seconds
+            elif record['posture_quality'] == 'severe':
+                severe_seconds += seconds
+    
+    # 格式化时间
+    def format_time(seconds):
+        minutes, seconds = divmod(seconds, 60)
+        hours, minutes = divmod(minutes, 60)
+        return f"{int(hours):02d}:{int(minutes):02d}:{int(seconds):02d}"
+    
+    # 计算百分比
+    def calculate_percentage(part, total):
+        if total == 0:
+            return 0
+        return round((part / total) * 100, 2)
+    
+    return {
+        'total_seconds': total_seconds,
+        'total_time': format_time(total_seconds),
+        'good': {
+            'seconds': good_seconds,
+            'formatted_time': format_time(good_seconds),
+            'percentage': calculate_percentage(good_seconds, total_seconds)
+        },
+        'mild': {
+            'seconds': mild_seconds,
+            'formatted_time': format_time(mild_seconds),
+            'percentage': calculate_percentage(mild_seconds, total_seconds)
+        },
+        'moderate': {
+            'seconds': moderate_seconds,
+            'formatted_time': format_time(moderate_seconds),
+            'percentage': calculate_percentage(moderate_seconds, total_seconds)
+        },
+        'severe': {
+            'seconds': severe_seconds,
+            'formatted_time': format_time(severe_seconds),
+            'percentage': calculate_percentage(severe_seconds, total_seconds)
+        }
+    }
+
+def clear_all_posture_records(days_to_keep=None):
+    """
+    清空所有坐姿记录，包括图像记录和时间记录
+    
+    参数:
+    - days_to_keep: 保留最近几天的记录，为None表示清空所有记录
+    
+    返回:
+    - 包含操作结果的字典
+    """
+    import sqlite3
+    import os
+    from datetime import datetime, timedelta
+    from config import DATABASE_PATH, POSTURE_IMAGES_DIR
+    
+    try:
+        # 连接数据库
+        conn = sqlite3.connect(DATABASE_PATH)
+        cursor = conn.cursor()
+        
+        # 删除指定时间范围外的数据
+        if days_to_keep is not None and days_to_keep > 0:
+            # 计算保留日期的时间戳
+            keep_after = (datetime.now() - timedelta(days=days_to_keep)).strftime('%Y-%m-%d %H:%M:%S')
+            
+            # 删除老数据
+            cursor.execute("DELETE FROM posture_images WHERE timestamp < ?", (keep_after,))
+            cursor.execute("DELETE FROM posture_time_records WHERE start_time < ?", (keep_after,))
+            
+            # 获取已删除的图像文件名
+            deleted_count = cursor.rowcount
+            
+            # 获取保留的图像文件名
+            cursor.execute("SELECT image_path FROM posture_images")
+            kept_images = [row[0] for row in cursor.fetchall()]
+            
+            # 删除不在数据库中的图像文件
+            for root, dirs, files in os.walk(POSTURE_IMAGES_DIR):
+                for file in files:
+                    if file.startswith("posture_") and file.endswith((".jpg", ".png", ".jpeg")):
+                        file_path = os.path.join(root, file)
+                        if os.path.basename(file_path) not in kept_images:
+                            os.remove(file_path)
+            
+            # 提交事务
+            conn.commit()
+            
+            msg = f"已清除 {days_to_keep} 天前的所有坐姿记录"
+        else:
+            # 获取要删除的图像文件路径
+            cursor.execute("SELECT image_path FROM posture_images")
+            image_paths = [row[0] for row in cursor.fetchall()]
+            
+            # 清空表
+            cursor.execute("DELETE FROM posture_images")
+            cursor.execute("DELETE FROM posture_time_records")
+            
+            # 删除图像文件
+            image_count = 0
+            for root, dirs, files in os.walk(POSTURE_IMAGES_DIR):
+                for file in files:
+                    if file.startswith("posture_") and file.endswith((".jpg", ".png", ".jpeg")):
+                        try:
+                            os.remove(os.path.join(root, file))
+                            image_count += 1
+                        except Exception as e:
+                            print(f"删除图像文件 {file} 失败: {str(e)}")
+            
+            # 提交事务
+            conn.commit()
+            
+            msg = f"已清空所有坐姿记录，删除了 {image_count} 个图像文件"
+        
+        # 关闭数据库连接
+        conn.close()
+        
+        return {
+            'status': 'success',
+            'message': msg
+        }
+    except Exception as e:
+        return {
+            'status': 'error',
+            'message': f"清空坐姿记录失败: {str(e)}"
+        }

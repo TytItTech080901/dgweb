@@ -438,8 +438,15 @@
             <button class="btn btn-primary" onclick="generatePDF()">
                 <span>📄 导出周报</span>
             </button>
+            <button class="btn btn-primary" onclick="exportAllPostureRecords()">
+                <span>📊 导出所有坐姿记录</span>
+            </button>
             <button class="btn btn-secondary">
                 <span>⚙️ 设置提醒</span>
+            </button>
+            <!-- 添加导出所有历史记录按钮 -->
+            <button type="button" class="btn btn-secondary" onclick="exportAllPostureRecords()">
+                <i class="fas fa-file-export"></i> 导出所有坐姿记录
             </button>
         </div>
     </div>
@@ -966,6 +973,858 @@
         // 打开详细记录页面
         function openPostureRecordsPage() {
             window.location.href = '/posture-records';
+        }
+
+        // 导出所有坐姿历史记录
+        function exportAllPostureRecords() {
+            // 创建时间范围选择对话框
+            const modal = document.createElement('div');
+            modal.style.position = 'fixed';
+            modal.style.left = '0';
+            modal.style.top = '0';
+            modal.style.width = '100%';
+            modal.style.height = '100%';
+            modal.style.backgroundColor = 'rgba(0,0,0,0.8)';
+            modal.style.zIndex = '1000';
+            modal.style.display = 'flex';
+            modal.style.flexDirection = 'column';
+            modal.style.alignItems = 'center';
+            modal.style.justifyContent = 'center';
+            
+            // 创建对话框容器
+            const dialogContainer = document.createElement('div');
+            dialogContainer.style.position = 'relative';
+            dialogContainer.style.width = '90%';
+            dialogContainer.style.maxWidth = '500px';
+            dialogContainer.style.background = 'white';
+            dialogContainer.style.padding = '20px';
+            dialogContainer.style.borderRadius = '8px';
+            
+            // 创建关闭按钮
+            const closeBtn = document.createElement('div');
+            closeBtn.textContent = '×';
+            closeBtn.style.position = 'absolute';
+            closeBtn.style.right = '10px';
+            closeBtn.style.top = '5px';
+            closeBtn.style.fontSize = '24px';
+            closeBtn.style.cursor = 'pointer';
+            closeBtn.style.color = '#333';
+            closeBtn.onclick = function() {
+                document.body.removeChild(modal);
+            };
+            
+            // 创建标题
+            const title = document.createElement('h3');
+            title.textContent = '选择导出时间范围';
+            title.style.marginBottom = '20px';
+            title.style.textAlign = 'center';
+            
+            // 创建时间范围选项
+            const optionsContainer = document.createElement('div');
+            optionsContainer.style.display = 'flex';
+            optionsContainer.style.flexDirection = 'column';
+            optionsContainer.style.gap = '10px';
+            
+            // 时间范围选项
+            const timeRanges = [
+                { id: 'all', label: '所有历史记录' },
+                { id: 'day', label: '今日记录' },
+                { id: 'week', label: '本周记录' },
+                { id: 'month', label: '本月记录' },
+                { id: 'custom', label: '自定义时间范围' }
+            ];
+            
+            // 选择时间范围
+            let selectedTimeRange = 'all';
+            
+            // 创建单选按钮
+            timeRanges.forEach(range => {
+                const option = document.createElement('div');
+                option.style.display = 'flex';
+                option.style.alignItems = 'center';
+                option.style.gap = '8px';
+                
+                const radio = document.createElement('input');
+                radio.type = 'radio';
+                radio.name = 'timeRange';
+                radio.id = range.id;
+                radio.value = range.id;
+                radio.checked = range.id === 'all';
+                radio.style.cursor = 'pointer';
+                
+                radio.onchange = function() {
+                    selectedTimeRange = this.value;
+                    customDateContainer.style.display = this.value === 'custom' ? 'flex' : 'none';
+                };
+                
+                const label = document.createElement('label');
+                label.htmlFor = range.id;
+                label.textContent = range.label;
+                label.style.cursor = 'pointer';
+                
+                option.appendChild(radio);
+                option.appendChild(label);
+                optionsContainer.appendChild(option);
+            });
+            
+            // 自定义日期选择器
+            const customDateContainer = document.createElement('div');
+            customDateContainer.style.display = 'none';
+            customDateContainer.style.flexDirection = 'column';
+            customDateContainer.style.gap = '10px';
+            customDateContainer.style.marginTop = '10px';
+            customDateContainer.style.padding = '10px';
+            customDateContainer.style.border = '1px solid #eee';
+            customDateContainer.style.borderRadius = '4px';
+            
+            // 开始日期
+            const startDateContainer = document.createElement('div');
+            startDateContainer.style.display = 'flex';
+            startDateContainer.style.alignItems = 'center';
+            startDateContainer.style.gap = '10px';
+            
+            const startDateLabel = document.createElement('label');
+            startDateLabel.textContent = '开始日期:';
+            startDateLabel.htmlFor = 'start-date';
+            startDateLabel.style.width = '80px';
+            
+            const startDateInput = document.createElement('input');
+            startDateInput.type = 'date';
+            startDateInput.id = 'start-date';
+            startDateInput.style.flex = '1';
+            startDateInput.style.padding = '8px';
+            startDateInput.style.borderRadius = '4px';
+            startDateInput.style.border = '1px solid #ccc';
+            
+            // 设置默认值为一周前
+            const oneWeekAgo = new Date();
+            oneWeekAgo.setDate(oneWeekAgo.getDate() - 7);
+            startDateInput.value = oneWeekAgo.toISOString().split('T')[0];
+            
+            startDateContainer.appendChild(startDateLabel);
+            startDateContainer.appendChild(startDateInput);
+            
+            // 结束日期
+            const endDateContainer = document.createElement('div');
+            endDateContainer.style.display = 'flex';
+            endDateContainer.style.alignItems = 'center';
+            endDateContainer.style.gap = '10px';
+            
+            const endDateLabel = document.createElement('label');
+            endDateLabel.textContent = '结束日期:';
+            endDateLabel.htmlFor = 'end-date';
+            endDateLabel.style.width = '80px';
+            
+            const endDateInput = document.createElement('input');
+            endDateInput.type = 'date';
+            endDateInput.id = 'end-date';
+            endDateInput.style.flex = '1';
+            endDateInput.style.padding = '8px';
+            endDateInput.style.borderRadius = '4px';
+            endDateInput.style.border = '1px solid #ccc';
+            
+            // 设置默认值为今天
+            const today = new Date();
+            endDateInput.value = today.toISOString().split('T')[0];
+            
+            endDateContainer.appendChild(endDateLabel);
+            endDateContainer.appendChild(endDateInput);
+            
+            customDateContainer.appendChild(startDateContainer);
+            customDateContainer.appendChild(endDateContainer);
+            
+            // 创建按钮容器
+            const buttonsContainer = document.createElement('div');
+            buttonsContainer.style.display = 'flex';
+            buttonsContainer.style.justifyContent = 'space-between';
+            buttonsContainer.style.marginTop = '20px';
+            buttonsContainer.style.gap = '10px';
+            
+            // 取消按钮
+            const cancelButton = document.createElement('button');
+            cancelButton.textContent = '取消';
+            cancelButton.className = 'btn btn-secondary';
+            cancelButton.style.flex = '1';
+            cancelButton.style.padding = '10px';
+            cancelButton.onclick = function() {
+                document.body.removeChild(modal);
+            };
+            
+            // 确认按钮
+            const confirmButton = document.createElement('button');
+            confirmButton.textContent = '导出记录';
+            confirmButton.className = 'btn btn-primary';
+            confirmButton.style.flex = '1';
+            confirmButton.style.padding = '10px';
+            confirmButton.onclick = function() {
+                document.body.removeChild(modal);
+                
+                // 构建API请求URL
+                let url = `/api/export_all_posture_records?time_range=${selectedTimeRange}`;
+                
+                // 如果是自定义时间范围，添加日期参数
+                if (selectedTimeRange === 'custom') {
+                    url += `&start_date=${startDateInput.value}&end_date=${endDateInput.value}`;
+                }
+                
+                // 显示加载中提示
+                showLoading('正在导出坐姿历史记录，请稍候...');
+                
+                // 请求数据
+                fetch(url)
+                    .then(response => response.json())
+                    .then(data => {
+                        // 隐藏加载提示
+                        hideLoading();
+                        
+                        if (data.status === 'success') {
+                            // 显示导出结果
+                            showExportResult(data.records);
+                        } else {
+                            // 显示错误信息
+                            showErrorMessage('导出失败: ' + data.message);
+                        }
+                    })
+                    .catch(error => {
+                        // 隐藏加载提示
+                        hideLoading();
+                        showErrorMessage('导出请求失败: ' + error.message);
+                    });
+            };
+            
+            // 组合所有元素
+            buttonsContainer.appendChild(cancelButton);
+            buttonsContainer.appendChild(confirmButton);
+            
+            dialogContainer.appendChild(closeBtn);
+            dialogContainer.appendChild(title);
+            dialogContainer.appendChild(optionsContainer);
+            dialogContainer.appendChild(customDateContainer);
+            dialogContainer.appendChild(buttonsContainer);
+            
+            modal.appendChild(dialogContainer);
+            
+            // 点击模态框背景关闭
+            modal.onclick = function(event) {
+                if (event.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            };
+            
+            document.body.appendChild(modal);
+        }
+        
+        // 显示导出结果
+        function showExportResult(records) {
+            // 创建模态框
+            const modal = document.createElement('div');
+            modal.style.position = 'fixed';
+            modal.style.left = '0';
+            modal.style.top = '0';
+            modal.style.width = '100%';
+            modal.style.height = '100%';
+            modal.style.backgroundColor = 'rgba(0,0,0,0.8)';
+            modal.style.zIndex = '1000';
+            modal.style.display = 'flex';
+            modal.style.flexDirection = 'column';
+            modal.style.alignItems = 'center';
+            modal.style.justifyContent = 'center';
+            
+            // 创建结果容器
+            const resultContainer = document.createElement('div');
+            resultContainer.style.position = 'relative';
+            resultContainer.style.width = '90%';
+            resultContainer.style.maxWidth = '800px';
+            resultContainer.style.maxHeight = '80vh';
+            resultContainer.style.overflowY = 'auto';
+            resultContainer.style.background = 'white';
+            resultContainer.style.padding = '20px';
+            resultContainer.style.borderRadius = '8px';
+            
+            // 创建关闭按钮
+            const closeBtn = document.createElement('div');
+            closeBtn.textContent = '×';
+            closeBtn.style.position = 'absolute';
+            closeBtn.style.right = '10px';
+            closeBtn.style.top = '5px';
+            closeBtn.style.fontSize = '24px';
+            closeBtn.style.cursor = 'pointer';
+            closeBtn.style.color = '#333';
+            closeBtn.onclick = function() {
+                document.body.removeChild(modal);
+            };
+            
+            // 创建标题
+            const title = document.createElement('h3');
+            title.textContent = '坐姿历史记录导出结果';
+            title.style.marginBottom = '5px';
+            title.style.textAlign = 'center';
+            
+            // 添加时间范围描述
+            const timeRangeDescription = document.createElement('p');
+            timeRangeDescription.textContent = records.time_range_description || '历史记录';
+            timeRangeDescription.style.textAlign = 'center';
+            timeRangeDescription.style.marginBottom = '20px';
+            timeRangeDescription.style.color = '#666';
+            
+            // 创建统计信息
+            const statsContainer = document.createElement('div');
+            statsContainer.style.display = 'flex';
+            statsContainer.style.justifyContent = 'space-around';
+            statsContainer.style.marginBottom = '20px';
+            statsContainer.style.flexWrap = 'wrap';
+            statsContainer.style.gap = '10px';
+            
+            // 图像记录统计
+            const imageStatsCard = createStatsCard('图像记录', records.image_records.count, '张');
+            statsContainer.appendChild(imageStatsCard);
+            
+            // 时间记录统计
+            const timeStatsCard = createStatsCard('时间记录', records.time_records.count, '条');
+            statsContainer.appendChild(timeStatsCard);
+            
+            // 坐姿时间统计
+            if (records.stats && records.stats.total_time) {
+                const goodTimeStatsCard = createStatsCard('良好坐姿', records.stats.good.formatted_time, '', '#34a853');
+                statsContainer.appendChild(goodTimeStatsCard);
+                
+                // 不良坐姿时间 (mild + moderate + severe)
+                const badTime = records.stats.mild.seconds + records.stats.moderate.seconds + records.stats.severe.seconds;
+                let badTimeFormatted = '';
+                const hours = Math.floor(badTime / 3600);
+                const minutes = Math.floor((badTime % 3600) / 60);
+                if (hours > 0) {
+                    badTimeFormatted = `${hours}h ${minutes}m`;
+                } else {
+                    badTimeFormatted = `${minutes}m`;
+                }
+                const badTimeStatsCard = createStatsCard('不良坐姿', badTimeFormatted, '', '#ea4335');
+                statsContainer.appendChild(badTimeStatsCard);
+            }
+            
+            // 创建导出按钮容器
+            const exportButtonsContainer = document.createElement('div');
+            exportButtonsContainer.style.display = 'flex';
+            exportButtonsContainer.style.justifyContent = 'center';
+            exportButtonsContainer.style.gap = '10px';
+            exportButtonsContainer.style.marginBottom = '20px';
+            
+            // 下载JSON按钮
+            const downloadJsonBtn = document.createElement('button');
+            downloadJsonBtn.className = 'btn btn-primary';
+            downloadJsonBtn.textContent = '下载JSON数据';
+            downloadJsonBtn.style.padding = '8px 16px';
+            downloadJsonBtn.onclick = function() {
+                downloadRecordsAsJson(records);
+            };
+            
+            // 下载CSV按钮
+            const downloadCsvBtn = document.createElement('button');
+            downloadCsvBtn.className = 'btn btn-secondary';
+            downloadCsvBtn.textContent = '下载CSV数据';
+            downloadCsvBtn.style.padding = '8px 16px';
+            downloadCsvBtn.onclick = function() {
+                downloadRecordsAsCsv(records);
+            };
+            
+            exportButtonsContainer.appendChild(downloadJsonBtn);
+            exportButtonsContainer.appendChild(downloadCsvBtn);
+            
+            // 创建标签页容器
+            const tabsContainer = document.createElement('div');
+            tabsContainer.style.marginBottom = '20px';
+            
+            // 创建标签页按钮
+            const tabsButtonsContainer = document.createElement('div');
+            tabsButtonsContainer.style.display = 'flex';
+            tabsButtonsContainer.style.marginBottom = '10px';
+            tabsButtonsContainer.style.borderBottom = '1px solid #eee';
+            
+            // 标签页内容
+            const tabsContentContainer = document.createElement('div');
+            
+            // 创建图像记录标签页
+            const imageTabBtn = document.createElement('button');
+            imageTabBtn.textContent = `图像记录 (${records.image_records.count})`;
+            imageTabBtn.style.padding = '8px 16px';
+            imageTabBtn.style.backgroundColor = '#4285f4';
+            imageTabBtn.style.color = 'white';
+            imageTabBtn.style.border = 'none';
+            imageTabBtn.style.borderTopLeftRadius = '4px';
+            imageTabBtn.style.borderTopRightRadius = '4px';
+            imageTabBtn.style.cursor = 'pointer';
+            
+            // 创建时间记录标签页
+            const timeTabBtn = document.createElement('button');
+            timeTabBtn.textContent = `时间记录 (${records.time_records.count})`;
+            timeTabBtn.style.padding = '8px 16px';
+            timeTabBtn.style.backgroundColor = '#f5f5f5';
+            timeTabBtn.style.color = '#333';
+            timeTabBtn.style.border = 'none';
+            timeTabBtn.style.borderTopLeftRadius = '4px';
+            timeTabBtn.style.borderTopRightRadius = '4px';
+            timeTabBtn.style.cursor = 'pointer';
+            timeTabBtn.style.marginLeft = '5px';
+            
+            // 标签页内容
+            const imageTabContent = document.createElement('div');
+            const timeTabContent = document.createElement('div');
+            timeTabContent.style.display = 'none';
+            
+            // 标签页切换功能
+            imageTabBtn.onclick = function() {
+                imageTabBtn.style.backgroundColor = '#4285f4';
+                imageTabBtn.style.color = 'white';
+                timeTabBtn.style.backgroundColor = '#f5f5f5';
+                timeTabBtn.style.color = '#333';
+                imageTabContent.style.display = 'block';
+                timeTabContent.style.display = 'none';
+            };
+            
+            timeTabBtn.onclick = function() {
+                timeTabBtn.style.backgroundColor = '#4285f4';
+                timeTabBtn.style.color = 'white';
+                imageTabBtn.style.backgroundColor = '#f5f5f5';
+                imageTabBtn.style.color = '#333';
+                timeTabContent.style.display = 'block';
+                imageTabContent.style.display = 'none';
+            };
+            
+            // 添加标签页按钮
+            tabsButtonsContainer.appendChild(imageTabBtn);
+            tabsButtonsContainer.appendChild(timeTabBtn);
+            
+            // 创建图像记录内容
+            if (records.image_records.records.length > 0) {
+                // 创建图像记录网格
+                const imageGrid = document.createElement('div');
+                imageGrid.style.display = 'grid';
+                imageGrid.style.gridTemplateColumns = 'repeat(auto-fill, minmax(150px, 1fr))';
+                imageGrid.style.gap = '15px';
+                
+                // 添加图像记录
+                records.image_records.records.forEach(record => {
+                    const galleryItem = document.createElement('div');
+                    galleryItem.style.borderRadius = '8px';
+                    galleryItem.style.overflow = 'hidden';
+                    galleryItem.style.position = 'relative';
+                    galleryItem.style.boxShadow = '0 2px 8px rgba(0, 0, 0, 0.1)';
+                    
+                    // 创建图像元素
+                    const img = document.createElement('img');
+                    img.src = record.image_path;
+                    img.alt = record.is_bad_posture ? '不良坐姿' : '良好坐姿';
+                    img.style.width = '100%';
+                    img.style.height = '120px';
+                    img.style.objectFit = 'cover';
+                    img.style.display = 'block';
+                    img.onerror = function() {
+                        this.src = record.is_bad_posture 
+                            ? 'https://via.placeholder.com/150x120/ea4335/ffffff?text=不良坐姿'
+                            : 'https://via.placeholder.com/150x120/34a853/ffffff?text=良好坐姿';
+                    };
+                    
+                    // 创建时间标签
+                    const timeDiv = document.createElement('div');
+                    timeDiv.style.position = 'absolute';
+                    timeDiv.style.bottom = '0';
+                    timeDiv.style.left = '0';
+                    timeDiv.style.right = '0';
+                    timeDiv.style.backgroundColor = 'rgba(0,0,0,0.6)';
+                    timeDiv.style.color = 'white';
+                    timeDiv.style.padding = '5px';
+                    timeDiv.style.fontSize = '0.7rem';
+                    timeDiv.style.textAlign = 'center';
+                    
+                    // 解析时间戳并格式化
+                    const recordTime = new Date(record.timestamp);
+                    const timeString = recordTime.toLocaleTimeString('zh-CN', {
+                        hour: '2-digit',
+                        minute: '2-digit'
+                    });
+                    timeDiv.textContent = timeString;
+                    
+                    // 添加点击查看大图功能
+                    galleryItem.onclick = function() {
+                        viewPostureImage(record);
+                    };
+                    
+                    // 组合元素
+                    galleryItem.appendChild(img);
+                    galleryItem.appendChild(timeDiv);
+                    imageGrid.appendChild(galleryItem);
+                });
+                
+                imageTabContent.appendChild(imageGrid);
+            } else {
+                const noImagesMsg = document.createElement('p');
+                noImagesMsg.textContent = '没有找到图像记录';
+                noImagesMsg.style.textAlign = 'center';
+                noImagesMsg.style.padding = '20px';
+                noImagesMsg.style.color = '#666';
+                imageTabContent.appendChild(noImagesMsg);
+            }
+            
+            // 创建时间记录内容
+            if (records.time_records.records.length > 0) {
+                // 创建时间记录表格
+                const table = document.createElement('table');
+                table.style.width = '100%';
+                table.style.borderCollapse = 'collapse';
+                
+                // 创建表头
+                const thead = document.createElement('thead');
+                const headerRow = document.createElement('tr');
+                
+                // 定义表头列
+                const headers = [
+                    '开始时间', '结束时间', '持续时间', '角度', '坐姿类型'
+                ];
+                
+                headers.forEach(headerText => {
+                    const th = document.createElement('th');
+                    th.textContent = headerText;
+                    th.style.padding = '10px';
+                    th.style.backgroundColor = '#f5f5f5';
+                    th.style.textAlign = 'left';
+                    th.style.borderBottom = '2px solid #ddd';
+                    headerRow.appendChild(th);
+                });
+                
+                thead.appendChild(headerRow);
+                table.appendChild(thead);
+                
+                // 创建表体
+                const tbody = document.createElement('tbody');
+                
+                // 添加记录行
+                records.time_records.records.forEach(record => {
+                    const row = document.createElement('tr');
+                    
+                    // 格式化开始时间
+                    const startCell = document.createElement('td');
+                    const startTime = new Date(record.start_time);
+                    startCell.textContent = startTime.toLocaleString('zh-CN');
+                    startCell.style.padding = '8px';
+                    startCell.style.borderBottom = '1px solid #eee';
+                    
+                    // 格式化结束时间
+                    const endCell = document.createElement('td');
+                    const endTime = new Date(record.end_time);
+                    endCell.textContent = endTime.toLocaleString('zh-CN');
+                    endCell.style.padding = '8px';
+                    endCell.style.borderBottom = '1px solid #eee';
+                    
+                    // 持续时间
+                    const durationCell = document.createElement('td');
+                    const minutes = Math.floor(record.duration_seconds / 60);
+                    const seconds = Math.floor(record.duration_seconds % 60);
+                    durationCell.textContent = `${minutes}m ${seconds}s`;
+                    durationCell.style.padding = '8px';
+                    durationCell.style.borderBottom = '1px solid #eee';
+                    
+                    // 角度
+                    const angleCell = document.createElement('td');
+                    angleCell.textContent = record.angle ? `${record.angle.toFixed(1)}°` : '-';
+                    angleCell.style.padding = '8px';
+                    angleCell.style.borderBottom = '1px solid #eee';
+                    
+                    // 坐姿类型
+                    const typeCell = document.createElement('td');
+                    
+                    let typeText = '';
+                    let typeColor = '';
+                    
+                    switch (record.posture_type) {
+                        case 'good':
+                            typeText = '良好';
+                            typeColor = '#34a853';
+                            break;
+                        case 'mild':
+                            typeText = '轻度不良';
+                            typeColor = '#fbbc05';
+                            break;
+                        case 'moderate':
+                            typeText = '中度不良';
+                            typeColor = '#ff9800';
+                            break;
+                        case 'severe':
+                            typeText = '严重不良';
+                            typeColor = '#ea4335';
+                            break;
+                        default:
+                            typeText = record.posture_type;
+                            typeColor = '#333';
+                    }
+                    
+                    typeCell.textContent = typeText;
+                    typeCell.style.color = typeColor;
+                    typeCell.style.fontWeight = 'bold';
+                    typeCell.style.padding = '8px';
+                    typeCell.style.borderBottom = '1px solid #eee';
+                    
+                    // 添加单元格到行
+                    row.appendChild(startCell);
+                    row.appendChild(endCell);
+                    row.appendChild(durationCell);
+                    row.appendChild(angleCell);
+                    row.appendChild(typeCell);
+                    
+                    // 给行添加鼠标悬停效果
+                    row.style.transition = 'background-color 0.2s';
+                    row.onmouseover = function() {
+                        this.style.backgroundColor = '#f9f9f9';
+                    };
+                    row.onmouseout = function() {
+                        this.style.backgroundColor = '';
+                    };
+                    
+                    tbody.appendChild(row);
+                });
+                
+                table.appendChild(tbody);
+                timeTabContent.appendChild(table);
+            } else {
+                const noRecordsMsg = document.createElement('p');
+                noRecordsMsg.textContent = '没有找到时间记录';
+                noRecordsMsg.style.textAlign = 'center';
+                noRecordsMsg.style.padding = '20px';
+                noRecordsMsg.style.color = '#666';
+                timeTabContent.appendChild(noRecordsMsg);
+            }
+            
+            // 添加标签页内容
+            tabsContentContainer.appendChild(imageTabContent);
+            tabsContentContainer.appendChild(timeTabContent);
+            
+            // 组合标签页
+            tabsContainer.appendChild(tabsButtonsContainer);
+            tabsContainer.appendChild(tabsContentContainer);
+            
+            // 组合所有元素
+            resultContainer.appendChild(closeBtn);
+            resultContainer.appendChild(title);
+            resultContainer.appendChild(timeRangeDescription);
+            resultContainer.appendChild(statsContainer);
+            resultContainer.appendChild(exportButtonsContainer);
+            resultContainer.appendChild(tabsContainer);
+            
+            modal.appendChild(resultContainer);
+            
+            // 点击模态框背景关闭
+            modal.onclick = function(event) {
+                if (event.target === modal) {
+                    document.body.removeChild(modal);
+                }
+            };
+            
+            document.body.appendChild(modal);
+        }
+        
+        // 创建统计卡片
+        function createStatsCard(label, value, unit = '', color = '#4285f4') {
+            const card = document.createElement('div');
+            card.style.backgroundColor = '#f5f5f5';
+            card.style.padding = '15px 20px';
+            card.style.borderRadius = '8px';
+            card.style.textAlign = 'center';
+            card.style.minWidth = '120px';
+            
+            const valueDiv = document.createElement('div');
+            valueDiv.textContent = value + unit;
+            valueDiv.style.fontSize = '1.5rem';
+            valueDiv.style.fontWeight = 'bold';
+            valueDiv.style.color = color;
+            valueDiv.style.marginBottom = '5px';
+            
+            const labelDiv = document.createElement('div');
+            labelDiv.textContent = label;
+            labelDiv.style.fontSize = '0.9rem';
+            labelDiv.style.color = '#666';
+            
+            card.appendChild(valueDiv);
+            card.appendChild(labelDiv);
+            
+            return card;
+        }
+        
+        // 下载记录为JSON文件
+        function downloadRecordsAsJson(records) {
+            // 创建Blob对象
+            const blob = new Blob([JSON.stringify(records, null, 2)], { type: 'application/json' });
+            
+            // 创建下载链接
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `坐姿记录_${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            
+            // 清理
+            setTimeout(() => {
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+            }, 0);
+        }
+        
+        // 下载记录为CSV文件
+        function downloadRecordsAsCsv(records) {
+            // 构建CSV内容
+            let csvContent = "data:text/csv;charset=utf-8,";
+            
+            // 图像记录表头
+            csvContent += "图像记录\n";
+            csvContent += "ID,图像路径,角度,是否不良坐姿,坐姿状态,情绪,时间戳,备注\n";
+            
+            // 图像记录数据
+            records.image_records.records.forEach(record => {
+                const row = [
+                    record.id,
+                    record.image_path,
+                    record.angle,
+                    record.is_bad_posture ? '是' : '否',
+                    record.posture_status,
+                    record.emotion,
+                    record.timestamp,
+                    record.notes || ''
+                ];
+                
+                csvContent += row.join(',') + "\n";
+            });
+            
+            // 空行
+            csvContent += "\n";
+            
+            // 时间记录表头
+            csvContent += "时间记录\n";
+            csvContent += "ID,开始时间,结束时间,持续时间(秒),角度,坐姿类型,备注\n";
+            
+            // 时间记录数据
+            records.time_records.records.forEach(record => {
+                // 坐姿类型转中文
+                let postureTypeText = '';
+                switch (record.posture_type) {
+                    case 'good': postureTypeText = '良好'; break;
+                    case 'mild': postureTypeText = '轻度不良'; break;
+                    case 'moderate': postureTypeText = '中度不良'; break;
+                    case 'severe': postureTypeText = '严重不良'; break;
+                    default: postureTypeText = record.posture_type;
+                }
+                
+                const row = [
+                    record.id,
+                    record.start_time,
+                    record.end_time,
+                    record.duration_seconds,
+                    record.angle,
+                    postureTypeText,
+                    record.notes || ''
+                ];
+                
+                csvContent += row.join(',') + "\n";
+            });
+            
+            // 创建下载链接
+            const encodedUri = encodeURI(csvContent);
+            const a = document.createElement('a');
+            a.href = encodedUri;
+            a.download = `坐姿记录_${new Date().toISOString().split('T')[0]}.csv`;
+            document.body.appendChild(a);
+            a.click();
+            
+            // 清理
+            setTimeout(() => {
+                document.body.removeChild(a);
+            }, 0);
+        }
+        
+        // 显示加载中提示
+        function showLoading(message) {
+            // 创建加载中遮罩
+            const loadingOverlay = document.createElement('div');
+            loadingOverlay.id = 'loading-overlay';
+            loadingOverlay.style.position = 'fixed';
+            loadingOverlay.style.left = '0';
+            loadingOverlay.style.top = '0';
+            loadingOverlay.style.width = '100%';
+            loadingOverlay.style.height = '100%';
+            loadingOverlay.style.backgroundColor = 'rgba(0,0,0,0.5)';
+            loadingOverlay.style.zIndex = '9999';
+            loadingOverlay.style.display = 'flex';
+            loadingOverlay.style.alignItems = 'center';
+            loadingOverlay.style.justifyContent = 'center';
+            
+            // 创建加载中提示框
+            const loadingBox = document.createElement('div');
+            loadingBox.style.backgroundColor = 'white';
+            loadingBox.style.padding = '20px';
+            loadingBox.style.borderRadius = '8px';
+            loadingBox.style.boxShadow = '0 4px 12px rgba(0,0,0,0.2)';
+            loadingBox.style.textAlign = 'center';
+            
+            // 创建旋转动画
+            const spinner = document.createElement('div');
+            spinner.style.border = '4px solid #f3f3f3';
+            spinner.style.borderTop = '4px solid #3498db';
+            spinner.style.borderRadius = '50%';
+            spinner.style.width = '30px';
+            spinner.style.height = '30px';
+            spinner.style.animation = 'spin 1s linear infinite';
+            spinner.style.margin = '0 auto 15px auto';
+            
+            // 添加旋转动画关键帧
+            const style = document.createElement('style');
+            style.textContent = `
+                @keyframes spin {
+                    0% { transform: rotate(0deg); }
+                    100% { transform: rotate(360deg); }
+                }
+            `;
+            document.head.appendChild(style);
+            
+            // 创建加载中文本
+            const loadingText = document.createElement('div');
+            loadingText.textContent = message || '加载中...';
+            
+            // 组合元素
+            loadingBox.appendChild(spinner);
+            loadingBox.appendChild(loadingText);
+            loadingOverlay.appendChild(loadingBox);
+            
+            document.body.appendChild(loadingOverlay);
+        }
+        
+        // 隐藏加载中提示
+        function hideLoading() {
+            const loadingOverlay = document.getElementById('loading-overlay');
+            if (loadingOverlay) {
+                document.body.removeChild(loadingOverlay);
+            }
+        }
+        
+        // 显示错误消息
+        function showErrorMessage(message) {
+            // 创建toast消息
+            const toast = document.createElement('div');
+            toast.style.position = 'fixed';
+            toast.style.bottom = '20px';
+            toast.style.left = '50%';
+            toast.style.transform = 'translateX(-50%)';
+            toast.style.backgroundColor = '#ea4335';
+            toast.style.color = 'white';
+            toast.style.padding = '12px 20px';
+            toast.style.borderRadius = '4px';
+            toast.style.boxShadow = '0 2px 10px rgba(0,0,0,0.2)';
+            toast.style.zIndex = '10000';
+            toast.textContent = message;
+            
+            document.body.appendChild(toast);
+            
+            // 3秒后自动消失
+            setTimeout(() => {
+                document.body.removeChild(toast);
+            }, 3000);
         }
     </script>
 </body>

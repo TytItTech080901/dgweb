@@ -45,6 +45,39 @@ class DBHandler:
                 )
             """)
             
+            # 创建坐姿记录表
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS posture_records (
+                    id VARCHAR(36) PRIMARY KEY,
+                    status VARCHAR(20) NOT NULL,
+                    score FLOAT,
+                    image_path VARCHAR(255),
+                    timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    details TEXT,
+                    deleted BOOLEAN DEFAULT FALSE
+                )
+            """)
+            
+            # 创建坐姿设置表
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS posture_settings (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    threshold_good FLOAT DEFAULT 0.8,
+                    threshold_warning FLOAT DEFAULT 0.6,
+                    detection_interval INT DEFAULT 60,
+                    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                )
+            """)
+            
+            # 检查是否有默认设置，如果没有则添加
+            cursor.execute("SELECT COUNT(*) FROM posture_settings")
+            if cursor.fetchone()[0] == 0:
+                cursor.execute("""
+                    INSERT INTO posture_settings 
+                    (threshold_good, threshold_warning, detection_interval) 
+                    VALUES (0.8, 0.6, 60)
+                """)
+            
             conn.commit()
             cursor.close()
             conn.close()
@@ -173,3 +206,250 @@ class DBHandler:
         except Exception as e:
             print(f"清空串口历史失败: {str(e)}")
             return False
+    
+    def save_posture_record(self, record_id, status, score, image_path, details=None):
+        """保存坐姿记录
+        
+        Args:
+            record_id: 记录ID（唯一标识符）
+            status: 坐姿状态（good/bad/warning）
+            score: 坐姿评分
+            image_path: 图片路径
+            details: 额外详细信息（JSON格式字符串）
+            
+        Returns:
+            成功返回True，失败返回False
+        """
+        try:
+            conn = self.get_connection()
+            if not conn:
+                print("保存坐姿记录失败: 数据库连接失败")
+                return False
+            
+            cursor = conn.cursor()
+            
+            # 插入记录
+            query = """
+                INSERT INTO posture_records 
+                (id, status, score, image_path, details) 
+                VALUES (%s, %s, %s, %s, %s)
+            """
+            cursor.execute(query, (
+                record_id,
+                status,
+                score,
+                image_path,
+                details
+            ))
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            return True
+        except Exception as e:
+            print(f"保存坐姿记录失败: {str(e)}")
+            return False
+    
+    def get_posture_records(self, page=1, per_page=20, sort_by='time', sort_order='desc', filter_status='all', search=''):
+        """获取坐姿记录列表
+        
+        Args:
+            page: 页码 (从1开始)
+            per_page: 每页记录数
+            sort_by: 排序字段 ('time', 'status')
+            sort_order: 排序方向 ('asc', 'desc')
+            filter_status: 筛选状态 ('all', 'good', 'bad', 'warning')
+            search: 搜索关键词
+            
+        Returns:
+            元组 (总记录数, 记录列表)
+        """
+        try:
+            conn = self.get_connection()
+            if not conn:
+                print("获取坐姿记录失败: 数据库连接失败")
+                return 0, []
+            
+            cursor = conn.cursor(dictionary=True)
+            
+            # 构建 WHERE 子句
+            where_clauses = ["deleted = 0"]
+            params = []
+            
+            if filter_status != 'all':
+                where_clauses.append("status = %s")
+                params.append(filter_status)
+            
+            if search:
+                where_clauses.append("(id LIKE %s OR status LIKE %s OR details LIKE %s)")
+                search_pattern = f"%{search}%"
+                params.extend([search_pattern, search_pattern, search_pattern])
+            
+            where_clause = " AND ".join(where_clauses)
+            
+            # 构建 ORDER BY 子句
+            order_field = "timestamp" if sort_by == 'time' else "status"
+            order_direction = "ASC" if sort_order == 'asc' else "DESC"
+            
+            # 计算总记录数
+            count_query = f"SELECT COUNT(*) as count FROM posture_records WHERE {where_clause}"
+            cursor.execute(count_query, params)
+            result = cursor.fetchone()
+            total_records = result['count'] if result else 0
+            
+            # 计算偏移量
+            offset = (page - 1) * per_page
+            
+            # 获取分页数据
+            query = f"""
+                SELECT * FROM posture_records 
+                WHERE {where_clause}
+                ORDER BY {order_field} {order_direction} 
+                LIMIT %s OFFSET %s
+            """
+            cursor.execute(query, params + [per_page, offset])
+            records = cursor.fetchall()
+            
+            # 转换datetime对象为字符串
+            for record in records:
+                if 'timestamp' in record and isinstance(record['timestamp'], datetime):
+                    record['timestamp'] = record['timestamp'].isoformat()
+            
+            cursor.close()
+            conn.close()
+            
+            return total_records, records
+        except Exception as e:
+            print(f"获取坐姿记录失败: {str(e)}")
+            return 0, []
+    
+    def delete_posture_record(self, record_id):
+        """删除坐姿记录（软删除）
+        
+        Args:
+            record_id: 记录ID
+            
+        Returns:
+            成功返回True，失败返回False
+        """
+        try:
+            conn = self.get_connection()
+            if not conn:
+                print("删除坐姿记录失败: 数据库连接失败")
+                return False
+            
+            cursor = conn.cursor()
+            
+            # 软删除记录（标记为已删除）
+            query = """
+                UPDATE posture_records
+                SET deleted = 1
+                WHERE id = %s
+            """
+            cursor.execute(query, (record_id,))
+            
+            success = cursor.rowcount > 0
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            return success
+        except Exception as e:
+            print(f"删除坐姿记录失败: {str(e)}")
+            return False
+    
+    def clear_posture_records(self):
+        """清空坐姿记录（软删除所有记录）
+        
+        Returns:
+            成功返回True，失败返回False
+        """
+        try:
+            conn = self.get_connection()
+            if not conn:
+                print("清空坐姿记录失败: 数据库连接失败")
+                return False
+            
+            cursor = conn.cursor()
+            
+            # 将所有记录标记为已删除
+            query = "UPDATE posture_records SET deleted = 1"
+            cursor.execute(query)
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            return True
+        except Exception as e:
+            print(f"清空坐姿记录失败: {str(e)}")
+            return False
+    
+    def get_posture_summary_stats(self):
+        """获取坐姿记录的统计摘要
+        
+        Returns:
+            包含统计数据的字典
+        """
+        try:
+            conn = self.get_connection()
+            if not conn:
+                print("获取坐姿统计信息失败: 数据库连接失败")
+                return {}
+            
+            cursor = conn.cursor(dictionary=True)
+            
+            # 获取总记录数
+            cursor.execute("""
+                SELECT COUNT(*) as total_records
+                FROM posture_records
+                WHERE deleted = 0
+            """)
+            result = cursor.fetchone()
+            total_records = result['total_records'] if result else 0
+            
+            # 获取良好姿势数量
+            cursor.execute("""
+                SELECT COUNT(*) as good_postures
+                FROM posture_records
+                WHERE status = 'good' AND deleted = 0
+            """)
+            result = cursor.fetchone()
+            good_postures = result['good_postures'] if result else 0
+            
+            # 获取不良姿势数量
+            cursor.execute("""
+                SELECT COUNT(*) as bad_postures
+                FROM posture_records
+                WHERE status = 'bad' AND deleted = 0
+            """)
+            result = cursor.fetchone()
+            bad_postures = result['bad_postures'] if result else 0
+            
+            # 获取警告姿势数量
+            cursor.execute("""
+                SELECT COUNT(*) as warning_postures
+                FROM posture_records
+                WHERE status = 'warning' AND deleted = 0
+            """)
+            result = cursor.fetchone()
+            warning_postures = result['warning_postures'] if result else 0
+            
+            # 计算不良比例
+            bad_ratio = (bad_postures + warning_postures) / total_records if total_records > 0 else 0
+            
+            cursor.close()
+            conn.close()
+            
+            return {
+                'total_records': total_records,
+                'good_postures': good_postures,
+                'bad_postures': bad_postures,
+                'warning_postures': warning_postures,
+                'bad_ratio': bad_ratio
+            }
+        except Exception as e:
+            print(f"获取坐姿统计信息失败: {str(e)}")
+            return {}

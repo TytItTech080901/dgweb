@@ -330,7 +330,7 @@ def get_fps_info():
         }
         
         # 获取姿势分析模块的帧率数据
-        if posture_monitor and posture_monitor.is_running:
+        if posture_monitor  and posture_monitor.is_running:
             posture_fps_info = posture_monitor.get_fps_info()
             fps_data.update({
                 'capture_fps': posture_fps_info.get('capture_fps', 0),
@@ -1063,3 +1063,158 @@ def set_posture_thresholds():
             'status': 'error',
             'message': f"设置坐姿阈值失败: {str(e)}"
         })
+
+# 路由：导出所有坐姿历史记录
+@routes_bp.route('/api/export_all_posture_records')
+def export_all_posture_records():
+    """导出所有坐姿历史记录，包括统计数据、图像记录和时间记录"""
+    try:
+        from modules.database_module import export_all_posture_records as db_export_records
+        
+        # 获取时间范围参数
+        time_range = request.args.get('time_range', 'all')
+        if time_range not in ['all', 'day', 'week', 'month', 'custom']:
+            time_range = 'all'
+        
+        # 处理自定义日期范围
+        custom_start_date = None
+        custom_end_date = None
+        
+        if time_range == 'custom':
+            try:
+                from datetime import datetime
+                # 解析自定义日期参数
+                start_date_str = request.args.get('start_date')
+                end_date_str = request.args.get('end_date')
+                
+                if start_date_str  and end_date_str:
+                    custom_start_date = datetime.strptime(start_date_str, '%Y-%m-%d')
+                    custom_end_date = datetime.strptime(end_date_str, '%Y-%m-%d')
+                    # 设置start_date的时间为00:00:00
+                    custom_start_date = custom_start_date.replace(hour=0, minute=0, second=0, microsecond=0)
+                    # 设置end_date的时间为23:59:59
+                    custom_end_date = custom_end_date.replace(hour=23, minute=59, second=59, microsecond=999999)
+                else:
+                    # 如果未提供有效的自定义日期，则使用"全部"作为默认值
+                    time_range = 'all'
+            except ValueError:
+                # 日期格式无效，回退到"全部"
+                time_range = 'all'
+        
+        # 获取所有坐姿记录
+        records = db_export_records(
+            time_range=time_range,
+            start_date=custom_start_date,
+            end_date=custom_end_date
+        )
+        
+        # 添加查询区间的文字描述
+        time_range_description = ""
+        if time_range == 'day':
+            time_range_description = "今日数据"
+        elif time_range == 'week':
+            time_range_description = "本周数据"
+        elif time_range == 'month':
+            time_range_description = "本月数据"
+        elif time_range == 'custom'  and custom_start_date  and custom_end_date:
+            time_range_description = f"{custom_start_date.strftime('%Y-%m-%d')}至{custom_end_date.strftime('%Y-%m-%d')}数据"
+        else:
+            time_range_description = "所有历史数据"
+        
+        records['time_range_description'] = time_range_description
+        
+        return jsonify({
+            'status': 'success',
+            'message': f'成功导出{time_range_description}，共{records["image_records"]["count"]}条图像记录  and {records["time_records"]["count"]}条时间记录',
+            'records': records
+        })
+    except Exception as e:
+        print(f"导出所有坐姿历史记录出错: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'message': f'导出坐姿历史记录失败: {str(e)}'
+        })
+
+# 路由：清空所有坐姿记录
+@routes_bp.route('/api/clear_all_posture_records', methods=['POST'])
+def clear_all_posture_records():
+    """清空所有坐姿记录（包括图像记录和时间记录）"""
+    try:
+        from modules.database_module import clear_posture_images, clear_posture_time_records
+        
+        # 获取请求参数
+        data = request.json
+        days_to_keep = data.get('days_to_keep')
+        
+        # 执行清空操作
+        deleted_images = clear_posture_images(days_to_keep)
+        deleted_time_records = clear_posture_time_records(days_to_keep)
+        
+        message = f'已删除 {deleted_images} 条图像记录和 {deleted_time_records} 条时间记录'
+        if days_to_keep:
+            message = f'已删除 {days_to_keep} 天前的 {deleted_images} 条图像记录和 {deleted_time_records} 条时间记录'
+            
+        return jsonify({
+            'status': 'success',
+            'message': message,
+            'deleted_images': deleted_images,
+            'deleted_time_records': deleted_time_records
+        })
+    except Exception as e:
+        print(f"清空所有坐姿记录出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'清空所有坐姿记录失败: {str(e)}'
+        })
+
+@routes_bp.route('/api/posture/history/all', methods=['GET'])
+def get_all_posture_history():
+    """获取所有坐姿历史记录，包括图像记录和时间记录"""
+    try:
+        # 从查询参数中获取时间范围
+        time_range = request.args.get('range', 'all')
+        start_date = request.args.get('start_date', None)
+        end_date = request.args.get('end_date', None)
+        
+        # 获取所有历史记录
+        result = get_all_posture_records(time_range, start_date, end_date)
+        
+        return jsonify(result)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'message': f'获取坐姿历史记录失败: {str(e)}'
+        }), 500
+
+@routes_bp.route('/api/posture/history/clear', methods=['POST'])
+def clear_posture_history():
+    """清空坐姿历史记录"""
+    try:
+        # 获取请求参数
+        data = request.get_json()
+        days_to_keep = data.get('days_to_keep', None)
+        
+        if days_to_keep is not None:
+            try:
+                days_to_keep = int(days_to_keep)
+            except ValueError:
+                days_to_keep = None
+        
+        # 执行清空操作
+        result = clear_all_posture_records(days_to_keep)
+        
+        return jsonify(result)
+    except Exception as e:
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'message': f'清空坐姿历史记录失败: {str(e)}'
+        }), 500
+
+@routes_bp.route('/posture/history', methods=['GET'])
+def view_posture_history():
+    """渲染坐姿历史记录页面"""
+    return render_template('posture_history.html', title='坐姿历史记录')

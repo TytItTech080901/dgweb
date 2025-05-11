@@ -897,3 +897,129 @@ def set_posture_thresholds():
             'status': 'error',
             'message': f"设置坐姿阈值失败: {str(e)}"
         })
+
+@routes.route('/posture-records')
+def posture_records():
+    """渲染坐姿记录页面"""
+    return render_template('posture_records.html')
+
+# 坐姿记录API路由
+@routes.route('/api/get_posture_records')
+def get_posture_records():
+    """获取坐姿记录列表
+    
+    支持的参数:
+    - page: 页码，默认为1
+    - per_page: 每页记录数，默认为20
+    - sort_by: 排序字段，支持 'time'(默认), 'status'
+    - sort_order: 排序方向，'asc' 或 'desc'(默认)
+    - filter_status: 筛选状态，'all'(默认), 'good', 'bad'
+    - search: 搜索关键词
+    """
+    try:
+        # 获取查询参数
+        page = request.args.get('page', 1, type=int)
+        per_page = request.args.get('per_page', 20, type=int)
+        sort_by = request.args.get('sort_by', 'time')
+        sort_order = request.args.get('sort_order', 'desc')
+        filter_status = request.args.get('filter_status', 'all')
+        search = request.args.get('search', '')
+        
+        # 参数验证
+        if sort_by not in ['time', 'status']:
+            sort_by = 'time'
+        if sort_order not in ['asc', 'desc']:
+            sort_order = 'desc'
+        if filter_status not in ['all', 'good', 'bad']:
+            filter_status = 'all'
+        
+        # 获取记录
+        total_records, records = db.get_posture_records(
+            page=page,
+            per_page=per_page,
+            sort_by=sort_by,
+            sort_order=sort_order,
+            filter_status=filter_status,
+            search=search
+        )
+        
+        # 获取统计信息
+        stats = db.get_posture_summary_stats()
+        
+        # 计算总页数
+        total_pages = (total_records + per_page - 1) // per_page if total_records > 0 else 1
+        
+        return jsonify({
+            'status': 'success',
+            'current_page': page,
+            'per_page': per_page,
+            'total_records': total_records,
+            'total_pages': total_pages,
+            'records': records,
+            'stats': stats
+        })
+    except Exception as e:
+        print(f"获取坐姿记录出错: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'status': 'error',
+            'message': f"获取坐姿记录失败: {str(e)}"
+        })
+
+@routes.route('/api/delete_posture_record', methods=['POST'])
+def delete_posture_record():
+    """删除坐姿记录"""
+    try:
+        data = request.get_json()
+        record_id = data.get('record_id')
+        
+        if not record_id:
+            return jsonify({
+                'status': 'error',
+                'message': '记录ID不能为空'
+            })
+        
+        # 删除记录
+        success = db.delete_posture_record(record_id)
+        
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': '坐姿记录已删除'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': '删除坐姿记录失败，可能记录不存在'
+            })
+    except Exception as e:
+        print(f"删除坐姿记录出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f"删除坐姿记录失败: {str(e)}"
+        })
+
+@routes.route('/api/clear_posture_records', methods=['POST'])
+def clear_posture_records():
+    """清空坐姿记录"""
+    try:
+        # 清空记录
+        success = db.clear_posture_records()
+        
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': '所有坐姿记录已清空'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': '清空坐姿记录失败'
+            })
+    except Exception as e:
+        print(f"清空坐姿记录出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f"清空坐姿记录失败: {str(e)}"
+        })
