@@ -1,0 +1,13 @@
+[Unit]
+Description=Flask Server for Posture Analysis
+After=network.target
+
+[Service]
+User=cat
+WorkingDirectory=/home/cat/Py-server
+ExecStart=/home/cat/miniconda3/envs/pyserver/bin/python app.py
+Restart=always
+RestartSec=10
+
+[Install]
+WantedBy=multi-user.target

@@ -22,6 +22,6 @@ DEBUG = False  # 设置为True开启调试模式，False关闭调试模式
 SERIAL_BAUDRATE = 115200
 
 # 开放端口配置
-# OPEN_HOST = '192.168.67.10'
-OPEN_HOST = '127.0.0.1'
-OPEN_PORT = 5001  # 修改为5001端口避免冲突
+# 使用0.0.0.0表示监听所有可用网络接口，允许任何IP地址连接
+OPEN_HOST = '0.0.0.0'
+OPEN_PORT = 5002  # 修改为5002端口避免端口冲突
