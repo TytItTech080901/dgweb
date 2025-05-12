@@ -113,8 +113,8 @@ class VideoStreamHandler:
         self._pose_lock = threading.Lock()
         self._emotion_lock = threading.Lock()
         
-        # 流状态
-        self.is_streaming = True
+        # 流状态 - 默认不开启视频流传输
+        self.is_streaming = False
         
         # 调试信息
         self.debug = DEBUG
@@ -149,6 +149,41 @@ class VideoStreamHandler:
         text_y = (DEFAULT_STREAM_HEIGHT + text_size[1]) // 2
         
         cv2.putText(frame, text, (text_x, text_y), font, 1, (0, 0, 0), 2)
+        
+        return frame
+        
+    def _create_info_frame(self, title, status_text, info_text):
+        """创建信息帧，用于显示状态信息但不传输视频流
+        
+        Args:
+            title: 框架标题
+            status_text: 状态文本
+            info_text: 额外信息文本
+            
+        Returns:
+            带有信息的帧
+        """
+        # 创建灰色背景帧
+        frame = np.ones((DEFAULT_STREAM_HEIGHT, DEFAULT_STREAM_WIDTH, 3), dtype=np.uint8) * 220
+        
+        # 添加蓝色标题区域
+        cv2.rectangle(frame, (0, 0), (DEFAULT_STREAM_WIDTH, 40), (100, 100, 250), -1)
+        
+        # 添加标题文本
+        font = cv2.FONT_HERSHEY_SIMPLEX
+        cv2.putText(frame, title, (20, 30), font, 1, (255, 255, 255), 2)
+        
+        # 添加状态信息
+        cv2.putText(frame, status_text, (DEFAULT_STREAM_WIDTH//2 - 100, DEFAULT_STREAM_HEIGHT//2 - 20), 
+                   font, 1, (0, 0, 255), 2)
+        
+        # 添加提示信息
+        cv2.putText(frame, info_text, (DEFAULT_STREAM_WIDTH//2 - 100, DEFAULT_STREAM_HEIGHT//2 + 20), 
+                   font, 0.7, (50, 50, 50), 1)
+        
+        # 添加时间戳
+        timestamp = time.strftime("%Y-%m-%d %H:%M:%S")
+        cv2.putText(frame, timestamp, (10, DEFAULT_STREAM_HEIGHT - 10), font, 0.5, (100, 100, 100), 1)
         
         return frame
     
@@ -370,6 +405,18 @@ class VideoStreamHandler:
     
     def generate_pose_video_stream(self):
         """生成姿势分析视频流"""
+        if not self.is_streaming:
+            # 创建静态信息帧，只显示当前头部角度，不传输视频
+            static_frame = self._create_info_frame("姿势检测", "视频流已禁用", "仅显示角度信息")
+            
+            # 压缩并编码为JPEG
+            success, encoded_image = cv2.imencode('.jpg', static_frame, self.stream_params)
+            if success:
+                # 返回静态帧
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + encoded_image.tobytes() + b'\r\n')
+            return
+            
         while self.is_streaming:
             # 获取下一帧
             frame = self.get_pose_frame()
@@ -420,6 +467,18 @@ class VideoStreamHandler:
     
     def generate_emotion_video_stream(self):
         """生成情绪分析视频流"""
+        if not self.is_streaming:
+            # 创建静态信息帧，只显示当前情绪信息，不传输视频
+            static_frame = self._create_info_frame("情绪检测", "视频流已禁用", "仅显示情绪状态")
+            
+            # 压缩并编码为JPEG
+            success, encoded_image = cv2.imencode('.jpg', static_frame, self.stream_params)
+            if success:
+                # 返回静态帧
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + encoded_image.tobytes() + b'\r\n')
+            return
+            
         while self.is_streaming:
             # 获取下一帧
             frame = self.get_emotion_frame()
@@ -595,3 +654,20 @@ class VideoStreamHandler:
                              interpolation=cv2.INTER_NEAREST)
         
         return subsampled
+
+    # 添加控制视频流传输的方法
+    def enable_streaming(self):
+        """启用视频流传输"""
+        self.is_streaming = True
+        print("DEBUG: 视频流传输已启用")
+        return True
+        
+    def disable_streaming(self):
+        """禁用视频流传输"""
+        self.is_streaming = False
+        print("DEBUG: 视频流传输已禁用")
+        return True
+        
+    def get_streaming_status(self):
+        """获取视频流传输状态"""
+        return self.is_streaming

@@ -1500,3 +1500,57 @@ def get_posture_distribution():
             'status': 'error',
             'message': f"获取不良坐姿时段分布数据失败: {str(e)}"
         })
+
+# 添加视频流控制路由
+@routes_bp.route('/api/toggle_video_stream', methods=['POST'])
+def toggle_video_stream():
+    """启用或禁用视频流传输"""
+    global video_stream_handler
+    
+    if not video_stream_handler:
+        return jsonify({
+            'status': 'error',
+            'message': '视频流处理器未初始化',
+            'is_streaming': False
+        })
+    
+    # 获取请求参数
+    data = request.json
+    enable = data.get('enable', None)
+    
+    if enable is None:
+        return jsonify({
+            'status': 'error',
+            'message': '缺少必要参数: enable',
+            'is_streaming': video_stream_handler.get_streaming_status()
+        })
+    
+    # 根据参数启用或禁用视频流
+    if enable:
+        video_stream_handler.enable_streaming()
+    else:
+        video_stream_handler.disable_streaming()
+    
+    # 返回当前状态
+    return jsonify({
+        'status': 'success',
+        'message': '视频流已' + ('启用' if enable else '禁用'),
+        'is_streaming': video_stream_handler.get_streaming_status()
+    })
+
+@routes_bp.route('/api/get_video_stream_status', methods=['GET'])
+def get_video_stream_status():
+    """获取视频流传输状态"""
+    global video_stream_handler
+    
+    if not video_stream_handler:
+        return jsonify({
+            'status': 'error',
+            'message': '视频流处理器未初始化',
+            'is_streaming': False
+        })
+    
+    return jsonify({
+        'status': 'success',
+        'is_streaming': video_stream_handler.get_streaming_status()
+    })

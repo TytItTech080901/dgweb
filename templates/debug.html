@@ -99,6 +99,158 @@
             padding-bottom: 10px;
             border-bottom: 1px solid #eee;
         }
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 20px;
+            background-color: #f5f5f5;
+        }
+        .container {
+            max-width: 1300px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 15px;
+        }
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+            color: #333;
+        }
+        .nav-links {
+            display: flex;
+            gap: 15px;
+        }
+        .nav-links a {
+            text-decoration: none;
+            color: #2196F3;
+            padding: 8px 12px;
+            border-radius: 4px;
+            transition: background-color 0.3s;
+        }
+        .nav-links a:hover {
+            background-color: #e3f2fd;
+        }
+        .config-panel {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .config-item {
+            flex: 1;
+            min-width: 300px;
+            padding: 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        .config-item h3 {
+            margin-top: 0;
+            margin-bottom: 15px;
+            font-size: 18px;
+            border-bottom: 1px solid #eee;
+            padding-bottom: 8px;
+        }
+        .control-panel {
+            background-color: #f9f9f9;
+            padding: 15px;
+            border-radius: 4px;
+            margin-bottom: 20px;
+            border: 1px solid #e0e0e0;
+        }
+        .control-panel-title {
+            font-weight: bold;
+            margin-bottom: 10px;
+            font-size: 16px;
+            color: #444;
+        }
+        .video-streams {
+            display: flex;
+            gap: 20px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+        .video-stream {
+            flex: 1;
+            min-width: 320px;
+        }
+        .video-stream h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+        }
+        video, img {
+            width: 100%;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+        }
+        button {
+            padding: 8px 15px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: background-color 0.3s;
+            font-weight: bold;
+        }
+        button.green {
+            background-color: #4CAF50;
+            color: white;
+        }
+        button.red {
+            background-color: #F44336;
+            color: white;
+        }
+        button.btn-primary {
+            background-color: #2196F3;
+            color: white;
+        }
+        button:hover {
+            opacity: 0.9;
+        }
+        .status-running {
+            color: #4CAF50;
+            font-weight: bold;
+        }
+        .status-stopped {
+            color: #F44336;
+            font-weight: bold;
+        }
+        .fps-setting {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 10px;
+        }
+        .fps-setting input {
+            width: 60px;
+            padding: 5px;
+        }
+        .resolution-options {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+            margin-top: 10px;
+        }
+        .resolution-option {
+            padding: 8px 15px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            cursor: pointer;
+            background-color: #f5f5f5;
+        }
+        .resolution-option.active {
+            background-color: #e3f2fd;
+            border-color: #2196F3;
+            font-weight: bold;
+        }
     </style>
 </head>
 <body>
@@ -122,6 +274,20 @@
                 </div>
                 <div id="analysisStatus">
                     系统状态: <span id="systemStatusText">未初始化</span>
+                </div>
+            </div>
+            
+            <!-- 添加视频流控制 -->
+            <div class="control-panel" style="margin-top: 10px;">
+                <div class="control-panel-title">视频流控制</div>
+                <div style="display: flex; align-items: center; margin-top: 10px;">
+                    <div style="margin-right: 15px;">
+                        视频流传输状态: <span id="streamingStatusText" class="status-stopped">已禁用</span>
+                    </div>
+                    <button id="toggleStreamingBtn" class="btn-primary">启用视频流</button>
+                </div>
+                <div style="margin-top: 5px; font-size: 0.9em; color: #666;">
+                    注意: 禁用视频流可以减少系统资源占用，仍然显示头部角度和情绪状态
                 </div>
             </div>
 

@@ -3,11 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>儿童坐姿监测家长端</title>
+    <title>曈灵智能台灯家长端</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
     <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/jspdf@2.5.1/dist/jspdf.umd.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
     <style>
         :root {
             --primary-color: #4285f4;
@@ -319,135 +320,324 @@
                 font-size: 1.8rem;
             }
         }
+        
+        /* 标签页样式 */
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+            border-bottom: 1px solid #ddd;
+            background-color: white;
+            border-radius: 8px 8px 0 0;
+            overflow: hidden;
+        }
+        
+        .tab-btn {
+            padding: 12px 24px;
+            border: none;
+            background: none;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: 600;
+            transition: all 0.3s;
+            border-bottom: 3px solid transparent;
+        }
+        
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom: 3px solid var(--primary-color);
+            background-color: rgba(66, 133, 244, 0.05);
+        }
+        
+        .tab-btn:hover:not(.active) {
+            background-color: #f5f5f5;
+            color: var(--dark-gray);
+        }
+        
+        .tab-content {
+            display: none;
+        }
+        
+        .tab-content.active {
+            display: block;
+        }
+        
+        /* 用眼情况反馈面板样式 */
+        .dashboard-title {
+            font-size: 32px;
+            font-weight: bold;
+            margin-top: 30px;
+            text-align: center;
+            color: #333;
+        }
+        
+        .card-body {
+            padding: 20px;
+        }
+        
+        .section-title {
+            font-size: 20px;
+            font-weight: 600;
+            margin-bottom: 15px;
+        }
+        
+        .list-group-item {
+            padding: 12px 15px;
+            border: none;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        
+        .list-group-item:last-child {
+            border-bottom: none;
+        }
+        
+        .row {
+            display: flex;
+            flex-wrap: wrap;
+            margin-right: -15px;
+            margin-left: -15px;
+        }
+        
+        .mt-4 {
+            margin-top: 1.5rem !important;
+        }
+        
+        .col-md-4 {
+            position: relative;
+            width: 100%;
+            padding-right: 15px;
+            padding-left: 15px;
+        }
+        
+        .col-md-6 {
+            position: relative;
+            width: 100%;
+            padding-right: 15px;
+            padding-left: 15px;
+        }
+        
+        .col-md-8 {
+            position: relative;
+            width: 100%;
+            padding-right: 15px;
+            padding-left: 15px;
+        }
+        
+        @media (min-width: 768px) {
+            .col-md-4 {
+                flex: 0 0 33.333333%;
+                max-width: 33.333333%;
+            }
+            
+            .col-md-6 {
+                flex: 0 0 50%;
+                max-width: 50%;
+            }
+            
+            .col-md-8 {
+                flex: 0 0 66.666667%;
+                max-width: 66.666667%;
+            }
+        }
     </style>
 </head>
 <body>
     <div class="container" id="dashboard">
         <header>
-            <h1>儿童坐姿监测家长端</h1>
+            <h1>曈灵智能台灯家长端</h1>
             <p class="subtitle">全面了解孩子的坐姿习惯及改善效果</p>
             <button onclick="goToDebugPage()" class="btn-debug">调试页面</button>
         </header>
 
-        <div class="time-range-selector">
-            <button class="time-range-btn active" onclick="changeTimeRange('day')">今日</button>
-            <button class="time-range-btn" onclick="changeTimeRange('week')">本周</button>
-            <button class="time-range-btn" onclick="changeTimeRange('month')">本月</button>
+        <!-- 添加标签页导航 -->
+        <div class="tabs">
+            <button class="tab-btn active" onclick="openTab('posture-tab')">坐姿检测</button>
+            <button class="tab-btn" onclick="openTab('eye-tab')">用眼情况</button>
         </div>
 
-        <div class="alert alert-warning">
-            <div class="alert-icon">⚠️</div>
-            <div class="alert-content">
-                <h3>坐姿改善建议</h3>
-                <p>根据数据分析，您孩子在下午3-5点时段坐姿不良率较高，建议加强这个时段的监督或调整学习环境。</p>
+        <!-- 坐姿检测标签页内容 -->
+        <div id="posture-tab" class="tab-content active">
+            <div class="time-range-selector">
+                <button class="time-range-btn active" onclick="changeTimeRange('day')">今日</button>
+                <button class="time-range-btn" onclick="changeTimeRange('week')">本周</button>
+                <button class="time-range-btn" onclick="changeTimeRange('month')">本月</button>
+            </div>
+
+            <div class="alert alert-warning">
+                <div class="alert-icon">⚠️</div>
+                <div class="alert-content">
+                    <h3>坐姿改善建议</h3>
+                    <p>根据数据分析，您孩子在下午3-5点时段坐姿不良率较高，建议加强这个时段的监督或调整学习环境。</p>
+                </div>
+            </div>
+
+            <div class="dashboard">
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">坐姿时间占比</h2>
+                        <div class="card-icon">📊</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="posturePieChart"></canvas>
+                    </div>
+                    <div class="stats-grid">
+                        <div class="stat-item">
+                            <div class="stat-value">3.2h</div>
+                            <div class="stat-label">良好坐姿</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">1.8h</div>
+                            <div class="stat-label">不良坐姿</div>
+                        </div>
+                        <div class="stat-item">
+                            <div class="stat-value">64%</div>
+                            <div class="stat-label">良好率</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">坐姿评分趋势</h2>
+                        <div class="card-icon">📈</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="scoreTrendChart"></canvas>
+                    </div>
+                    <div style="text-align: center; margin-top: 10px;">
+                        <span class="badge badge-success">本周提升 +12%</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">不良坐姿时段分布</h2>
+                        <div class="card-icon">⏰</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="heatmapChart"></canvas>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">提醒响应情况</h2>
+                        <div class="card-icon">📣</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="radarChart"></canvas>
+                    </div>
+                    <div style="text-align: center; margin-top: 10px;">
+                        <span class="badge badge-warning">响应率可提升</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">脊柱健康风险评估</h2>
+                        <div class="card-icon">🏥</div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="riskChart"></canvas>
+                    </div>
+                    <div style="text-align: center; margin-top: 10px;">
+                        <span class="badge badge-success">低风险</span>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">坐姿图像记录</h2>
+                        <div class="card-icon">🧍‍♂️</div>
+                    </div>
+                    <div id="posture-images-container" class="image-gallery">
+                        <!-- 坐姿图像将通过JS动态加载 -->
+                        <div class="loading-indicator" style="text-align: center; width: 100%; padding: 20px;">
+                            加载中...
+                        </div>
+                    </div>
+                    <div style="text-align: center; margin-top: 15px;">
+                        <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.9rem;" onclick="openPostureRecordsPage()">查看更多记录</button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="actions">
+                <button class="btn btn-primary" onclick="generatePDF()">
+                    <span>📄 导出周报</span>
+                </button>
+                <button class="btn btn-primary" onclick="exportAllPostureRecords()">
+                    <span>📊 导出所有坐姿记录</span>
+                </button>
+                <button class="btn btn-secondary">
+                    <span>⚙️ 设置提醒</span>
+                </button>
             </div>
         </div>
 
-        <div class="dashboard">
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">坐姿时间占比</h2>
-                    <div class="card-icon">📊</div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="posturePieChart"></canvas>
-                </div>
-                <div class="stats-grid">
-                    <div class="stat-item">
-                        <div class="stat-value">3.2h</div>
-                        <div class="stat-label">良好坐姿</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value">1.8h</div>
-                        <div class="stat-label">不良坐姿</div>
-                    </div>
-                    <div class="stat-item">
-                        <div class="stat-value">64%</div>
-                        <div class="stat-label">良好率</div>
-                    </div>
-                </div>
-            </div>
+        <!-- 用眼情况标签页内容 -->
+        <div id="eye-tab" class="tab-content">
+            <div class="dashboard-title">儿童用眼情况反馈面板</div>
 
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">坐姿评分趋势</h2>
-                    <div class="card-icon">📈</div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="scoreTrendChart"></canvas>
-                </div>
-                <div style="text-align: center; margin-top: 10px;">
-                    <span class="badge badge-success">本周提升 +12%</span>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">不良坐姿时段分布</h2>
-                    <div class="card-icon">⏰</div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="heatmapChart"></canvas>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">提醒响应情况</h2>
-                    <div class="card-icon">📣</div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="radarChart"></canvas>
-                </div>
-                <div style="text-align: center; margin-top: 10px;">
-                    <span class="badge badge-warning">响应率可提升</span>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">脊柱健康风险评估</h2>
-                    <div class="card-icon">🏥</div>
-                </div>
-                <div class="chart-container">
-                    <canvas id="riskChart"></canvas>
-                </div>
-                <div style="text-align: center; margin-top: 10px;">
-                    <span class="badge badge-success">低风险</span>
-                </div>
-            </div>
-
-            <div class="card">
-                <div class="card-header">
-                    <h2 class="card-title">坐姿图像记录</h2>
-                    <div class="card-icon">🧍‍♂️</div>
-                </div>
-                <div id="posture-images-container" class="image-gallery">
-                    <!-- 坐姿图像将通过JS动态加载 -->
-                    <div class="loading-indicator" style="text-align: center; width: 100%; padding: 20px;">
-                        加载中...
+            <div class="row mt-4">
+                <div class="col-md-4">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">每日反馈卡片</h2>
+                        </div>
+                        <div class="card-body">
+                            <ul class="list-group list-group-flush">
+                                <li class="list-group-item">
+                                    <span class="badge badge-success">✅</span> 本周平均远眺次数：<strong>4.3 次/天</strong>
+                                </li>
+                                <li class="list-group-item">
+                                    <span class="badge badge-success">🌤</span> 当前环境光照：<strong>良好</strong>
+                                </li>
+                                <li class="list-group-item">
+                                    <span class="badge badge-success">🌡</span> 色温状态：<strong>柔和</strong>
+                                </li>
+                                <li class="list-group-item text-danger">
+                                    <span class="badge badge-danger">⚠️</span> 昨日连续用眼超时：<strong>72 分钟</strong>
+                                </li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
-                <div style="text-align: center; margin-top: 15px;">
-                    <button class="btn btn-secondary" style="padding: 8px 16px; font-size: 0.9rem;" onclick="openPostureRecordsPage()">查看更多记录</button>
+
+                <div class="col-md-8">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">📈 护眼行为趋势图</h2>
+                        </div>
+                        <div class="card-body">
+                            <div id="line-chart" class="chart-container"></div>
+                        </div>
+                    </div>
                 </div>
             </div>
-        </div>
 
-        <div class="actions">
-            <button class="btn btn-primary" onclick="generatePDF()">
-                <span>📄 导出周报</span>
-            </button>
-            <button class="btn btn-primary" onclick="exportAllPostureRecords()">
-                <span>📊 导出所有坐姿记录</span>
-            </button>
-            <button class="btn btn-secondary">
-                <span>⚙️ 设置提醒</span>
-            </button>
-            <!-- 添加导出所有历史记录按钮 -->
-            <button type="button" class="btn btn-secondary" onclick="exportAllPostureRecords()">
-                <i class="fas fa-file-export"></i> 导出所有坐姿记录
-            </button>
+            <div class="row mt-4">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">🔆 光照环境雷达图</h2>
+                        </div>
+                        <div class="card-body">
+                            <div id="radar-chart" class="chart-container"></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">🕒 用眼时间热力图</h2>
+                        </div>
+                        <div class="card-body">
+                            <div id="heatmap-chart" class="chart-container"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 
@@ -769,6 +959,9 @@
             
             // 设置定时刷新
             setInterval(loadPostureData, 60000); // 每分钟更新一次
+            
+            // 初始化用眼情况标签页中的图表
+            initEyeCharts();
         });
 
         // 加载最近的坐姿图像记录
@@ -1904,6 +2097,131 @@
             setTimeout(() => {
                 document.body.removeChild(toast);
             }, 3000);
+        }
+
+        // 切换标签页
+        function openTab(tabId) {
+            const tabs = document.querySelectorAll('.tab-content');
+            tabs.forEach(tab => {
+                tab.classList.remove('active');
+            });
+
+            const tabButtons = document.querySelectorAll('.tab-btn');
+            tabButtons.forEach(btn => {
+                btn.classList.remove('active');
+            });
+
+            document.getElementById(tabId).classList.add('active');
+            document.querySelector(`.tab-btn[onclick="openTab('${tabId}')"]`).classList.add('active');
+        }
+
+        // 初始化用眼情况标签页中的图表
+        function initEyeCharts() {
+            // 初始化护眼行为趋势图
+            const lineChart = echarts.init(document.getElementById('line-chart'));
+            lineChart.setOption({
+                tooltip: { trigger: 'axis' },
+                xAxis: { type: 'category', data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'] },
+                yAxis: { type: 'value', name: '次数' },
+                series: [
+                    {
+                        name: '远眺响应次数',
+                        type: 'line',
+                        smooth: true,
+                        data: [3, 4, 5, 4, 3, 5, 6],
+                        lineStyle: { color: '#4e79a7' },
+                        itemStyle: { color: '#4e79a7' }
+                    }
+                ]
+            });
+
+            // 初始化光照环境雷达图
+            const radarChart = echarts.init(document.getElementById('radar-chart'));
+            radarChart.setOption({
+                tooltip: {},
+                radar: {
+                    indicator: [
+                        { name: '光照强度达标', max: 100 },
+                        { name: '色温稳定性', max: 100 },
+                        { name: '频闪控制', max: 100 },
+                        { name: '逆光状态避免', max: 100 },
+                        { name: '长时间背光避免', max: 100 }
+                    ]
+                },
+                series: [{
+                    type: 'radar',
+                    data: [
+                        {
+                            value: [90, 80, 70, 85, 88],
+                            name: '本周环境质量'
+                        }
+                    ]
+                }]
+            });
+
+            // 初始化用眼时间热力图
+            const heatmapChart = echarts.init(document.getElementById('heatmap-chart'));
+            const hours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+            const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+            const data = [];
+            for (let i = 0; i < days.length; i++) {
+                for (let j = 0; j < hours.length; j++) {
+                    const value = Math.floor(Math.random() * 3);
+                    data.push([j, i, value]); // x, y, value
+                }
+            }
+            heatmapChart.setOption({
+                tooltip: {
+                    position: 'top'
+                },
+                grid: {
+                    height: '70%',
+                    top: '10%'
+                },
+                xAxis: {
+                    type: 'category',
+                    data: hours,
+                    splitArea: { show: true },
+                    axisLabel: { rotate: 45 }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: days,
+                    splitArea: { show: true }
+                },
+                visualMap: {
+                    min: 0,
+                    max: 2,
+                    calculable: true,
+                    orient: 'horizontal',
+                    left: 'center',
+                    bottom: '0',
+                    inRange: {
+                        color: ['#e0f7fa', '#ffecb3', '#ff8a65']
+                    }
+                },
+                series: [{
+                    name: '用眼时间段',
+                    type: 'heatmap',
+                    data: data,
+                    label: {
+                        show: false
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }]
+            });
+            
+            // 处理窗口大小变化，重新调整图表大小
+            window.addEventListener('resize', function() {
+                lineChart.resize();
+                radarChart.resize();
+                heatmapChart.resize();
+            });
         }
     </script>
 </body>

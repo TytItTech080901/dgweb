@@ -26,6 +26,9 @@ document.addEventListener('DOMContentLoaded', function() {
         console.log('警告: 未找到应用阈值按钮元素');
     }
     
+    // 初始化视频流控制按钮
+    initVideoStreamControl();
+    
     // 从后端获取坐姿统计数据
     updatePostureStats();
     
@@ -444,6 +447,101 @@ function showNotification(message, type = 'info') {
     setTimeout(() => {
         notification.remove();
     }, 5000);
+}
+
+// 初始化视频流控制
+function initVideoStreamControl() {
+    const toggleStreamingBtn = document.getElementById('toggleStreamingBtn');
+    const streamingStatusText = document.getElementById('streamingStatusText');
+    
+    if (!toggleStreamingBtn || !streamingStatusText) {
+        console.log('警告: 未找到视频流控制按钮或状态文本元素');
+        return;
+    }
+    
+    // 获取当前视频流状态
+    getVideoStreamStatus();
+    
+    // 添加按钮点击事件
+    toggleStreamingBtn.addEventListener('click', function() {
+        const isCurrentlyEnabled = toggleStreamingBtn.textContent === '禁用视频流';
+        toggleVideoStream(!isCurrentlyEnabled);
+    });
+}
+
+// 获取视频流状态
+function getVideoStreamStatus() {
+    fetch('/api/get_video_stream_status')
+        .then(response => response.json())
+        .then(data => {
+            updateVideoStreamUI(data.is_streaming);
+        })
+        .catch(error => {
+            console.error('获取视频流状态失败:', error);
+        });
+}
+
+// 切换视频流状态
+function toggleVideoStream(enable) {
+    fetch('/api/toggle_video_stream', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+            enable: enable
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.status === 'success') {
+            updateVideoStreamUI(data.is_streaming);
+            
+            // 重新加载视频流
+            const poseVideo = document.getElementById('poseVideo');
+            const emotionVideo = document.getElementById('emotionVideo');
+            
+            if (poseVideo) {
+                const currentSrc = poseVideo.src;
+                poseVideo.src = '';
+                setTimeout(() => {
+                    poseVideo.src = currentSrc;
+                }, 500);
+            }
+            
+            if (emotionVideo) {
+                const currentSrc = emotionVideo.src;
+                emotionVideo.src = '';
+                setTimeout(() => {
+                    emotionVideo.src = currentSrc;
+                }, 500);
+            }
+            
+            showNotification(`视频流已${data.is_streaming ? '启用' : '禁用'}`, 'success');
+        } else {
+            showNotification('操作失败: ' + data.message, 'error');
+        }
+    })
+    .catch(error => {
+        console.error('切换视频流状态失败:', error);
+        showNotification('请求失败', 'error');
+    });
+}
+
+// 更新视频流UI
+function updateVideoStreamUI(isStreaming) {
+    const toggleStreamingBtn = document.getElementById('toggleStreamingBtn');
+    const streamingStatusText = document.getElementById('streamingStatusText');
+    
+    if (toggleStreamingBtn) {
+        toggleStreamingBtn.textContent = isStreaming ? '禁用视频流' : '启用视频流';
+        toggleStreamingBtn.className = isStreaming ? 'red' : 'btn-primary';
+    }
+    
+    if (streamingStatusText) {
+        streamingStatusText.textContent = isStreaming ? '已启用' : '已禁用';
+        streamingStatusText.className = isStreaming ? 'status-running' : 'status-stopped';
+    }
 }
 
 // 暴露公共函数
