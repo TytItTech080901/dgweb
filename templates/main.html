@@ -457,9 +457,9 @@
         <!-- 坐姿检测标签页内容 -->
         <div id="posture-tab" class="tab-content active">
             <div class="time-range-selector">
-                <button class="time-range-btn active" onclick="changeTimeRange('day')">今日</button>
-                <button class="time-range-btn" onclick="changeTimeRange('week')">本周</button>
-                <button class="time-range-btn" onclick="changeTimeRange('month')">本月</button>
+                <button class="time-range-btn active" data-range="day" onclick="changeTimeRange('day')">今日</button>
+                <button class="time-range-btn" data-range="week" onclick="changeTimeRange('week')">本周</button>
+                <button class="time-range-btn" data-range="month" onclick="changeTimeRange('month')">本月</button>
             </div>
 
             <div class="alert alert-warning">
@@ -1028,18 +1028,12 @@
         // 加载坐姿统计数据并更新饼图
         function loadPostureData() {
             // 获取当前选中的时间范围
-            const timeRangeButtons = document.querySelectorAll('.time-range-btn');
+            const activeButton = document.querySelector('.time-range-btn.active');
             let currentTimeRange = 'day'; // 默认为今日
             
-            timeRangeButtons.forEach(btn => {
-                if (btn.classList.contains('active')) {
-                    if (btn.textContent.includes('周')) {
-                        currentTimeRange = 'week';
-                    } else if (btn.textContent.includes('月')) {
-                        currentTimeRange = 'month';
-                    }
-                }
-            });
+            if (activeButton) {
+                currentTimeRange = activeButton.getAttribute('data-range');
+            }
             
             // 发起API请求获取坐姿统计数据
             fetch(`/api/get_posture_stats?time_range=${currentTimeRange}`)
@@ -1195,7 +1189,7 @@
             const buttons = document.querySelectorAll('.time-range-btn');
             buttons.forEach(btn => {
                 btn.classList.remove('active');
-                if (btn.textContent.toLowerCase().includes(range)) {
+                if (btn.getAttribute('data-range') === range) {
                     btn.classList.add('active');
                 }
             });

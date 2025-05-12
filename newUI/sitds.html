@@ -308,9 +308,9 @@
         </header>
 
         <div class="time-range-selector">
-            <button class="time-range-btn active" onclick="changeTimeRange('day')">今日</button>
-            <button class="time-range-btn" onclick="changeTimeRange('week')">本周</button>
-            <button class="time-range-btn" onclick="changeTimeRange('month')">本月</button>
+            <button class="time-range-btn active" data-range="day" onclick="changeTimeRange('day')">今日</button>
+            <button class="time-range-btn" data-range="week" onclick="changeTimeRange('week')">本周</button>
+            <button class="time-range-btn" data-range="month" onclick="changeTimeRange('month')">本月</button>
         </div>
 
         <div class="alert alert-warning">
@@ -669,7 +669,7 @@
             const buttons = document.querySelectorAll('.time-range-btn');
             buttons.forEach(btn => {
                 btn.classList.remove('active');
-                if (btn.textContent.toLowerCase().includes(range)) {
+                if (btn.getAttribute('data-range') === range) {
                     btn.classList.add('active');
                 }
             });
