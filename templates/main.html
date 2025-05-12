@@ -2108,11 +2108,33 @@
             document.getElementById(tabId).classList.add('active');
             document.querySelector(`.tab-btn[onclick="openTab('${tabId}')"]`).classList.add('active');
             
-            // 如果切换到用眼情况标签，重新调整图表大小
+            // 根据不同标签页做相应处理
             if (tabId === 'eye-tab') {
                 // 延迟一小段时间后调整图表大小，确保DOM已更新
-                setTimeout(resizeEyeCharts, 100);
+                setTimeout(resizeEyeCharts, 150);
+            } else if (tabId === 'posture-tab') {
+                // 延迟一小段时间后刷新坐姿检测图表，确保DOM已更新
+                setTimeout(refreshPostureCharts, 150);
             }
+        }
+        
+        // 刷新坐姿检测标签页中的图表
+        function refreshPostureCharts() {
+            // 使用辅助函数刷新所有图表
+            const charts = [
+                Chart.getChart('posturePieChart'),
+                Chart.getChart('heatmapChart'),
+                Chart.getChart('scoreTrendChart'),
+                Chart.getChart('radarChart'),
+                Chart.getChart('riskChart')
+            ];
+            
+            // 为每个图表应用动画
+            charts.forEach(chart => {
+                if (chart) {
+                    animateChartData(chart, 'easeOutQuart', 800);
+                }
+            });
         }
 
         // 初始化用眼情况标签页中的图表
@@ -2232,11 +2254,113 @@
         // 调整所有用眼情况图表大小
         function resizeEyeCharts() {
             if (window.eyeCharts) {
-                Object.values(window.eyeCharts).forEach(chart => {
+                // 为每个图表保存原始数据并应用动画
+                Object.entries(window.eyeCharts).forEach(([key, chart]) => {
                     if (chart) {
+                        // 调整图表大小
                         chart.resize();
+                        
+                        // 如果是ECharts图表，应用动画效果
+                        if (chart.getOption) {
+                            const option = chart.getOption();
+                            
+                            // 保存原始数据
+                            let originalData = [];
+                            
+                            // 遍历所有数据系列
+                            if (option.series && option.series.length > 0) {
+                                option.series.forEach((series, index) => {
+                                    if (series.data) {
+                                        // 保存原始数据
+                                        originalData[index] = JSON.parse(JSON.stringify(series.data));
+                                        
+                                        // 根据数据类型创建空数据
+                                        if (Array.isArray(series.data[0])) {
+                                            // 对于数组形式的数据（如热力图），保持结构但值设为0
+                                            series.data = series.data.map(item => 
+                                                Array.isArray(item) ? item.map((_, i) => i === item.length-1 ? 0 : item[i]) : item
+                                            );
+                                        } else if (typeof series.data[0] === 'object') {
+                                            // 对于对象形式的数据（如雷达图），保持结构但值设为0
+                                            series.data = series.data.map(item => {
+                                                if (item.value) {
+                                                    const newItem = {...item};
+                                                    newItem.value = Array.isArray(item.value) ? 
+                                                        item.value.map(() => 0) : 0;
+                                                    return newItem;
+                                                }
+                                                return item;
+                                            });
+                                        } else {
+                                            // 简单数组，直接设为0
+                                            series.data = series.data.map(() => 0);
+                                        }
+                                    }
+                                });
+                                
+                                // 应用空数据
+                                chart.setOption(option, {notMerge: false, lazyUpdate: true, silent: true});
+                                
+                                // 延迟恢复原始数据并播放动画
+                                setTimeout(() => {
+                                    option.series.forEach((series, index) => {
+                                        if (originalData[index]) {
+                                            series.data = originalData[index];
+                                        }
+                                    });
+                                    
+                                    // 使用动画效果应用原始数据
+                                    chart.setOption(option, {
+                                        replaceMerge: ['series'],
+                                        animation: true,
+                                        animationDuration: 800,
+                                        animationEasing: 'elasticOut'
+                                    });
+                                }, 50);
+                            }
+                        }
                     }
                 });
+            }
+        }
+
+        // 添加动画辅助函数
+        function animateChartData(chart, easingType = 'easeOutQuart', duration = 800) {
+            if (!chart) return;
+            
+            try {
+                // 检查图表类型
+                const isChart = chart.config !== undefined; // Chart.js图表
+                
+                if (isChart) {
+                    // 获取所有数据集
+                    const datasets = chart.data.datasets;
+                    const originalData = [];
+                    
+                    // 保存所有数据集的原始数据
+                    datasets.forEach((dataset, i) => {
+                        originalData[i] = [...dataset.data];
+                        dataset.data = dataset.data.map(() => 0);
+                    });
+                    
+                    // 更新图表为0值（不使用动画）
+                    chart.update('none');
+                    
+                    // 延迟恢复原始数据并应用动画
+                    setTimeout(() => {
+                        datasets.forEach((dataset, i) => {
+                            dataset.data = originalData[i];
+                        });
+                        
+                        // 使用动画效果更新
+                        chart.update({
+                            duration: duration,
+                            easing: easingType
+                        });
+                    }, 50);
+                }
+            } catch (e) {
+                console.error('动画图表数据时出错:', e);
             }
         }
     </script>
