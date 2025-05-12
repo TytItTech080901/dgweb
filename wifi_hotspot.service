@@ -1,0 +1,16 @@
+[Unit]
+Description=WiFi Hotspot for Posture Analysis Server (iOS Compatible)
+After=network.target
+Before=flask_server.service
+
+[Service]
+Type=oneshot
+User=root
+ExecStart=/bin/bash /home/cat/Py-server/create_hotspot.sh
+ExecStopPre=/bin/kill -15 $(pgrep -f "hostapd.*hostapd.conf")
+ExecStopPre=/bin/kill -15 $(pgrep dnsmasq)
+ExecStopPre=/bin/ip link set wlan0 down
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target
