@@ -143,10 +143,15 @@ def pose_video_feed():
     """提供姿势分析视频流"""
     try:
         print("请求姿势分析视频流")
-        return Response(
+        response = Response(
             video_stream_handler.generate_pose_video_stream(),
             mimetype='multipart/x-mixed-replace; boundary=frame'
         )
+        # 添加缓存控制头
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
     except Exception as e:
         print(f"生成姿势分析视频流出错: {str(e)}")
         return "视频流生成失败", 500
@@ -156,10 +161,15 @@ def emotion_video_feed():
     """提供情绪分析视频流"""
     try:
         print("请求情绪分析视频流")
-        return Response(
+        response = Response(
             video_stream_handler.generate_emotion_video_stream(),
             mimetype='multipart/x-mixed-replace; boundary=frame'
         )
+        # 添加缓存控制头
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        return response
     except Exception as e:
         print(f"生成情绪分析视频流出错: {str(e)}")
         return "视频流生成失败", 500

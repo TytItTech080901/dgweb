@@ -415,6 +415,9 @@ class VideoStreamHandler:
                 # 返回静态帧
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + encoded_image.tobytes() + b'\r\n')
+                
+                # 重要：只返回一帧，而不是持续生成帧
+                return
             return
             
         while self.is_streaming:
@@ -477,6 +480,9 @@ class VideoStreamHandler:
                 # 返回静态帧
                 yield (b'--frame\r\n'
                        b'Content-Type: image/jpeg\r\n\r\n' + encoded_image.tobytes() + b'\r\n')
+                
+                # 重要：只返回一帧，而不是持续生成帧
+                return
             return
             
         while self.is_streaming:

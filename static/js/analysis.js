@@ -459,6 +459,9 @@ function initVideoStreamControl() {
         return;
     }
     
+    // 在页面加载时确保视频元素的src是初始黑屏
+    initializeVideoElements();
+    
     // 获取当前视频流状态
     getVideoStreamStatus();
     
@@ -469,12 +472,45 @@ function initVideoStreamControl() {
     });
 }
 
+// 初始化视频元素函数
+function initializeVideoElements() {
+    const blackImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+    const poseVideo = document.getElementById('poseVideo');
+    const emotionVideo = document.getElementById('emotionVideo');
+    
+    // 确保页面加载时初始显示黑屏
+    if (poseVideo) {
+        poseVideo.src = blackImage;
+    }
+    
+    if (emotionVideo) {
+        emotionVideo.src = blackImage;
+    }
+    
+    console.log('初始化视频元素为黑屏');
+}
+
 // 获取视频流状态
 function getVideoStreamStatus() {
     fetch('/api/get_video_stream_status')
         .then(response => response.json())
         .then(data => {
             updateVideoStreamUI(data.is_streaming);
+            
+            // 如果流已启用，则设置视频元素的src
+            if (data.is_streaming) {
+                // 获取视频元素
+                const poseVideo = document.getElementById('poseVideo');
+                const emotionVideo = document.getElementById('emotionVideo');
+                
+                if (poseVideo && poseVideo.hasAttribute('data-src')) {
+                    poseVideo.src = poseVideo.getAttribute('data-src') + '?' + new Date().getTime();
+                }
+                
+                if (emotionVideo && emotionVideo.hasAttribute('data-src')) {
+                    emotionVideo.src = emotionVideo.getAttribute('data-src') + '?' + new Date().getTime();
+                }
+            }
         })
         .catch(error => {
             console.error('获取视频流状态失败:', error);
@@ -497,24 +533,32 @@ function toggleVideoStream(enable) {
         if (data.status === 'success') {
             updateVideoStreamUI(data.is_streaming);
             
-            // 重新加载视频流
+            // 获取视频元素
             const poseVideo = document.getElementById('poseVideo');
             const emotionVideo = document.getElementById('emotionVideo');
             
-            if (poseVideo) {
-                const currentSrc = poseVideo.src;
-                poseVideo.src = '';
-                setTimeout(() => {
-                    poseVideo.src = currentSrc;
-                }, 500);
-            }
-            
-            if (emotionVideo) {
-                const currentSrc = emotionVideo.src;
-                emotionVideo.src = '';
-                setTimeout(() => {
-                    emotionVideo.src = currentSrc;
-                }, 500);
+            if (data.is_streaming) {
+                // 启用视频流 - 从data-src属性获取源URL，并添加时间戳防止缓存
+                if (poseVideo) {
+                    const poseVideoSrc = poseVideo.getAttribute('data-src') || '/pose_video_feed';
+                    poseVideo.src = poseVideoSrc + '?' + new Date().getTime();
+                }
+                
+                if (emotionVideo) {
+                    const emotionVideoSrc = emotionVideo.getAttribute('data-src') || '/emotion_video_feed';
+                    emotionVideo.src = emotionVideoSrc + '?' + new Date().getTime();
+                }
+            } else {
+                // 禁用视频流 - 设置为空黑色图像
+                const blackImage = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mNk+A8AAQUBAScY42YAAAAASUVORK5CYII=';
+                
+                if (poseVideo) {
+                    poseVideo.src = blackImage;
+                }
+                
+                if (emotionVideo) {
+                    emotionVideo.src = blackImage;
+                }
             }
             
             showNotification(`视频流已${data.is_streaming ? '启用' : '禁用'}`, 'success');
