@@ -899,107 +899,135 @@
                 </div>
             </div>
         </div>
-    </div>
-
-    <script>
-        // 护眼行为趋势图
-        const lineChart = echarts.init(document.getElementById('line-chart'));
-        lineChart.setOption({
-            tooltip: { trigger: 'axis' },
-            xAxis: { type: 'category', data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'] },
-            yAxis: { type: 'value', name: '次数' },
-            series: [
-                {
-                    name: '远眺响应次数',
-                    type: 'line',
-                    smooth: true,
-                    data: [3, 4, 5, 4, 3, 5, 6],
-                    lineStyle: { color: '#4e79a7' },
-                    itemStyle: { color: '#4e79a7' }
-                }
-            ]
+    </div>    <script>
+        // 为了确保图表正确渲染，等DOM完全加载后再初始化
+        document.addEventListener('DOMContentLoaded', function() {
+            // 初始化所有图表
+            initCharts();
+            
+            // 监听窗口大小变化，重新调整所有图表
+            window.addEventListener('resize', function() {
+                resizeAllCharts();
+            });
+            
+            // 确保图表在初始化后立即调整大小
+            setTimeout(function() {
+                resizeAllCharts();
+            }, 100);
         });
-
-        // 光照环境雷达图
-        const radarChart = echarts.init(document.getElementById('radar-chart'));
-        radarChart.setOption({
-            tooltip: {},
-            radar: {
-                indicator: [
-                    { name: '光照强度达标', max: 100 },
-                    { name: '色温稳定性', max: 100 },
-                    { name: '频闪控制', max: 100 },
-                    { name: '逆光状态避免', max: 100 },
-                    { name: '长时间背光避免', max: 100 }
-                ]
-            },
-            series: [{
-                type: 'radar',
-                data: [
+        
+        // 初始化所有图表
+        function initCharts() {
+            // 护眼行为趋势图
+            const lineChart = echarts.init(document.getElementById('line-chart'));
+            lineChart.setOption({
+                tooltip: { trigger: 'axis' },
+                xAxis: { type: 'category', data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'] },
+                yAxis: { type: 'value', name: '次数' },
+                series: [
                     {
-                        value: [90, 80, 70, 85, 88],
-                        name: '本周环境质量'
+                        name: '远眺响应次数',
+                        type: 'line',
+                        smooth: true,
+                        data: [3, 4, 5, 4, 3, 5, 6],
+                        lineStyle: { color: '#4e79a7' },
+                        itemStyle: { color: '#4e79a7' }
                     }
                 ]
-            }]
-        });
+            });
 
-        // 用眼时间热力图（模拟数据）
-        const heatmapChart = echarts.init(document.getElementById('heatmap-chart'));
-        const hours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
-        const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-        const data = [];
-        for (let i = 0; i < days.length; i++) {
-            for (let j = 0; j < hours.length; j++) {
-                const value = Math.floor(Math.random() * 3);
-                data.push([j, i, value]); // x, y, value
-            }
-        }
-        heatmapChart.setOption({
-            tooltip: {
-                position: 'top'
-            },
-            grid: {
-                height: '70%',
-                top: '10%'
-            },
-            xAxis: {
-                type: 'category',
-                data: hours,
-                splitArea: { show: true },
-                axisLabel: { rotate: 45 }
-            },
-            yAxis: {
-                type: 'category',
-                data: days,
-                splitArea: { show: true }
-            },
-            visualMap: {
-                min: 0,
-                max: 2,
-                calculable: true,
-                orient: 'horizontal',
-                left: 'center',
-                bottom: '0',
-                inRange: {
-                    color: ['#e0f7fa', '#ffecb3', '#ff8a65']
-                }
-            },
-            series: [{
-                name: '用眼时间段',
-                type: 'heatmap',
-                data: data,
-                label: {
-                    show: false
+            // 光照环境雷达图
+            const radarChart = echarts.init(document.getElementById('radar-chart'));
+            radarChart.setOption({
+                tooltip: {},
+                radar: {
+                    indicator: [
+                        { name: '光照强度达标', max: 100 },
+                        { name: '色温稳定性', max: 100 },
+                        { name: '频闪控制', max: 100 },
+                        { name: '逆光状态避免', max: 100 },
+                        { name: '长时间背光避免', max: 100 }
+                    ]
                 },
-                emphasis: {
-                    itemStyle: {
-                        shadowBlur: 10,
-                        shadowColor: 'rgba(0, 0, 0, 0.5)'
-                    }
+                series: [{
+                    type: 'radar',
+                    data: [
+                        {
+                            value: [90, 80, 70, 85, 88],
+                            name: '本周环境质量'
+                        }
+                    ]
+                }]
+            });
+
+            // 用眼时间热力图（模拟数据）
+            const heatmapChart = echarts.init(document.getElementById('heatmap-chart'));
+            const hours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+            const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+            const data = [];
+            for (let i = 0; i < days.length; i++) {
+                for (let j = 0; j < hours.length; j++) {
+                    const value = Math.floor(Math.random() * 3);
+                    data.push([j, i, value]); // x, y, value
                 }
-            }]
-        });
+            }
+            heatmapChart.setOption({
+                tooltip: {
+                    position: 'top'
+                },
+                grid: {
+                    height: '70%',
+                    top: '10%'
+                },
+                xAxis: {
+                    type: 'category',
+                    data: hours,
+                    splitArea: { show: true },
+                    axisLabel: { rotate: 45 }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: days,
+                    splitArea: { show: true }
+                },
+                visualMap: {
+                    min: 0,
+                    max: 2,
+                    calculable: true,
+                    orient: 'horizontal',
+                    left: 'center',
+                    bottom: '0',
+                    inRange: {
+                        color: ['#e0f7fa', '#ffecb3', '#ff8a65']
+                    }
+                },
+                series: [{
+                    name: '用眼时间段',
+                    type: 'heatmap',
+                    data: data,
+                    label: {
+                        show: false
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }]
+            });
+        }
+        
+        // 调整所有图表大小
+        function resizeAllCharts() {
+            const charts = document.querySelectorAll('.chart-container');
+            charts.forEach(chart => {
+                const chartInstance = echarts.getInstanceByDom(chart);
+                if (chartInstance) {
+                    chartInstance.resize();
+                }
+            });
+        }
     </script>
 </body>
 </html>

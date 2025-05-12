@@ -2107,12 +2107,22 @@
 
             document.getElementById(tabId).classList.add('active');
             document.querySelector(`.tab-btn[onclick="openTab('${tabId}')"]`).classList.add('active');
+            
+            // 如果切换到用眼情况标签，重新调整图表大小
+            if (tabId === 'eye-tab') {
+                // 延迟一小段时间后调整图表大小，确保DOM已更新
+                setTimeout(resizeEyeCharts, 100);
+            }
         }
 
         // 初始化用眼情况标签页中的图表
         function initEyeCharts() {
+            // 创建图表实例变量，便于后续访问
+            window.eyeCharts = {};
+            
             // 初始化护眼行为趋势图
             const lineChart = echarts.init(document.getElementById('line-chart'));
+            window.eyeCharts.lineChart = lineChart;
             lineChart.setOption({
                 tooltip: { trigger: 'axis' },
                 xAxis: { type: 'category', data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'] },
@@ -2131,6 +2141,7 @@
 
             // 初始化光照环境雷达图
             const radarChart = echarts.init(document.getElementById('radar-chart'));
+            window.eyeCharts.radarChart = radarChart;
             radarChart.setOption({
                 tooltip: {},
                 radar: {
@@ -2155,6 +2166,7 @@
 
             // 初始化用眼时间热力图
             const heatmapChart = echarts.init(document.getElementById('heatmap-chart'));
+            window.eyeCharts.heatmapChart = heatmapChart;
             const hours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
             const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
             const data = [];
@@ -2211,11 +2223,21 @@
             });
             
             // 处理窗口大小变化，重新调整图表大小
-            window.addEventListener('resize', function() {
-                lineChart.resize();
-                radarChart.resize();
-                heatmapChart.resize();
-            });
+            window.addEventListener('resize', resizeEyeCharts);
+            
+            // 确保图表在初始化后立即调整大小
+            setTimeout(resizeEyeCharts, 100);
+        }
+        
+        // 调整所有用眼情况图表大小
+        function resizeEyeCharts() {
+            if (window.eyeCharts) {
+                Object.values(window.eyeCharts).forEach(chart => {
+                    if (chart) {
+                        chart.resize();
+                    }
+                });
+            }
         }
     </script>
 </body>
