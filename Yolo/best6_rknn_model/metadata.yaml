@@ -1,0 +1,18 @@
+description: Ultralytics YOLO11n model trained on data2/data.yaml
+author: Ultralytics
+date: '2025-05-18T00:58:28.975969'
+version: 8.3.137
+license: AGPL-3.0 License (https://ultralytics.com/license)
+docs: https://docs.ultralytics.com
+stride: 32
+task: detect
+batch: 1
+imgsz:
+- 640
+- 640
+names:
+  0: book
+args:
+  batch: 1
+  name: rk3588
+channels: 3

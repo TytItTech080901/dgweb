@@ -8,6 +8,9 @@ import json
 import os
 from config import DB_CONFIG
 
+# 导入清理功能模块
+from modules.new_cleanup_functions import cleanup_hourly_images, cleanup_daily_images
+
 # 添加图像存储路径配置
 POSTURE_IMAGES_DIR = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'static', 'posture_images')
 
@@ -163,8 +166,15 @@ def save_posture_image(image, angle, is_bad_posture, posture_status, emotion, no
         
         print(f"保存坐姿图像成功，ID: {image_id}, 路径: {relative_path}")
         
-        # 自动清理旧图片，保留最新的100张
-        cleanup_old_images(100)
+        # 获取当前小时和日期
+        current_hour = timestamp.replace(minute=0, second=0, microsecond=0)
+        current_date = timestamp.replace(hour=0, minute=0, second=0, microsecond=0)
+        
+        # 清理当前时间段的图片，保留最新的20张
+        cleanup_hourly_images(current_hour, 20)
+        
+        # 清理当天的图片，保留最新的240张
+        cleanup_daily_images(current_date, 240)
         
         return {
             "id": image_id,
@@ -174,13 +184,15 @@ def save_posture_image(image, angle, is_bad_posture, posture_status, emotion, no
         print(f"保存坐姿图像失败: {str(e)}")
         return None
 
-def get_posture_images(page=1, per_page=10, bad_posture_only=False):
-    """获取坐姿图像记录，支持分页和筛选
+def get_posture_images(page=1, per_page=10, bad_posture_only=False, date=None, hour=None):
+    """获取坐姿图像记录，支持分页、筛选和按日期时间段查询
     
     Args:
         page: 页码，从1开始
         per_page: 每页记录数
         bad_posture_only: 是否只获取不良坐姿记录
+        date: 日期字符串，格式为'YYYY-MM-DD'，如果提供则只获取该日期的记录
+        hour: 小时整数(0-23)，与date配合使用，如果提供则只获取该小时段的记录
     
     Returns:
         包含图像记录和分页信息的字典
@@ -189,29 +201,55 @@ def get_posture_images(page=1, per_page=10, bad_posture_only=False):
         conn = mysql.connector.connect(**DB_CONFIG)
         cursor = conn.cursor(dictionary=True)
         
-        # 计算总记录数
+        # 构建SQL语句的条件部分和参数
+        conditions = []
+        params = []
+        
+        if bad_posture_only:
+            conditions.append("is_bad_posture = TRUE")
+        
+        # 添加日期和时间段条件
+        if date:
+            try:
+                # 解析日期字符串
+                date_obj = datetime.strptime(date, '%Y-%m-%d')
+                date_next = date_obj + timedelta(days=1)
+                
+                if hour is not None and 0 <= hour <= 23:
+                    # 如果提供了小时，则获取指定小时段的记录
+                    hour_start = date_obj.replace(hour=hour, minute=0, second=0, microsecond=0)
+                    hour_end = hour_start + timedelta(hours=1)
+                    conditions.append("timestamp >= %s AND timestamp < %s")
+                    params.extend([hour_start, hour_end])
+                else:
+                    # 否则获取整天的记录
+                    conditions.append("timestamp >= %s AND timestamp < %s")
+                    params.extend([date_obj, date_next])
+            except ValueError:
+                print(f"日期格式错误: {date}")
+        
+        # 构建完整的查询和计数SQL
         count_sql = "SELECT COUNT(*) as count FROM posture_images"
-        if (bad_posture_only):
-            count_sql += " WHERE is_bad_posture = TRUE"
-        
-        cursor.execute(count_sql)
-        total_count = cursor.fetchone()['count']
-        
-        # 分页查询
-        offset = (page - 1) * per_page
-        
         query_sql = """
             SELECT id, image_path, angle, is_bad_posture, posture_status, emotion, 
                    timestamp, notes
             FROM posture_images
         """
         
-        if bad_posture_only:
-            query_sql += " WHERE is_bad_posture = TRUE"
-            
+        if conditions:
+            count_sql += " WHERE " + " AND ".join(conditions)
+            query_sql += " WHERE " + " AND ".join(conditions)
+        
+        # 计算总记录数
+        cursor.execute(count_sql, params)
+        total_count = cursor.fetchone()['count']
+        
+        # 分页查询
+        offset = (page - 1) * per_page
         query_sql += " ORDER BY timestamp DESC LIMIT %s OFFSET %s"
         
-        cursor.execute(query_sql, (per_page, offset))
+        query_params = params + [per_page, offset]
+        cursor.execute(query_sql, query_params)
         records = cursor.fetchall()
         
         # 处理时间戳格式
@@ -231,10 +269,17 @@ def get_posture_images(page=1, per_page=10, bad_posture_only=False):
                 'page': page,
                 'per_page': per_page,
                 'total_pages': total_pages
+            },
+            'filters': {
+                'bad_posture_only': bad_posture_only,
+                'date': date,
+                'hour': hour
             }
         }
     except Exception as e:
         print(f"获取坐姿图像记录失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {
             'records': [],
             'pagination': {
@@ -242,6 +287,11 @@ def get_posture_images(page=1, per_page=10, bad_posture_only=False):
                 'page': page,
                 'per_page': per_page,
                 'total_pages': 0
+            },
+            'filters': {
+                'bad_posture_only': bad_posture_only,
+                'date': date,
+                'hour': hour
             },
             'error': str(e)
         }
@@ -258,6 +308,9 @@ def delete_posture_image(image_id):
     print(f"尝试删除坐姿图像记录，ID: {image_id}")
     try:
         # 尝试连接数据库
+        conn = mysql.connector.connect(**DB_CONFIG)
+        cursor = conn.cursor()
+        
         # 先获取图像路径
         cursor.execute("SELECT image_path FROM posture_images WHERE id = %s", (image_id,))
         result = cursor.fetchone()

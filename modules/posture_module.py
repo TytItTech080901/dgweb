@@ -199,6 +199,7 @@ class WebPostureMonitor:
         self.recording_interval = 60  # 两次记录的最小间隔(秒)
         self.bad_posture_start_time = None  # 不良坐姿开始时间
         self.last_recording_time = 0  # 上次记录时间
+        self.last_any_recording_time = 0  # 上次任意类型（不良或良好）坐姿的记录时间
         self.continuous_bad_posture = False  # 是否持续处于不良坐姿
         
         # 良好坐姿记录配置
@@ -1123,17 +1124,12 @@ class WebPostureMonitor:
 
     def _check_and_record_bad_posture(self, frame, pose_results):
         """检查并记录不良坐姿
-        
-        Args:
-            frame: 原始视频帧
-            pose_results: 姿势分析结果
-            
-        Returns:
-            是否记录了坐姿图像
+        逻辑：如果坐姿变为不良保存一次，每十分钟只允许保存一次，如果十分钟内没有不良坐姿则保存一次良好坐姿
+        每个时间段最多允许存在20张图片，每天最多允许存在240张图片
         """
         if not self.posture_recording_enabled:
             return False
-            
+        
         # 检查是否是有效的姿势检测（非遮挡状态）
         if pose_results['is_occluded'] or pose_results['angle'] is None:
             self.continuous_bad_posture = False
@@ -1142,57 +1138,70 @@ class WebPostureMonitor:
             self.good_posture_start_time = None
             return False
         
-        # 获取当前角度和时间
         angle = pose_results['angle']
         current_time = time.time()
+        current_datetime = datetime.now()  # 当前时间的datetime对象
         recorded = False
-            
+        max_interval = 600  # 10分钟
+        
+        # 初始化属性（如果尚未定义）
+        if not hasattr(self, 'last_any_recording_time'):
+            self.last_any_recording_time = 0
+        if not hasattr(self, 'continuous_bad_posture'):
+            self.continuous_bad_posture = False
+        if not hasattr(self, 'continuous_good_posture'):
+            self.continuous_good_posture = False
+        if not hasattr(self, 'good_posture_start_time'):
+            self.good_posture_start_time = None
+        if not hasattr(self, 'bad_posture_start_time'):
+            self.bad_posture_start_time = None
+        
         # 处理不良坐姿
         if pose_results['is_bad_posture']:
-            # 重置良好坐姿状态
-            self.continuous_good_posture = False
-            self.good_posture_start_time = None
-            
-            # 记录不良坐姿的开始时间
+            # 如果刚从良好变为不良坐姿，判断是否需要记录
             if not self.continuous_bad_posture:
                 self.continuous_bad_posture = True
                 self.bad_posture_start_time = current_time
-            
-            # 不良坐姿持续时间超过阈值且间隔时间足够长，进行记录
-            if (self.bad_posture_start_time and 
-                current_time - self.bad_posture_start_time >= self.bad_posture_duration_threshold and 
-                current_time - self.last_recording_time >= self.recording_interval):
                 
-                # 记录不良坐姿图像
-                recorded = self._save_posture_image(
-                    frame=frame,
-                    angle=angle,
-                    is_bad_posture=True,
-                    posture_type="Bad",
-                    record_type="auto"
-                )
-                
-                if recorded:
-                    self.last_recording_time = current_time
+                # 检查是否超过了10分钟的时间间隔
+                if current_time - self.last_any_recording_time >= max_interval:
+                    recorded = self._save_posture_image(
+                        frame=frame,
+                        angle=angle,
+                        is_bad_posture=True,
+                        posture_type="Bad",
+                        record_type="auto"
+                    )
+                    if recorded:
+                        self.last_any_recording_time = current_time
+                        
+                        # 获取当前小时和日期
+                        current_hour = current_datetime.replace(minute=0, second=0, microsecond=0)
+                        current_date = current_datetime.replace(hour=0, minute=0, second=0, microsecond=0)
+                        
+                        # 清理当前时间段的图片，保留最新的20张
+                        from modules.new_cleanup_functions import cleanup_hourly_images, cleanup_daily_images
+                        cleanup_hourly_images(current_hour, 20)
+                        
+                        # 清理当天的图片，保留最新的240张
+                        cleanup_daily_images(current_date, 240)
             
+            # 重置良好坐姿状态
+            self.continuous_good_posture = False
+            self.good_posture_start_time = None
         else:
             # 恢复良好坐姿，重置不良坐姿状态
             self.continuous_bad_posture = False
             self.bad_posture_start_time = None
             
-            # 处理良好坐姿（角度小于设定阈值）
-            if angle <= self.good_posture_angle_threshold and  self.good_posture_recording_enabled:
-                # 记录良好坐姿的开始时间
+            # 处理良好坐姿
+            if angle <= self.good_posture_angle_threshold and self.good_posture_recording_enabled:
                 if not self.continuous_good_posture:
                     self.continuous_good_posture = True
                     self.good_posture_start_time = current_time
                 
-                # 良好坐姿持续时间超过阈值且间隔时间足够长，进行记录
-                if (self.good_posture_start_time and  
-                    current_time - self.good_posture_start_time >= self.good_posture_duration_threshold and  
-                    current_time - self.last_good_recording_time >= self.good_posture_interval):
-                    
-                    # 记录良好坐姿图像
+                # 如果10分钟内没有不良坐姿则保存一次良好坐姿
+                if (self.good_posture_start_time and current_time - self.last_any_recording_time >= max_interval):
                     recorded = self._save_posture_image(
                         frame=frame,
                         angle=angle,
@@ -1200,14 +1209,23 @@ class WebPostureMonitor:
                         posture_type="Good",
                         record_type="auto"
                     )
-                    
                     if recorded:
-                        self.last_good_recording_time = current_time
+                        self.last_any_recording_time = current_time
+                        
+                        # 获取当前小时和日期
+                        current_hour = current_datetime.replace(minute=0, second=0, microsecond=0)
+                        current_date = current_datetime.replace(hour=0, minute=0, second=0, microsecond=0)
+                        
+                        # 清理当前时间段的图片，保留最新的20张
+                        from modules.new_cleanup_functions import cleanup_hourly_images, cleanup_daily_images
+                        cleanup_hourly_images(current_hour, 20)
+                        
+                        # 清理当天的图片，保留最新的240张
+                        cleanup_daily_images(current_date, 240)
             else:
-                # 角度不符合良好坐姿标准，重置良好坐姿状态
                 self.continuous_good_posture = False
                 self.good_posture_start_time = None
-            
+                
         return recorded
         
     def _save_posture_image(self, frame, angle, is_bad_posture, posture_type="Unknown", record_type="manual"):

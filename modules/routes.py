@@ -5,6 +5,7 @@ from flask import Blueprint, render_template, jsonify, request, Response, stream
 import json
 import queue
 import time
+import traceback
 from modules.database_module import save_record_to_db, get_history_records, clear_history, clear_all_posture_records
 from modules.posture_module import WebPostureMonitor, posture_params
 
@@ -753,7 +754,7 @@ def update_posture_recording_settings():
 # 路由：获取坐姿图像记录列表
 @routes_bp.route('/api/get_posture_images')
 def get_posture_images():
-    """获取坐姿图像记录列表，支持分页和筛选"""
+    """获取坐姿图像记录列表，支持分页和按日期及时间段筛选"""
     try:
         from modules.database_module import get_posture_images as db_get_posture_images
         
@@ -761,9 +762,11 @@ def get_posture_images():
         page = request.args.get('page', 1, type=int)
         per_page = request.args.get('per_page', 10, type=int)
         bad_posture_only = request.args.get('bad_posture_only', 'false').lower() == 'true'
+        date = request.args.get('date', None)  # 日期格式：YYYY-MM-DD
+        hour = request.args.get('hour', None, type=int)  # 小时：0-23
         
         # 查询数据库
-        result = db_get_posture_images(page, per_page, bad_posture_only)
+        result = db_get_posture_images(page, per_page, bad_posture_only, date, hour)
         
         return jsonify({
             'status': 'success',

@@ -94,11 +94,55 @@
             display: flex;
             align-items: center;
             gap: 10px;
+            flex-wrap: wrap;
         }
 
         .filter-label {
             font-weight: 600;
             color: var(--dark-gray);
+        }
+        
+        .date-picker, .hour-picker {
+            padding: 6px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            background-color: white;
+        }
+        
+        .hour-picker {
+            width: 60px;
+            text-align: center;
+        }
+        
+        .filter-btn {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 20px;
+            background-color: var(--primary-color);
+            color: white;
+            cursor: pointer;
+            font-weight: 600;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-btn:hover {
+            background-color: #3b78e7;
+            transform: translateY(-2px);
+        }
+        
+        .filter-clear {
+            padding: 6px 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 20px;
+            background-color: white;
+            color: var(--text-color);
+            cursor: pointer;
+            transition: all 0.3s ease;
+        }
+        
+        .filter-clear:hover {
+            background-color: var(--light-gray);
         }
 
         .filter-toggle {
@@ -588,6 +632,40 @@
                 </div>
             </div>
             <div class="filter-group">
+                <div class="filter-label">日期:</div>
+                <input type="date" id="date-filter" class="date-picker">
+                <div class="filter-label">小时:</div>
+                <select id="hour-filter" class="hour-picker">
+                    <option value="">全天</option>
+                    <option value="0">0:00</option>
+                    <option value="1">1:00</option>
+                    <option value="2">2:00</option>
+                    <option value="3">3:00</option>
+                    <option value="4">4:00</option>
+                    <option value="5">5:00</option>
+                    <option value="6">6:00</option>
+                    <option value="7">7:00</option>
+                    <option value="8">8:00</option>
+                    <option value="9">9:00</option>
+                    <option value="10">10:00</option>
+                    <option value="11">11:00</option>
+                    <option value="12">12:00</option>
+                    <option value="13">13:00</option>
+                    <option value="14">14:00</option>
+                    <option value="15">15:00</option>
+                    <option value="16">16:00</option>
+                    <option value="17">17:00</option>
+                    <option value="18">18:00</option>
+                    <option value="19">19:00</option>
+                    <option value="20">20:00</option>
+                    <option value="21">21:00</option>
+                    <option value="22">22:00</option>
+                    <option value="23">23:00</option>
+                </select>
+                <button id="filter-btn" class="filter-btn" onclick="applyFilters()">应用筛选</button>
+                <button id="clear-filter-btn" class="filter-clear" onclick="clearFilters()">清除筛选</button>
+            </div>
+            <div class="filter-group">
                 <div class="filter-label">排序:</div>
                 <div class="filter-toggle">
                     <div class="filter-option active" data-sort="new" onclick="sortRecords('new')">最新</div>
@@ -694,6 +772,74 @@
                     // 隐藏加载指示器
                     document.getElementById('loading-indicator').style.display = 'none';
                 });
+        }
+        
+        // 应用日期和时间段筛选
+        function applyFilters() {
+            const dateFilter = document.getElementById('date-filter').value;
+            const hourFilter = document.getElementById('hour-filter').value;
+            
+            // 如果日期为空，提示用户
+            if (!dateFilter) {
+                alert('请选择日期');
+                return;
+            }
+            
+            // 显示加载指示器
+            document.getElementById('loading-indicator').style.display = 'flex';
+            
+            // 构建查询参数
+            const params = new URLSearchParams({
+                page: 1,
+                per_page: 100
+            });
+            
+            // 添加筛选条件
+            if (currentFilter === 'bad') {
+                params.append('bad_posture_only', 'true');
+            }
+            
+            // 添加日期和时间筛选
+            params.append('date', dateFilter);
+            
+            if (hourFilter) {
+                params.append('hour', hourFilter);
+            }
+            
+            const url = `/api/get_posture_images?${params.toString()}`;
+            
+            fetch(url)
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        allRecords = data.records || [];
+                        updateStats();
+                        applyFiltersAndSort();
+                    } else {
+                        showEmptyState('加载失败，请稍后重试');
+                    }
+                })
+                .catch(error => {
+                    console.error('获取坐姿图像记录失败:', error);
+                    showEmptyState('加载失败，请稍后重试');
+                })
+                .finally(() => {
+                    // 隐藏加载指示器
+                    document.getElementById('loading-indicator').style.display = 'none';
+                });
+        }
+        
+        // 清除所有筛选
+        function clearFilters() {
+            // 清除日期和时间筛选
+            document.getElementById('date-filter').value = '';
+            document.getElementById('hour-filter').value = '';
+            
+            // 重置筛选类型为"全部"
+            filterRecords('all');
+            
+            // 重新加载记录
+            loadPostureRecords();
         }
 
         // 更新统计信息
