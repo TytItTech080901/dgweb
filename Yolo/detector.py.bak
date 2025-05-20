@@ -1,0 +1,363 @@
+import cv2
+import time
+from ultralytics import YOLO
+from threading import Thread
+import queue
+from concurrent.futures import ThreadPoolExecutor, as_completed
+
+class rknnPoolExecutor:
+    def __init__(self, model_path, TPEs, func):
+        self.TPEs = TPEs
+        self.queue = queue.Queue()
+        self.pool = ThreadPoolExecutor(max_workers=TPEs)
+        self.models = self.__init_models(model_path, TPEs)
+        self.func = func
+        self.num = 0
+
+    def put(self, frame):
+        self.queue.put(
+            self.pool.submit(self.func, self.models[self.num % self.TPEs], frame)
+        )
+        self.num += 1
+
+    def get(self):
+        if self.queue.empty():
+            return None, False
+        temp = []
+        temp.append(self.queue.get())
+        for frame in as_completed(temp):
+            return frame.result(), True
+
+    def __init_models(self, model_path, TPEs):
+        rknn_list = []
+        for i in range(TPEs):
+            rknn_list.append(YOLO(model_path))
+        return rknn_list
+
+
+def thread_safe_predict(model, frame):
+    outputs = model(frame, verbose=False)
+    return outputs
+
+class Detector:
+    def __init__(self, TPEs=4, model_path="Yolo/best6_rknn_model", camera_id=1, show_img=False):
+        """
+        实例化目标检测器
+
+        Args:
+            TPEs (int): 线程池的线程数
+            model_path (str): 模型路径
+            camera_id (int): 摄像头ID
+            show_img (bool): 是否显示图像
+        """
+        self.TPEs = TPEs
+        self.model_path = model_path
+        self.camera_id = camera_id
+        self.show_img = show_img
+        self.running = False
+        self.fps = 0.0
+        self.frames = 0
+        self.position = [0.0, 0.0]
+        self.width = 0.0
+        self.height = 0.0
+        self.confidence = 0.0
+        self.detected = False
+        self.cap = None
+        self.pool = None
+        self._last_frame_time = time.time()
+        self._frame_count = 0
+        self._fps_update_interval = 1.0  # 每秒更新一次FPS    def initialize(self):
+        """初始化检测器资源：摄像头和线程池"""
+        try:
+            print(f"正在初始化检测器，摄像头ID: {self.camera_id}")
+            # 初始化模型池
+            self.pool = rknnPoolExecutor(
+                model_path=self.model_path,
+                TPEs=self.TPEs,
+                func=thread_safe_predict
+            )
+            
+            # 打开摄像头
+            self.cap = cv2.VideoCapture(self.camera_id)
+            if not self.cap.isOpened():
+                raise IOError(f"无法打开摄像头 ID: {self.camera_id}")
+            
+            # 优化摄像头设置
+            self.cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+            self.cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+            self.cap.set(cv2.CAP_PROP_FPS, 30)
+            self.cap.set(cv2.CAP_PROP_BUFFERSIZE, 1)  # 最小化缓冲
+            
+            print("摄像头打开成功，开始初始化推理管线...")
+            
+            # 初始化异步所需要的帧
+            for i in range(self.TPEs + 1):
+                ret, frame = self.cap.read()
+                if not ret:
+                    raise IOError("无法读取摄像头帧")
+                self.pool.put(frame)
+                  # 必要的初始化参数
+            self._last_frame_time = time.time()
+            self._frame_count = 0
+            self.fps = 0.0
+            self.frames = 0
+            self.running = False  # 初始化时不要设置为True，由start方法来设置
+            print("检测器初始化完成")
+            return True
+
+        except Exception as e:
+            print(f"初始化检测器失败: {str(e)}")
+            self.cleanup()
+            return False    def process_frame(self):
+        """处理帧数据"""
+        if not self.cap or not self.cap.isOpened() or not self.running:
+            return False
+        
+        try:
+            # 读取新帧
+            ret, frame = self.cap.read()
+            if not ret:
+                print("读取帧失败")
+                return False
+            
+            # 更新帧计数
+            self.frames += 1
+            
+            # 将帧提交到处理池并获取上一帧的结果
+            self.pool.put(frame)
+            results, success = self.pool.get()
+            if not success:
+                return False
+                
+            # 更新检测结果
+            self.detected = False
+            
+            # 处理检测结果
+            for result in results:
+                boxes = result.boxes
+                if len(boxes) > 0:
+                    # 找出置信度最高的框
+                    box_best = max(boxes, key=lambda box: box.conf[0].cpu().numpy())
+                    # 获取归一化的坐标 (使用xywhn，更符合camera.py中的逻辑)
+                    pos_x, pos_y, width, height = box_best.xywhn[0].cpu().numpy()
+                    
+                    # 将坐标转换为[-0.5, 0.5]范围(与camera.py一致)
+                    self.position[0] = pos_x - 0.5
+                    self.position[1] = pos_y - 0.5
+                    self.width = width
+                    self.height = height
+                    self.confidence = float(box_best.conf[0].cpu().numpy())
+                    self.detected = True
+                    
+                    if self.show_img:
+                        # 绘制框
+                        for box in boxes:
+                            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy().astype(int)
+                            confidence = float(box.conf[0].cpu().numpy())
+                            class_id = int(box.cls[0].cpu().numpy())
+                            class_name = "target"  # 默认目标名称
+                            
+                            # 只绘制最好的框（也可以绘制所有框）
+                            if box is box_best:
+                                label = f"{class_name} {confidence:.2f}"
+                                cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+                                cv2.putText(
+                                    frame,
+                                    label,
+                                    (x1, y1 - 10),
+                                    cv2.FONT_HERSHEY_SIMPLEX,
+                                    0.9,
+                                    (0, 255, 0),
+                                    2,
+                                )
+                else:
+                    # 没有检测到物体
+                    self.position = [0.0, 0.0]
+                    self.width = 0.0
+                    self.height = 0.0
+                    self.confidence = 0.0
+                    self.detected = False
+
+            # 显示图像（如果需要）
+            if self.show_img:
+                # 显示帧率
+                cv2.putText(
+                    frame,
+                    f"FPS: {int(self.fps)}",
+                    (10, 30),
+                    cv2.FONT_HERSHEY_SIMPLEX,
+                    1,
+                    (0, 255, 0),
+                    2,
+                    cv2.LINE_AA,
+                )
+                cv2.imshow('Detection', frame)
+                if cv2.waitKey(1) & 0xFF == ord("q"):
+                    self.running = False
+                    return False# 更新FPS计算 - 每30帧计算一次
+            if self.frames % 30 == 0:
+                current_time = time.time()
+                elapsed = current_time - self._last_frame_time
+                if elapsed > 0:  # 确保不会除以零
+                    self.fps = 30 / elapsed
+                self._last_frame_time = current_time
+
+            return True
+
+        except Exception as e:
+            print(f"处理帧时出错: {str(e)}")
+            return False
+
+    def _display_frame(self, frame, boxes, result):
+        """在图像上显示检测结果"""
+        for box in boxes:
+            x1, y1, x2, y2 = box.xyxy[0].cpu().numpy().astype(int)
+            confidence = box.conf[0].cpu().numpy()
+            class_id = int(box.cls[0].cpu().numpy())
+            class_name = "book"  # 默认类别名称
+            
+            label = f"{class_name} {confidence:.2f}"
+            cv2.rectangle(frame, (x1, y1), (x2, y2), (0, 255, 0), 2)
+            cv2.putText(
+                frame,
+                label,
+                (x1, y1 - 10),
+                cv2.FONT_HERSHEY_SIMPLEX,
+                0.9,
+                (0, 255, 0),
+                2,
+            )
+            
+        # 显示帧率
+        cv2.putText(
+            frame,
+            str(int(self.fps)),
+            (7, 70),
+            cv2.FONT_HERSHEY_SIMPLEX,
+            3,
+            (100, 255, 0),
+            3,
+            cv2.LINE_AA,
+        )
+        
+        # 显示图像
+        cv2.imshow("Object Detection", frame)
+        if cv2.waitKey(1) & 0xFF == ord("q"):
+            return True
+        
+        return True
+
+    def start(self):
+        """启动检测循环"""
+        if self.running:
+            return False
+            
+        if not self.cap or not self.pool:
+            self.initialize()
+            
+        self.running = True
+        self.detection_thread = Thread(target=self._detection_loop, daemon=True)
+        self.detection_thread.start()
+        return True
+
+    def _detection_loop(self):
+        """检测主循环，在单独线程中运行"""
+        loopTime = time.time()
+        initTime = time.time()
+        
+        while self.running and self.cap and self.cap.isOpened():
+            if not self.process_frame():
+                break
+                
+            # 每30帧更新一次FPS
+            if self.frames % 30 == 0:
+                self.fps = 30 / (time.time() - loopTime)
+                loopTime = time.time()
+                
+        print(f"检测结束，平均帧率: {self.frames / (time.time() - initTime):.2f} FPS")
+
+    def stop(self):
+        """停止检测循环"""
+        self.running = False
+        if hasattr(self, 'detection_thread'):
+            self.detection_thread.join(timeout=1.0)
+        self.cleanup()
+        
+    def cleanup(self):
+        """清理资源"""
+        self.running = False
+        if hasattr(self, 'cap') and self.cap is not None:
+            self.cap.release()
+            self.cap = None
+        if hasattr(self, 'pool'):
+            del self.pool
+            self.pool = None
+
+    def get_position(self):
+        """获取当前检测到的目标位置信息"""
+        return {
+            "detected": self.detected,
+            "x": self.position[0],
+            "y": self.position[1],
+            "w": self.width,
+            "h": self.height,
+            "confidence": self.confidence,
+        }
+        
+    def __del__(self):
+        """析构函数，确保资源被释放"""
+        self.cleanup()
+
+    def update_fps(self):
+        """更新FPS计数"""
+        current_time = time.time()
+        self._frame_count += 1
+        
+        # 每秒更新一次FPS
+        if current_time - self._last_frame_time >= self._fps_update_interval:
+            self.fps = self._frame_count / (current_time - self._last_frame_time)
+            self._frame_count = 0
+            self._last_frame_time = current_time
+
+def main():
+        # 1. 创建Detector实例
+    # 参数说明:
+    # TPEs: 线程池大小，默认4
+    # model_path: 模型文件路径，默认"Yolo/best6_rknn_model"
+    # camera_id: 摄像头ID，默认1
+    # show_img: 是否显示检测结果，默认False
+    detector = Detector(
+        TPEs=4,
+        model_path="Yolo/best6_rknn_model",
+        camera_id=1,
+        show_img=True  # 设置为True可以看到检测效果
+    )
+    
+    # 2. 初始化检测器
+    detector.initialize()
+    
+    # 3. 启动检测循环
+    detector.start()
+    
+    try:
+        # 4. 使用检测结果
+        for _ in range(1000):  # 循环100次
+            # 获取当前检测到的目标位置信息
+            position_info = detector.get_position()
+            
+            # 输出检测结果
+            if position_info["detected"]:
+                print(f"检测到目标: 位置 x={position_info['x']:.2f}, y={position_info['y']:.2f}, 置信度={position_info['confidence']:.2f}")
+            else:
+                print("未检测到目标")
+            # 每隔0.1秒获取一次检测结果
+            time.sleep(0.1)
+    finally:
+        # 5. 停止检测并释放资源
+        detector.stop()
+    
+
+
+if __name__ == "__main__":
+    # 运行主函数
+    main()

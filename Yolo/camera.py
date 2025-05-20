@@ -86,7 +86,7 @@ def main():
             else:
                 position[0] = 0.0
                 position[1] = 0.0
-                print(f"未检测到物体: 位置 = ({position[0]:.3f}, {position[1]:.3f}), 大小 = ({width:.3f}, {height:.3f})")
+                print(f"未检测到物体: 位置 = ({position[0]:.3f}, {position[1]:.3f})")
 
             if SHOW_IMG:
                 for box in boxes:

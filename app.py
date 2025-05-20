@@ -16,6 +16,7 @@ from modules.video_stream_module import VideoStreamHandler
 from modules.posture_module import WebPostureMonitor, PROCESS_WIDTH, PROCESS_HEIGHT
 from modules.serial_module import SerialCommunicationHandler
 from modules.routes import routes_bp, setup_services
+from modules.detection_module import DetectionService
 
 def create_app():
     """创建并配置Flask应用"""
@@ -73,7 +74,7 @@ def create_app():
     else:
         print("姿势分析器未成功初始化，无法启动姿势分析系统")
         posture_start_success = False
-    
+
     # 尝试初始化串口通信处理器，允许失败
     try:
         serial_handler = SerialCommunicationHandler(baudrate=SERIAL_BAUDRATE)
@@ -88,12 +89,60 @@ def create_app():
         print("串口通信系统初始化成功")
     else:
         print("串口通信系统未启动，但姿势分析系统可以正常工作")
-    
+
+    # 创建检测服务实例
+    try:
+        print("正在初始化检测服务...")
+        detection_service = DetectionService(
+            model_path="Yolo/best6_rknn_model", 
+            camera_id=3,  # 外接摄像头
+            show_img=False  # 生产环境不显示图像
+        )
+        
+        # 初始化检测服务
+        if detection_service.initialize():
+            detection_available = True
+            print("检测服务初始化成功")
+        else:
+            print("检测服务初始化失败")
+            detection_service = None
+            detection_available = False
+
+        # 启动检测服务
+        if detection_available:
+            try:
+                print("正在启动检测服务...")
+                if detection_service.start():
+                    print("检测服务启动成功")
+                else:
+                    print("检测服务启动失败")
+                    detection_service = None
+                    detection_available = False
+            except Exception as e:
+                print(f"启动检测服务时出错: {str(e)}")
+                detection_service = None
+                detection_available = False
+    except Exception as e:
+        print(f"检测服务创建失败，但不影响其他功能: {str(e)}")
+        detection_service = None
+        detection_available = False
+
+
+    # 如果串口和检测服务都可用，设置串口处理器
+    if detection_available and serial_available:
+        try:
+            print("将串口处理器设置到检测服务...")
+            detection_service.set_serial_handler(serial_handler)
+            print("串口处理器设置成功，可以发送检测坐标")
+        except Exception as e:
+            print(f"设置串口处理器失败: {str(e)}")
+
     # 设置路由模块依赖的服务
     setup_services(
         posture_monitor_instance=posture_monitor,
         video_stream_instance=video_stream_handler,
-        serial_handler_instance=serial_handler
+        serial_handler_instance=serial_handler,
+        detection_service_instance=detection_service
     )
     
     # 注册应用退出时的清理函数
@@ -103,6 +152,8 @@ def create_app():
             posture_monitor.stop()
         if serial_handler and serial_available:
             serial_handler.cleanup()
+        if detection_service and detection_available:
+            detection_service.stop()
     
     atexit.register(cleanup)
     

@@ -16,19 +16,165 @@ routes_bp = Blueprint('routes', __name__)
 posture_monitor = None
 video_stream_handler = None
 serial_handler = None
+detection_service = None
 
 # 设置依赖服务
-def setup_services(posture_monitor_instance=None, video_stream_instance=None, serial_handler_instance=None):
+def setup_services(posture_monitor_instance=None, video_stream_instance=None, 
+                  serial_handler_instance=None, detection_service_instance=None):
     """设置各个服务模块实例"""
-    global posture_monitor, video_stream_handler, serial_handler
+    global posture_monitor, video_stream_handler, serial_handler, detection_service
     posture_monitor = posture_monitor_instance
     video_stream_handler = video_stream_instance
     serial_handler = serial_handler_instance
+    detection_service = detection_service_instance
 
-# 路由：首页
+# 页面路由
 @routes_bp.route('/')
 def index():
     return render_template('main.html')
+
+# 目标检测页面路由
+@routes_bp.route('/detection')
+def detection_page():
+    """渲染目标检测控制页面"""
+    print("\n==== 访问目标检测页面 ====")
+    # 打印检测服务状态
+    if detection_service:
+        print(f"检测服务状态: {'运行中' if detection_service.is_running() else '未运行'}")
+        if detection_service.is_running():
+            pos = detection_service.get_position()
+            if pos['detected']:
+                print(f"当前检测位置: ({pos['x']:.3f}, {pos['y']:.3f}), 置信度: {pos['confidence']:.2f}")
+            else:
+                print("当前未检测到目标")
+    else:
+        print("检测服务未初始化")
+    return render_template('detection.html')
+
+# 目标检测相关API
+
+@routes_bp.route('/api/detection/status', methods=['GET'])
+def get_detection_status():
+    """获取目标检测服务状态"""
+    if not detection_service:
+        return jsonify({
+            'status': 'error',
+            'message': '目标检测服务未初始化',
+            'running': False
+        })
+    
+    return jsonify({
+        'status': 'success',
+        'running': detection_service.is_running()
+    })
+
+@routes_bp.route('/api/detection/position', methods=['GET'])
+def get_detection_position():
+    """获取当前检测到的目标位置"""
+    if not detection_service:
+        return jsonify({
+            'status': 'error',
+            'message': '目标检测服务未初始化'
+        })
+    
+    if not detection_service.is_running():
+        return jsonify({
+            'status': 'error',
+            'message': '目标检测服务未启动'
+        })
+    
+    position_data = detection_service.get_position()
+    
+    # 每次获取位置时打印检测状态
+    if position_data['detected']:
+        print(f"API请求位置: 检测到目标 - ({position_data['x']:.3f}, {position_data['y']:.3f}), 置信度: {position_data['confidence']:.2f}, FPS: {position_data['fps']:.1f}")
+    else:
+        print(f"API请求位置: 未检测到目标, FPS: {position_data['fps']:.1f}")
+        
+    return jsonify({
+        'status': 'success',
+        'position': position_data
+    })
+
+@routes_bp.route('/api/detection/auto_send/start', methods=['POST'])
+def start_detection_auto_send():
+    """启动检测坐标自动发送"""
+    if not detection_service:
+        return jsonify({
+            'status': 'error',
+            'message': '检测服务未初始化'
+        })
+    
+    if not serial_handler or not serial_handler.is_connected():
+        return jsonify({
+            'status': 'error',
+            'message': '串口未连接'
+        })
+    
+    if not detection_service.is_running():
+        return jsonify({
+            'status': 'error',
+            'message': '检测服务未运行'
+        })
+    
+    # 获取传入的间隔参数
+    data = request.json or {}
+    interval = data.get('interval', 0.05)  # 默认50ms
+    
+    # 启动自动发送
+    success = detection_service.start_auto_send(interval=interval)
+    if success:
+        return jsonify({
+            'status': 'success',
+            'message': f'已启动坐标自动发送 (间隔: {interval*1000:.0f}ms)',
+            'interval': interval
+        })
+    else:
+        return jsonify({
+            'status': 'error',
+            'message': '启动坐标自动发送失败'
+        })
+
+@routes_bp.route('/api/detection/auto_send/stop', methods=['POST'])
+def stop_detection_auto_send():
+    """停止检测坐标自动发送"""
+    if not detection_service:
+        return jsonify({
+            'status': 'error',
+            'message': '检测服务未初始化'
+        })
+    
+    # 停止自动发送
+    success = detection_service.stop_auto_send()
+    if success:
+        return jsonify({
+            'status': 'success',
+            'message': '已停止坐标自动发送'
+        })
+    else:
+        return jsonify({
+            'status': 'error',
+            'message': '停止坐标自动发送失败'
+        })
+
+@routes_bp.route('/api/detection/auto_send/status', methods=['GET'])
+def get_detection_auto_send_status():
+    """获取检测坐标自动发送状态"""
+    if not detection_service:
+        return jsonify({
+            'status': 'error',
+            'message': '检测服务未初始化',
+            'auto_send': False
+        })
+    
+    is_auto_sending = detection_service.is_auto_sending()
+    
+    return jsonify({
+        'status': 'success',
+        'auto_send': is_auto_sending,
+    })
+
+# 路由：调试页面
 
 # 路由：调试页面
 @routes_bp.route('/debug')
@@ -1557,3 +1703,70 @@ def get_video_stream_status():
         'status': 'success',
         'is_streaming': video_stream_handler.get_streaming_status()
     })
+
+# 添加开启和停止检测服务的API
+@routes_bp.route('/api/detection/start', methods=['POST'])
+def start_detection():
+    """启动目标检测服务"""
+    if not detection_service:
+        return jsonify({
+            'status': 'error',
+            'message': '检测服务未初始化'
+        })
+    
+    if detection_service.is_running():
+        return jsonify({
+            'status': 'success',
+            'message': '检测服务已在运行'
+        })
+    
+    try:
+        success = detection_service.start()
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': '检测服务启动成功'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': '检测服务启动失败'
+            })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'启动检测服务出错: {str(e)}'
+        })
+
+@routes_bp.route('/api/detection/stop', methods=['POST'])
+def stop_detection():
+    """停止目标检测服务"""
+    if not detection_service:
+        return jsonify({
+            'status': 'error',
+            'message': '检测服务未初始化'
+        })
+    
+    if not detection_service.is_running():
+        return jsonify({
+            'status': 'success',
+            'message': '检测服务未运行'
+        })
+    
+    try:
+        success = detection_service.stop()
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': '检测服务已停止'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': '停止检测服务失败'
+            })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'停止检测服务出错: {str(e)}'
+        })

@@ -353,3 +353,84 @@ class SerialHandler:
                     callback(frame_data)
             time.sleep(0.01)  # 短暂休眠，避免过度占用CPU
         print("帧数据监控已停止")
+
+    def pack_detection_frame(self, find_bool, x, y, w, h, conf=0.0, type_byte=0xA2):
+        """
+        打包检测坐标数据帧
+        
+        Args:
+            find_bool: 是否找到目标 (布尔值)
+            x: 目标中心x坐标 (-0.5到0.5)
+            y: 目标中心y坐标 (-0.5到0.5)
+            w: 目标宽度 (0到1)
+            h: 目标高度 (0到1)
+            conf: 检测置信度 (0到1)
+            type_byte: 帧类型 (默认0xA2 - 检测坐标帧)
+        
+        Returns:
+            打包好的数据帧字节
+        """
+        # 创建32字节的数据帧
+        frame = bytearray(32)
+        
+        # 帧头
+        frame[0] = ord('s')
+        
+        # 消息类型
+        frame[1] = type_byte  # 0xA2: 检测坐标帧
+        
+        # 是否找到目标
+        frame[2] = 1 if find_bool else 0
+        
+        # x, y坐标 (使用小端字节序)
+        x_bytes = struct.pack('<f', float(x))
+        y_bytes = struct.pack('<f', float(y))
+        
+        # 复制x坐标到帧
+        for i in range(4):
+            frame[3 + i] = x_bytes[i]
+        
+        # 复制y坐标到帧
+        for i in range(4):
+            frame[7 + i] = y_bytes[i]
+        
+        # w, h尺寸数据 (可选)
+        w_bytes = struct.pack('<f', float(w))
+        h_bytes = struct.pack('<f', float(h))
+        
+        # 复制w到帧
+        for i in range(4):
+            frame[11 + i] = w_bytes[i]
+        
+        # 复制h到帧
+        for i in range(4):
+            frame[15 + i] = h_bytes[i]
+        
+        # 置信度数据
+        conf_bytes = struct.pack('<f', float(conf))
+        for i in range(4):
+            frame[19 + i] = conf_bytes[i]
+        
+        # 帧尾
+        frame[31] = ord('e')
+        
+        return bytes(frame)
+
+    def send_detection_data(self, find_bool, x, y, w, h, conf=0.0):
+        """
+        发送检测坐标数据
+        
+        Args:
+            find_bool: 是否找到目标
+            x, y: 目标中心坐标
+            w, h: 目标尺寸
+            conf: 检测置信度
+        
+        Returns:
+            是否发送成功
+        """
+        # 打包数据帧
+        frame = self.pack_detection_frame(find_bool, x, y, w, h, conf)
+        # 发送数据帧
+        return self.send_data(frame)
+

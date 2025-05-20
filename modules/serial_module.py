@@ -118,3 +118,34 @@ class SerialCommunicationHandler:
         """清理资源"""
         self._stop_frame_monitor()
         self.close()
+    
+    def send_detection_position(self, position_data):
+        """
+        发送检测位置数据
+        
+        Args:
+            position_data: 包含检测位置的字典 {'detected': bool, 'x': float, 'y': float, 'w': float, 'h': float, 'confidence': float}
+        
+        Returns:
+            (response, message): 响应数据和消息
+        """
+        # 提取位置数据
+        detected = position_data.get('detected', False)
+        x = position_data.get('x', 0.0)
+        y = position_data.get('y', 0.0)
+        w = position_data.get('w', 0.0)
+        h = position_data.get('h', 0.0)
+        confidence = position_data.get('confidence', 0.0)
+        
+        # 发送检测位置帧
+        success = self.handler.send_detection_data(detected, x, y, w, h, confidence)
+        
+        if success:
+            # 读取响应(如果有)
+            response = self.handler.read_data()
+            if detected:
+                return response, f"检测位置数据发送成功: x={x:.3f}, y={y:.3f}"
+            else:
+                return response, "已发送未检测到目标的信息"
+        else:
+            return None, "发送检测位置数据失败"

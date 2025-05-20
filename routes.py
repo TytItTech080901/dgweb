@@ -1093,3 +1093,8 @@ def get_posture_distribution():
             'status': 'error',
             'message': f"获取不良坐姿时段分布数据失败: {str(e)}"
         })
+
+@routes.route('/detection')
+def detection_page():
+    """渲染目标检测与串口自动发送控制页面"""
+    return render_template('detection.html')
