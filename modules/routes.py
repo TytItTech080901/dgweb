@@ -6,8 +6,17 @@ import json
 import queue
 import time
 import traceback
+import importlib.util
 from modules.database_module import save_record_to_db, get_history_records, clear_history, clear_all_posture_records
 from modules.posture_module import WebPostureMonitor, posture_params
+
+# 尝试导入虚拟检测服务模块
+try:
+    from modules.mock_detection import MockDetectionService
+    MOCK_DETECTION_AVAILABLE = True
+except ImportError:
+    print("警告：虚拟检测服务模块不可用")
+    MOCK_DETECTION_AVAILABLE = False
 
 # 创建蓝图
 routes_bp = Blueprint('routes', __name__)
@@ -71,17 +80,34 @@ def get_detection_status():
 @routes_bp.route('/api/detection/position', methods=['GET'])
 def get_detection_position():
     """获取当前检测到的目标位置"""
+    global detection_service
+    
+    # 如果检测服务不存在或未运行，返回默认的空结果
     if not detection_service:
-        return jsonify({
-            'status': 'error',
-            'message': '目标检测服务未初始化'
-        })
+        # 如果检测服务不存在，尝试导入并创建虚拟检测服务
+        try:
+            from modules.mock_detection import MockDetectionService
+            detection_service = MockDetectionService()
+            detection_service.initialize()
+            detection_service.start()
+            print("已自动启动虚拟检测服务")
+        except Exception as e:
+            print(f"无法创建虚拟检测服务: {e}")
+            return jsonify({
+                'status': 'error',
+                'message': '目标检测服务未初始化且无法创建虚拟服务'
+            })
     
     if not detection_service.is_running():
-        return jsonify({
-            'status': 'error',
-            'message': '目标检测服务未启动'
-        })
+        try:
+            detection_service.start()
+            print("检测服务已自动启动")
+        except Exception as e:
+            print(f"启动检测服务失败: {e}")
+            return jsonify({
+                'status': 'error',
+                'message': '目标检测服务未启动且无法自动启动'
+            })
     
     position_data = detection_service.get_position()
     

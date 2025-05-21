@@ -92,10 +92,14 @@ def create_app():
 
     # 创建检测服务实例
     try:
+        print("\n==================================================")
         print("正在初始化检测服务...")
+        print("使用指定的摄像头索引3...")
+        
+        # 使用摄像头索引3
         detection_service = DetectionService(
-            model_path="Yolo/best6_rknn_model", 
-            camera_id=3,  # 外接摄像头
+            model_path="Yolo/best6_rknn_model",
+            camera_id=3,  # 直接使用摄像头3
             show_img=False  # 生产环境不显示图像
         )
         
@@ -103,13 +107,7 @@ def create_app():
         if detection_service.initialize():
             detection_available = True
             print("检测服务初始化成功")
-        else:
-            print("检测服务初始化失败")
-            detection_service = None
-            detection_available = False
-
-        # 启动检测服务
-        if detection_available:
+            
             try:
                 print("正在启动检测服务...")
                 if detection_service.start():
@@ -122,8 +120,13 @@ def create_app():
                 print(f"启动检测服务时出错: {str(e)}")
                 detection_service = None
                 detection_available = False
+        else:
+            print("检测服务初始化失败")
+            detection_service = None
+            detection_available = False
+            
     except Exception as e:
-        print(f"检测服务创建失败，但不影响其他功能: {str(e)}")
+        print(f"检测服务创建失败: {str(e)}")
         detection_service = None
         detection_available = False
 

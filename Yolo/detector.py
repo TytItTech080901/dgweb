@@ -456,8 +456,8 @@ class Detector:
                                     2,
                                 )
                 else:
-                    # 没有检测到物体
-                    self.position = [0.0, 0.0]
+                    # 没有检测到物体，确保使用Python内置类型
+                    self.position = [0.0, 0.0]  # Python内置float
                     self.width = 0.0
                     self.height = 0.0
                     self.confidence = 0.0
@@ -598,15 +598,15 @@ class Detector:
 
     def get_position(self):
         """获取当前检测到的目标位置信息"""
-        # 增加FPS信息
+        # 增加FPS信息并确保所有值都是Python内置类型
         return {
-            "detected": self.detected,
-            "x": self.position[0],
-            "y": self.position[1],
-            "w": self.width,
-            "h": self.height,
-            "confidence": self.confidence,
-            "fps": self.fps  # 添加fps信息
+            "detected": bool(self.detected),
+            "x": float(self.position[0]),
+            "y": float(self.position[1]),
+            "w": float(self.width),
+            "h": float(self.height),
+            "confidence": float(self.confidence),
+            "fps": float(self.fps)  # 添加fps信息
         }
     
     def _test_camera_fps(self, cap, frames=10):

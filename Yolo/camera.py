@@ -49,7 +49,7 @@ def main():
     pool = rknnPoolExecutor(model_path=model_path, TPEs=TPEs, func=thread_safe_predict)
 
     # 打开默认摄像头
-    cap = cv2.VideoCapture(1)  # 0 是默认摄像头，1 是外接摄像头
+    cap = cv2.VideoCapture(3)  # 0 是默认摄像头，1 是外接摄像头
     if not cap.isOpened():
         raise IOError("无法打开摄像头")
 

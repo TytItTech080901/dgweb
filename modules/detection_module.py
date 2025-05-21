@@ -3,12 +3,16 @@ from Yolo import detector
 import time
 import threading
 import cv2
+import os
 
 class DetectionService:
+    """检测服务类，用于管理目标检测"""
+    
     def __init__(self, model_path="Yolo/best6_rknn_model", camera_id=None, show_img=False):
         self.detector = None
         self.model_path = model_path
-        self.camera_id = camera_id  # camera_id=None将使用自动发现可用摄像头
+        self.camera_id = camera_id
+        self.api_preference = None  # 存储成功的API类型
         
         # 检查是否在无显示环境中，如果是则禁用图像显示
         import os
@@ -17,7 +21,7 @@ class DetectionService:
             self.show_img = False
         else:
             self.show_img = show_img
-            
+        
         self.lock = threading.Lock()
         self.initialized = False
         
@@ -32,6 +36,139 @@ class DetectionService:
         self.max_errors = 3
         self.last_error_time = 0
         self.error_cooldown = 5.0  # 错误冷却时间（秒）
+    
+    def _try_open_camera(self, camera_id, api_id, api_name, attempt=1):
+        """尝试打开单个摄像头
+        
+        Args:
+            camera_id: 摄像头ID
+            api_id: API ID
+            api_name: API名称
+            attempt: 尝试次数
+            
+        Returns:
+            tuple: (cv2.VideoCapture, 是否成功)
+        """
+        try:
+            if isinstance(camera_id, str):
+                cap = cv2.VideoCapture(camera_id, api_id)
+            else:
+                cap = cv2.VideoCapture(int(camera_id), api_id)
+                
+            if not cap.isOpened():
+                print(f"无法打开摄像头 {camera_id} (API: {api_name}, 尝试 {attempt})")
+                return None, False
+                
+            # 设置摄像头参数
+            cap.set(cv2.CAP_PROP_FOURCC, cv2.VideoWriter_fourcc('M','J','P','G'))
+            cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+            cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+            cap.set(cv2.CAP_PROP_FPS, 30)
+            
+            # 等待摄像头初始化
+            time.sleep(0.5)
+            
+            # 尝试读取第一帧
+            ret, frame = cap.read()
+            if not ret or frame is None:
+                print(f"无法从摄像头 {camera_id} 读取帧 (API: {api_name}, 尝试 {attempt})")
+                cap.release()
+                return None, False
+                
+            # 成功读取到帧
+            print(f"成功打开摄像头 {camera_id} (API: {api_name}, 尝试 {attempt})")
+            print(f"分辨率: {int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))}x{int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))}")
+            print(f"帧率: {cap.get(cv2.CAP_PROP_FPS):.1f}")
+            return cap, True
+            
+        except Exception as e:
+            print(f"尝试打开摄像头 {camera_id} 时出错 (API: {api_name}, 尝试 {attempt}): {str(e)}")
+            if 'cap' in locals():
+                cap.release()
+            return None, False
+
+    def _try_camera_apis(self, camera_id):
+        """尝试使用不同的API打开摄像头
+        
+        Args:
+            camera_id: 摄像头ID，可以是数字或设备路径
+            
+        Returns:
+            tuple: (cv2.VideoCapture对象, 使用的API) 或 (None, None)
+        """
+        apis = [
+            (cv2.CAP_ANY, "ANY"),
+            (cv2.CAP_V4L2, "V4L2"),
+            (cv2.CAP_V4L, "V4L"),
+        ]
+        
+        for api_id, api_name in apis:
+            print(f"\n尝试对摄像头 {camera_id} 使用 {api_name} API...")
+            
+            # 每个API尝试3次
+            for attempt in range(1, 4):
+                cap, success = self._try_open_camera(camera_id, api_id, api_name, attempt)
+                if success:
+                    return cap, api_name
+                elif attempt < 3:  # 不是最后一次尝试
+                    print(f"等待1秒后重试...")
+                    time.sleep(1)
+                    
+            print(f"使用 {api_name} API的所有尝试均失败")
+            
+        return None, None
+
+    def _initialize_camera(self):
+        """初始化摄像头，尝试不同的摄像头ID和API
+        
+        Returns:
+            bool: 是否成功初始化摄像头
+        """
+        print("\n开始初始化摄像头...")
+        
+        # 如果指定了摄像头ID，优先尝试
+        if self.camera_id is not None:
+            print(f"尝试使用指定的摄像头ID: {self.camera_id}")
+            cap, api = self._try_camera_apis(self.camera_id)
+            if cap is not None:
+                self.cap = cap
+                self.api_preference = api
+                print(f"成功初始化指定的摄像头 {self.camera_id}")
+                return True
+            print("指定的摄像头初始化失败，尝试其他摄像头...")
+            
+        # 尝试常用的摄像头索引
+        camera_ids = [0, 1, 2, 3, 4]
+        for camera_id in camera_ids:
+            print(f"\n尝试摄像头索引 {camera_id}...")
+            cap, api = self._try_camera_apis(camera_id)
+            if cap is not None:
+                self.cap = cap
+                self.camera_id = camera_id
+                self.api_preference = api
+                print(f"成功初始化摄像头索引 {camera_id}")
+                return True
+                
+        # 尝试设备文件路径
+        print("\n尝试通过设备文件路径查找摄像头...")
+        import glob
+        device_paths = glob.glob('/dev/video[0-9]*')
+        for device_path in sorted(device_paths):
+            if device_path.endswith(('dec0', 'enc0')):  # 跳过编解码器设备
+                print(f"跳过编解码器设备: {device_path}")
+                continue
+                
+            print(f"\n尝试设备路径: {device_path}")
+            cap, api = self._try_camera_apis(device_path)
+            if cap is not None:
+                self.cap = cap
+                self.camera_id = device_path
+                self.api_preference = api
+                print(f"成功通过设备路径初始化摄像头: {device_path}")
+                return True
+                
+        print("\n无法找到可用的摄像头")
+        return False
     
     def _is_low_performance_device(self):
         """检测当前设备是否为低性能设备，用于优化模型推理参数
@@ -202,109 +339,93 @@ class DetectionService:
         """是否正在自动发送坐标"""
         return self.auto_send_enabled and self.auto_send_thread and self.auto_send_thread.is_alive()
 
-    def initialize(self):
-        """初始化检测服务"""
-        if self.initialized:
-            return True
-            
+    def _cleanup(self):
+        """清理所有资源"""
         try:
-            with self.lock:
-                print("=" * 50)
-                print("正在初始化检测服务...")
+            # 停止自动发送
+            if hasattr(self, 'auto_send_enabled') and self.auto_send_enabled:
+                self.stop_auto_send()
+            
+            # 释放检测器资源
+            if hasattr(self, 'detector') and self.detector:
+                if hasattr(self.detector, 'cleanup'):
+                    self.detector.cleanup()
+                self.detector = None
+            
+            # 释放摄像头资源
+            if hasattr(self, 'cap') and self.cap:
+                self.cap.release()
+                self.cap = None
+            
+            # 重置状态
+            self.initialized = False
+            print("已清理检测器资源")
+            
+        except Exception as e:
+            print(f"清理资源时出错: {str(e)}")
+
+    def initialize(self):
+        """初始化检测服务
+        
+        Returns:
+            bool: 是否成功初始化
+        """
+        try:
+            # 初始化摄像头
+            if not self._initialize_camera():
+                print("初始化检测服务失败: 无法初始化摄像头")
+                return False
+            
+            # 检查是否是低性能设备
+            is_low_perf = self._is_low_performance_device()
+            
+            print(f"\n正在初始化检测器...")
+            print(f"使用摄像头: ID={self.camera_id}, API={self.api_preference}")
+            
+            # 确保模型路径存在
+            if not os.path.exists(self.model_path):
+                print(f"初始化检测服务失败: 模型路径不存在 - {self.model_path}")
+                self._cleanup()
+                return False
                 
-                # 在初始化YOLO检测器前先输出摄像头状态信息
-                print("当前传入的摄像头ID: {}".format(
-                    self.camera_id if self.camera_id is not None else "None (将自动查找可用摄像头)")
-                )
-                
-                # 可以尝试先查看系统中可用的设备
-                try:
-                    import glob
-                    video_devices = sorted(glob.glob('/dev/video*'))
-                    if video_devices:
-                        print(f"系统中可用的视频设备: {video_devices}")
-                    else:
-                        print("未在系统中找到视频设备文件")
-                except Exception as e:
-                    print(f"列出视频设备时出错: {e}")
-                
-                # 创建检测器实例，传入的camera_id可能为None，会触发自动查找
-                print("创建YOLO检测器实例...")
-                # 在检测器初始化时配置模型路径和TPEs参数
-                tpe_count = 2 if self._is_low_performance_device() else 4
-                print(f"基于性能测试，使用线程池大小: {tpe_count}")
-                
-                self.detector = detector.Detector(
+            try:
+                # 创建检测器实例
+                self.detector = detector.rknnPoolExecutor(
                     model_path=self.model_path,
-                    camera_id=self.camera_id,  # 可以是None，会自动寻找可用摄像头
-                    show_img=self.show_img,
-                    TPEs=tpe_count  # 根据设备性能调整线程池大小
+                    TPEs=2 if is_low_perf else 4,  # 低性能设备使用较少线程
+                    func=detector.thread_safe_predict
                 )
                 
-                # 尝试初始化检测器，最多重试2次
-                retry_count = 0
-                max_retries = 2
-                success = False
+                # 添加必要的属性到rknnPoolExecutor实例
+                self.detector.running = False
+                self.detector.detected = False
+                self.detector.position = [0.0, 0.0]
+                self.detector.width = 0.0
+                self.detector.height = 0.0
+                self.detector.confidence = 0.0
+                self.detector.fps = 0.0
                 
-                while retry_count <= max_retries and not success:
-                    try:
-                        if retry_count > 0:
-                            print(f"第 {retry_count} 次重试初始化检测器...")
-                            # 如果重试，切换尝试的摄像头ID，优先考虑1和4
-                            preferred_ids = [1, 4]
-                            for preferred_id in preferred_ids:
-                                if retry_count == 1 and preferred_id != self.camera_id:
-                                    self.detector.camera_id = preferred_id
-                                    print(f"重试时尝试优先使用摄像头ID: {preferred_id}")
-                                    break
-                        else:
-                            print("首次尝试初始化检测器...")
-                            
-                        success = self.detector.initialize()
-                        
-                        if success:
-                            break
-                            
-                    except Exception as e:
-                        print(f"初始化尝试 {retry_count+1} 失败: {e}")
-                        
-                    retry_count += 1
-                    time.sleep(1)  # 等待1秒后重试
+                # 预热检测器
+                print("预热检测器...")
+                ret, frame = self.cap.read()
+                if ret:
+                    self.detector.put(frame)
+                    result, success = self.detector.get()
+                    if not success:
+                        print("警告: 预热过程中无法获取检测结果")
                 
-                if success:
-                    self.initialized = True
-                    self.error_count = 0
-                    # 如果成功初始化，保存实际使用的摄像头ID
-                    self.camera_id = self.detector.camera_id
-                    print(f"检测服务初始化成功，使用摄像头ID: {self.camera_id}")
-                    
-                    # 添加额外的结果日志
-                    try:
-                        # 检测摄像头是否仍然有效
-                        if self.detector.cap and self.detector.cap.isOpened():
-                            width = self.detector.cap.get(cv2.CAP_PROP_FRAME_WIDTH)
-                            height = self.detector.cap.get(cv2.CAP_PROP_FRAME_HEIGHT)
-                            fps = self.detector.cap.get(cv2.CAP_PROP_FPS)
-                            print(f"摄像头工作正常，当前配置: {width}x{height}@{fps}fps")
-                        else:
-                            print("警告：摄像头状态异常，可能需要重新初始化")
-                    except Exception as e:
-                        print(f"获取摄像头状态时出错: {e}")
-                        
-                    print("=" * 50)
-                    return True
-                else:
-                    raise RuntimeError("检测器初始化失败，所有尝试都没有成功")
-                    
+                print("检测器初始化成功")
+                self.initialized = True
+                return True
+                
+            except Exception as e:
+                print(f"创建检测器实例失败: {str(e)}")
+                self._cleanup()
+                return False
+            
         except Exception as e:
             print(f"初始化检测服务失败: {str(e)}")
-            print("建议：")
-            print("1. 检查摄像头物理连接")
-            print("2. 检查摄像头是否被其他应用程序占用")
-            print("3. 尝试重启应用后再试")
-            print("4. 如果问题仍然存在，请尝试指定具体的摄像头ID")
-            print("=" * 50)
-            self.cleanup()
+            self._cleanup()
             return False
     
     def cleanup(self):
@@ -403,50 +524,68 @@ class DetectionService:
             
     def _detection_loop(self):
         """检测主循环"""
-        last_print_time = 0  # 上次打印时间
-        print_interval = 1.0  # 打印间隔（秒）
-        last_detected_status = False  # 上次检测状态
+        last_print_time = 0 # 上次打印时间
+        print_interval = 1.0 # 打印间隔（秒）
+        last_detected_status = False # 上次检测状态
         
         while self.detector and self.detector.running:
             try:
-                if not self.detector.process_frame():
-                    print("处理帧失败")
-                    time.sleep(0.01)  # 短暂暂停避免CPU过载
+                # 获取一帧图像
+                ret, frame = self.cap.read()
+                if not ret:
+                    print("无法获取摄像头帧")
+                    time.sleep(0.01)
                     continue
-                
-                # 定期打印位置信息或检测状态变化时打印
-                current_time = time.time()
-                current_detected = self.detector.detected
-                
-                if (current_time - last_print_time >= print_interval or 
-                    current_detected != last_detected_status):
                     
-                    # 检测状态变化时打印更明显的提示
-                    if current_detected != last_detected_status:
-                        if current_detected:
-                            print("\n=== 状态变化：检测到新目标 ===")
-                        else:
-                            print("\n=== 状态变化：目标丢失 ===")
-                    
-                    if current_detected:
-                        print(f"检测到目标: 位置=({self.detector.position[0]:.3f}, {self.detector.position[1]:.3f}), " +
-                              f"置信度={self.detector.confidence:.2f}, FPS={self.detector.fps:.1f}")
-                    else:
-                        print(f"未检测到目标，FPS={self.detector.fps:.1f}")
-                    
-                    last_print_time = current_time
-                    last_detected_status = current_detected
+                # 将帧提交给检测器
+                self.detector.put(frame)
                 
-                # 检查错误次数
-                if self.error_count >= self.max_errors:
-                    current_time = time.time()
-                    if current_time - self.last_error_time >= self.error_cooldown:
-                        # 重置错误计数
-                        self.error_count = 0
-                    else:
-                        print(f"错误次数过多，等待冷却期结束 ({self.error_cooldown}秒)")
-                        break
+                # 获取检测结果
+                result, success = self.detector.get()
+                if not success or result is None:
+                    print("无法获取检测结果")
+                    time.sleep(0.01)
+                    continue
+                    
+                # 处理检测结果
+                # 寻找置信度最高的检测框
+                max_conf = 0
+                detected = False
+                
+                if len(result) > 0:
+                    result = result[0]  # 获取第一组结果
+                    boxes = result.boxes
+                    if len(boxes) > 0:
+                        # 找出置信度最高的框
+                        box_best = max(boxes, key=lambda box: box.conf[0].cpu().numpy())
+                        # 获取归一化的坐标 (使用xywhn，范围为[0,1])
+                        pos_x, pos_y, width, height = box_best.xywhn[0].cpu().numpy()
                         
+                        # 将坐标转换为[-0.5, 0.5]范围，并确保转换为Python内置float类型
+                        self.detector.position = [float(pos_x - 0.5), float(pos_y - 0.5)]
+                        self.detector.width = float(width)
+                        self.detector.height = float(height)
+                        self.detector.confidence = float(box_best.conf[0].cpu().numpy())
+                        self.detector.detected = True
+                        detected = True
+                
+                if not detected:
+                    self.detector.position = [0.0, 0.0]
+                    self.detector.width = 0.0
+                    self.detector.height = 0.0
+                    self.detector.confidence = 0.0
+                    self.detector.detected = False
+                
+                # 每隔一定时间打印状态
+                current_time = time.time()
+                if current_time - last_print_time >= print_interval:
+                    if detected:
+                        print(f"检测到目标: ({self.detector.position[0]:.3f}, {self.detector.position[1]:.3f})")
+                    elif last_detected_status:
+                        print("目标丢失")
+                    last_detected_status = detected
+                    last_print_time = current_time
+                    
             except Exception as e:
                 print(f"检测循环发生错误: {str(e)}")
                 self.error_count += 1
