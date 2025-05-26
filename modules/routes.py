@@ -26,16 +26,19 @@ posture_monitor = None
 video_stream_handler = None
 serial_handler = None
 detection_service = None
+chatbot_service = None
 
 # 设置依赖服务
 def setup_services(posture_monitor_instance=None, video_stream_instance=None, 
-                  serial_handler_instance=None, detection_service_instance=None):
+                  serial_handler_instance=None, detection_service_instance=None,
+                  chatbot_service_instance=None):
     """设置各个服务模块实例"""
-    global posture_monitor, video_stream_handler, serial_handler, detection_service
+    global posture_monitor, video_stream_handler, serial_handler, detection_service, chatbot_service
     posture_monitor = posture_monitor_instance
     video_stream_handler = video_stream_instance
     serial_handler = serial_handler_instance
     detection_service = detection_service_instance
+    chatbot_service = chatbot_service_instance
 
 # 页面路由
 @routes_bp.route('/')
@@ -1795,4 +1798,115 @@ def stop_detection():
         return jsonify({
             'status': 'error',
             'message': f'停止检测服务出错: {str(e)}'
+        })
+
+# 语音助手相关API
+@routes_bp.route('/api/chatbot/status', methods=['GET'])
+def get_chatbot_status():
+    """获取语音助手状态"""
+    if not chatbot_service:
+        return jsonify({
+            'status': 'error',
+            'message': '语音助手服务未初始化',
+            'initialized': False
+        })
+    
+    return jsonify({
+        'status': 'success',
+        'initialized': True,
+        'message': '语音助手服务已初始化'
+    })
+
+@routes_bp.route('/api/chatbot/send_message', methods=['POST'])
+def send_chatbot_message():
+    """向语音助手发送文本消息"""
+    if not chatbot_service:
+        return jsonify({
+            'status': 'error',
+            'message': '语音助手服务未初始化'
+        })
+    
+    data = request.json
+    message = data.get('message')
+    
+    if not message:
+        return jsonify({
+            'status': 'error',
+            'message': '消息不能为空'
+        })
+    
+    try:
+        response = chatbot_service.send_message(message)
+        return jsonify({
+            'status': 'success',
+            'message': '消息已发送',
+            'response': response
+        })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'发送消息失败: {str(e)}'
+        })
+
+@routes_bp.route('/api/chatbot/speak_text', methods=['POST'])
+def speak_text():
+    """使用语音助手朗读指定文本"""
+    if not chatbot_service:
+        return jsonify({
+            'status': 'error',
+            'message': '语音助手服务未初始化'
+        })
+    
+    data = request.json
+    text = data.get('text')
+    
+    if not text:
+        return jsonify({
+            'status': 'error',
+            'message': '文本不能为空'
+        })
+    
+    try:
+        success = chatbot_service.speak_text(text)
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': '文本朗读成功'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': '文本朗读失败'
+            })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'文本朗读出错: {str(e)}'
+        })
+
+@routes_bp.route('/api/chatbot/reset', methods=['POST'])
+def reset_chatbot():
+    """重置语音助手对话上下文"""
+    if not chatbot_service:
+        return jsonify({
+            'status': 'error',
+            'message': '语音助手服务未初始化'
+        })
+    
+    try:
+        success = chatbot_service.reset()
+        if success:
+            return jsonify({
+                'status': 'success',
+                'message': '语音助手对话上下文已重置'
+            })
+        else:
+            return jsonify({
+                'status': 'error',
+                'message': '重置语音助手对话上下文失败'
+            })
+    except Exception as e:
+        return jsonify({
+            'status': 'error',
+            'message': f'重置语音助手对话上下文出错: {str(e)}'
         })

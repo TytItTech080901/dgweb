@@ -10,6 +10,11 @@ import time
 # 导入配置
 from config import OPEN_HOST, OPEN_PORT, SERIAL_BAUDRATE
 
+# 语音助手配置
+ENABLE_CHATBOT = True  # 是否启用语音助手
+ENABLE_WELCOME_MESSAGE = True  # 是否启用欢迎消息
+AUTO_START_CHATBOT_LOOP = True  # 是否自动启动语音助手对话循环
+
 # 导入各个功能模块
 from modules.database_module import init_database
 from modules.video_stream_module import VideoStreamHandler
@@ -17,6 +22,7 @@ from modules.posture_module import WebPostureMonitor, PROCESS_WIDTH, PROCESS_HEI
 from modules.serial_module import SerialCommunicationHandler
 from modules.routes import routes_bp, setup_services
 from modules.detection_module import DetectionService
+from modules.chatbot_module import ChatbotService
 
 def create_app():
     """创建并配置Flask应用"""
@@ -140,12 +146,42 @@ def create_app():
         except Exception as e:
             print(f"设置串口处理器失败: {str(e)}")
 
+    # 初始化语音助手服务
+    chatbot_service = None
+    if ENABLE_CHATBOT:
+        try:
+            print("\n==================================================")
+            print("正在初始化语音助手服务...")
+            chatbot_service = ChatbotService()
+            if chatbot_service.initialize():
+                print("语音助手服务初始化成功")
+                
+                # 发送欢迎消息，获取自我介绍
+                if ENABLE_WELCOME_MESSAGE:
+                    try:
+                        print("正在请求语音助手自我介绍...")
+                        msg = "你好，请简要介绍一下自己的功能，不要举例。"
+                        response = chatbot_service.send_message(msg)
+                        print(f"语音助手自我介绍: {response}")
+                        time.sleep(2)
+                    except Exception as e:
+                        print(f"语音助手自我介绍时出错: {str(e)}")
+            else:
+                print("语音助手服务初始化失败")
+                chatbot_service = None
+        except Exception as e:
+            print(f"初始化语音助手服务时出错: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            chatbot_service = None
+
     # 设置路由模块依赖的服务
     setup_services(
         posture_monitor_instance=posture_monitor,
         video_stream_instance=video_stream_handler,
         serial_handler_instance=serial_handler,
-        detection_service_instance=detection_service
+        detection_service_instance=detection_service,
+        chatbot_service_instance=chatbot_service
     )
     
     # 注册应用退出时的清理函数
@@ -157,8 +193,38 @@ def create_app():
             serial_handler.cleanup()
         if detection_service and detection_available:
             detection_service.stop()
+        if chatbot_service:
+            print("正在关闭语音助手服务...")
+            try:
+                chatbot_service.reset()
+            except:
+                pass
     
     atexit.register(cleanup)
+    
+    # 如果启用了语音助手并设置为自动启动对话循环，则在单独的线程中启动
+    if chatbot_service and AUTO_START_CHATBOT_LOOP:
+        import threading
+
+        msg = "现在,你可以随时跟我说话哦!"
+        chatbot_service.speak_text(msg)
+
+        def chatbot_loop():
+            print("语音助手对话循环已启动，随时准备接收语音指令...")
+            try:
+                while True:
+                    try:
+                        chatbot_service.chat_loop()
+                    except Exception as e:
+                        print(f"语音助手对话循环出错: {str(e)}")
+                        time.sleep(2)  # 出错后等待2秒重试
+            except KeyboardInterrupt:
+                print("语音助手对话循环被手动终止")
+                
+        # 创建并启动语音助手线程
+        chatbot_thread = threading.Thread(target=chatbot_loop, daemon=True)
+        chatbot_thread.start()
+        print("语音助手线程已启动")
     
     return app
 
