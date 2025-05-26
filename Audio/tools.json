@@ -2,18 +2,55 @@
     {
         "type": "function",
         "function": {
-            "name": "set_yaw_angle",
-            "description": "设置yaw轴角度,成功返回success,失败返回error",
+            "name": "light_on",
+            "description": "打开灯,成功返回success,失败返回error",
             "parameters": {
                 "type": "object",
                 "properties": {
-                    "angle": {
-                        "type": "string",
-                        "description": "角度,单位度"
-                    }
                 },
                 "required": [
-                    "angle"
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "light_off",
+            "description": "关闭灯,成功返回success,失败返回error",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                },
+                "required": [
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "light_brighter",
+            "description": "调亮灯光,成功返回success,失败返回error",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                },
+                "required": [
+                ]
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "light_dimmer",
+            "description": "调暗灯光,成功返回success,失败返回error",
+            "parameters": {
+                "type": "object",
+                "properties": {
+                },
+                "required": [
                 ]
             }
         }
