@@ -445,7 +445,9 @@
         <header>
             <h1>曈灵智能台灯家长端</h1>
             <p class="subtitle">全面了解孩子的坐姿习惯及改善效果</p>
+            {% if debug_button_visible %}
             <button onclick="goToDebugPage()" class="btn-debug">调试页面</button>
+            {% endif %}
         </header>
 
         <!-- 添加标签页导航 -->

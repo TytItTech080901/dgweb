@@ -7,6 +7,13 @@ import queue
 import time
 import traceback
 import importlib.util
+import sys
+from pathlib import Path
+
+# 添加项目根目录到Python路径
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
+from config import DEBUG_BUTTON_VISIBLE  # 从config导入调试按钮显示配置
 from modules.database_module import save_record_to_db, get_history_records, clear_history, clear_all_posture_records
 from modules.posture_module import WebPostureMonitor, posture_params
 
@@ -43,7 +50,7 @@ def setup_services(posture_monitor_instance=None, video_stream_instance=None,
 # 页面路由
 @routes_bp.route('/')
 def index():
-    return render_template('main.html')
+    return render_template('main.html', debug_button_visible=DEBUG_BUTTON_VISIBLE)
 
 # 目标检测页面路由
 @routes_bp.route('/detection')
@@ -1910,3 +1917,31 @@ def reset_chatbot():
             'status': 'error',
             'message': f'重置语音助手对话上下文出错: {str(e)}'
         })
+
+# 命令控制API
+@routes_bp.route('/api/command', methods=['POST'])
+def send_command():
+    """发送控制命令到设备"""
+    if not serial_handler:
+        return jsonify({
+            'success': False,
+            'message': '串口通信未初始化'
+        }), 503
+    
+    # 获取命令数据
+    command_data = request.json
+    
+    if not command_data:
+        return jsonify({
+            'success': False,
+            'message': '无效的命令数据'
+        }), 400
+    
+    # 调用send_command方法
+    response, message = serial_handler.send_command(command_data)
+    
+    return jsonify({
+        'success': response is not None,
+        'message': message,
+        'response': response
+    })

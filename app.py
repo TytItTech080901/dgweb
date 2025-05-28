@@ -8,12 +8,7 @@ from flask import Flask
 import time
 
 # 导入配置
-from config import OPEN_HOST, OPEN_PORT, SERIAL_BAUDRATE
-
-# 语音助手配置
-ENABLE_CHATBOT = True  # 是否启用语音助手
-ENABLE_WELCOME_MESSAGE = True  # 是否启用欢迎消息
-AUTO_START_CHATBOT_LOOP = True  # 是否自动启动语音助手对话循环
+from config import OPEN_HOST, OPEN_PORT, SERIAL_BAUDRATE, DEBUG_BUTTON_VISIBLE, ENABLE_CHATBOT, ENABLE_WELCOME_MESSAGE, AUTO_START_CHATBOT_LOOP
 
 # 导入各个功能模块
 from modules.database_module import init_database
@@ -160,7 +155,7 @@ def create_app():
                 if ENABLE_WELCOME_MESSAGE:
                     try:
                         print("正在请求语音助手自我介绍...")
-                        msg = "你好，请简要介绍一下自己的功能，不要举例。"
+                        msg = "你好，请简要介绍一下自己的功能，不要举例,不要使用\"嗨\"。"
                         response = chatbot_service.send_message(msg)
                         print(f"语音助手自我介绍: {response}")
                         time.sleep(2)
