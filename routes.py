@@ -9,7 +9,7 @@ import os
 import re
 from datetime import datetime
 import numpy as np
-from config import DEBUG, DB_CONFIG
+from config import DEBUG, DB_CONFIG, DEBUG_BUTTON_VISIBLE
 from db_handler import DBHandler
 from modules.video_stream_module import VideoStreamHandler
 from modules.posture_module import WebPostureMonitor, POSTURE_MODULE_AVAILABLE
@@ -47,7 +47,7 @@ last_event_time = time.time()
 @routes.route('/')
 def index():
     """渲染主页"""
-    return render_template('main.html')
+    return render_template('main.html', debug_button_visible=DEBUG_BUTTON_VISIBLE)
 
 @routes.route('/debug')
 def debug():

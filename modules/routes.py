@@ -7,15 +7,9 @@ import queue
 import time
 import traceback
 import importlib.util
-import sys
-from pathlib import Path
-
-# 添加项目根目录到Python路径
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
-from config import DEBUG_BUTTON_VISIBLE  # 从config导入调试按钮显示配置
 from modules.database_module import save_record_to_db, get_history_records, clear_history, clear_all_posture_records
 from modules.posture_module import WebPostureMonitor, posture_params
+from config import DEBUG_BUTTON_VISIBLE  # 从config导入调试按钮显示配置
 
 # 尝试导入虚拟检测服务模块
 try:
