@@ -562,6 +562,7 @@
             <div class="tab-container" style="margin-top: 20px;">
                 <div class="tab active" onclick="openSubTab(event, 'textMode')">文本模式</div>
                 <div class="tab" onclick="openSubTab(event, 'frameMode')">帧模式</div>
+                <div class="tab" onclick="openSubTab(event, 'protocolMode')">新协议模式</div>
             </div>
             
             <div id="textMode" class="tab-content active">
@@ -599,6 +600,95 @@
                     <div class="frame-value">Yaw: <span id="frameYaw"></span></div>
                     <div class="frame-value">Pitch: <span id="framePitch"></span></div>
                     <div class="timestamp" id="frameTimestamp"></div>
+                </div>
+            </div>
+            
+            <div id="protocolMode" class="tab-content">
+                <!-- 新协议调试面板 -->
+                <div class="control-panel-title">🔧 新协议调试工具</div>
+                
+                <!-- 快捷命令按钮组 -->
+                <div class="command-buttons-grid">
+                    <div class="command-group">
+                        <h4>🔌 电源控制</h4>
+                        <button onclick="sendProtocolCommand(0x00)" class="protocol-btn power">开机</button>
+                        <button onclick="sendProtocolCommand(0x01)" class="protocol-btn power">关机</button>
+                        <button onclick="sendProtocolCommand(0x02)" class="protocol-btn reset">复位</button>
+                    </div>
+                    
+                    <div class="command-group">
+                        <h4>💡 灯光控制</h4>
+                        <button onclick="sendProtocolCommand(0x14)" class="protocol-btn light-on">开灯</button>
+                        <button onclick="sendProtocolCommand(0x15)" class="protocol-btn light-off">关灯</button>
+                        <button onclick="sendProtocolCommand(0x10)" class="protocol-btn brightness">亮度+</button>
+                        <button onclick="sendProtocolCommand(0x11)" class="protocol-btn brightness">亮度-</button>
+                        <button onclick="sendProtocolCommand(0x12)" class="protocol-btn temp">色温+</button>
+                        <button onclick="sendProtocolCommand(0x13)" class="protocol-btn temp">色温-</button>
+                    </div>
+                    
+                    <div class="command-group">
+                        <h4>⚠️ 提醒功能</h4>
+                        <button onclick="sendProtocolCommand(0x20)" class="protocol-btn reminder">坐姿提醒</button>
+                        <button onclick="sendProtocolCommand(0x21)" class="protocol-btn reminder">远眺提醒</button>
+                    </div>
+                </div>
+                
+                <!-- 自定义命令发送 -->
+                <div class="custom-command-section">
+                    <h4>📝 自定义命令</h4>
+                    <div class="custom-command-form">
+                        <div class="form-row">
+                            <label>消息类型:</label>
+                            <select id="protocolDatatype">
+                                <option value="0xA0">0xA0 (上位机->下位机)</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label>命令字:</label>
+                            <input type="text" id="protocolCommand" placeholder="0x00" value="0x00">
+                        </div>
+                        <div class="form-row">
+                            <label>数据域 (8个uint32值):</label>
+                            <div class="data-array-inputs">
+                                <input type="number" id="data0" placeholder="数据0" value="0">
+                                <input type="number" id="data1" placeholder="数据1" value="0">
+                                <input type="number" id="data2" placeholder="数据2" value="0">
+                                <input type="number" id="data3" placeholder="数据3" value="0">
+                                <input type="number" id="data4" placeholder="数据4" value="0">
+                                <input type="number" id="data5" placeholder="数据5" value="0">
+                                <input type="number" id="data6" placeholder="数据6" value="0">
+                                <input type="number" id="data7" placeholder="数据7" value="0">
+                            </div>
+                        </div>
+                        <button onclick="sendCustomProtocolCommand()" class="protocol-btn custom">发送自定义命令</button>
+                    </div>
+                </div>
+                
+                <!-- 协议状态显示 -->
+                <div class="protocol-status-section">
+                    <h4>📊 设备状态 (来自0xB0帧)</h4>
+                    <div class="status-display">
+                        <div class="status-item">
+                            <span class="status-label">设备电源:</span>
+                            <span id="devicePowerStatus" class="status-value">未知</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">灯光状态:</span>
+                            <span id="deviceLightStatus" class="status-value">未知</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">当前亮度:</span>
+                            <span id="deviceBrightness" class="status-value">未知</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">当前色温:</span>
+                            <span id="deviceColorTemp" class="status-value">未知</span>
+                        </div>
+                        <div class="status-item">
+                            <span class="status-label">最后更新:</span>
+                            <span id="deviceLastUpdate" class="status-value">未更新</span>
+                        </div>
+                    </div>
                 </div>
             </div>
             

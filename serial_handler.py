@@ -272,22 +272,9 @@ class SerialHandler:
     def parse_frame(self, data):
         """
         解析下位机发送的帧数据:
-        char start = 's';  //0 帧头取 's'
-        char type;         //1 消息类型：下->上：0xB0, 0xB3等
-        
-        对于0xB0(姿态数据):
-        float yaw;         //2-5 yaw数据
-        float pitch;       //6-9 pitch数据
-        
-        对于0xB3(命令响应):
-        char light_on_ack;       //2 开灯命令确认
-        char light_off_ack;      //3 关灯命令确认
-        char brightness_up_ack;  //4 增加亮度命令确认
-        char brightness_down_ack;//5 减少亮度命令确认
-        char posture_ack;        //6 姿势提醒命令确认
-        char eye_rest_ack;       //7 眼睛休息提醒命令确认
-        
-        char end = 'e';    //31 帧尾取'e'
+        支持多种协议格式:
+        1. 原有协议 (0xB0姿态数据, 0xB3命令响应)
+        2. 新协议 (0xB0设备状态上报)
         """
         if not isinstance(data, (bytes, bytearray)) or len(data) < 32:
             return None
@@ -299,17 +286,34 @@ class SerialHandler:
             msg_type = data[1]  # 消息类型，根据类型解析不同的数据
             
             # 根据消息类型解析不同的数据
-            if msg_type == 0xB0:  # 姿态数据帧
-                # 解析 yaw (2-5) 和 pitch (6-9)，使用小端字节序
-                yaw = struct.unpack('<f', data[2:6])[0]
-                pitch = struct.unpack('<f', data[6:10])[0]
-                
-                return {
-                    'type': msg_type,
-                    'yaw': yaw,
-                    'pitch': pitch
-                }
-            elif msg_type == 0xB3:  # 命令响应帧
+            if msg_type == 0xB0:  # 可能是姿态数据帧或新协议状态帧
+                # 先尝试按新协议解析
+                new_protocol_data = self.parse_new_protocol_frame(data)
+                if new_protocol_data:
+                    # 如果是新协议的0xB0帧，包含设备状态信息
+                    return {
+                        'type': msg_type,
+                        'protocol': 'new',
+                        'command': new_protocol_data['command'],
+                        'device_power': new_protocol_data['data'][0],      # 是否开机
+                        'device_light': new_protocol_data['data'][1],      # 是否开灯
+                        'device_brightness': new_protocol_data['data'][2], # 光照亮度 (0-1000)
+                        'device_colortemp': new_protocol_data['data'][3],  # 光照色温 (3000K-6500K)
+                        'data': new_protocol_data['data']  # 保留原始数据数组
+                    }
+                else:
+                    # 按原协议解析姿态数据
+                    yaw = struct.unpack('<f', data[2:6])[0]
+                    pitch = struct.unpack('<f', data[6:10])[0]
+                    
+                    return {
+                        'type': msg_type,
+                        'protocol': 'legacy',
+                        'yaw': yaw,
+                        'pitch': pitch
+                    }
+                    
+            elif msg_type == 0xB3:  # 命令响应帧(旧协议)
                 # 解析确认字段
                 light_on_ack = data[2] == 1
                 light_off_ack = data[3] == 1
@@ -320,6 +324,7 @@ class SerialHandler:
                 
                 return {
                     'type': msg_type,
+                    'protocol': 'legacy',
                     'light_on_ack': light_on_ack,
                     'light_off_ack': light_off_ack,
                     'brightness_up_ack': brightness_up_ack,
@@ -334,193 +339,57 @@ class SerialHandler:
             print(f"解析帧数据出错: {str(e)}")
             return None
 
-    def send_yaw_pitch(self, find_bool, yaw, pitch):
-        """发送带有 yaw 和 pitch 的数据帧"""
-        try:
-            frame = self.pack_frame(find_bool, yaw, pitch)
-            return self.send_data(frame)
-        except Exception as e:
-            print(f"发送 yaw/pitch 数据出错: {str(e)}")
-            return False
-
-    def read_frame(self):
-        """读取一个完整的数据帧并解析"""
-        if not self.is_connected():
-            return None
-            
-        try:
-            # 读取32字节的完整帧
-            raw_data = self.serial.read(32)
-            if len(raw_data) == 32:
-                return self.parse_frame(raw_data)
-            else:
-                return None
-        except Exception as e:
-            print(f"读取帧数据出错: {str(e)}")
-            return None
-            
-    def start_frame_monitor(self, callback=None):
-        """启动帧监控线程，收到数据时自动调用回调函数"""
-        self._frame_monitor_active = True
-        self._frame_monitor_thread = threading.Thread(
-            target=self._frame_monitor_loop, 
-            args=(callback,),
-            daemon=True
-        )
-        self._frame_monitor_thread.start()
-        
-    def stop_frame_monitor(self):
-        """停止帧监控线程"""
-        self._frame_monitor_active = False
-        if hasattr(self, '_frame_monitor_thread') and self._frame_monitor_thread.is_alive():
-            self._frame_monitor_thread.join(timeout=1.0)
-            
-    def _frame_monitor_loop(self, callback):
-        """帧监控线程的主循环"""
-        print("启动帧数据监控...")
-        while self._frame_monitor_active:
-            if self.is_connected() and self.serial.in_waiting >= 32:
-                frame_data = self.read_frame()
-                if frame_data and callback:
-                    # 如果读取到有效帧数据且设置了回调函数，则调用回调
-                    callback(frame_data)
-            time.sleep(0.01)  # 短暂休眠，避免过度占用CPU
-        print("帧数据监控已停止")
-
-    def pack_detection_frame(self, find_bool, x, y, w, h, conf=0.0, type_byte=0xA2):
+    def pack_new_protocol_frame(self, datatype=0xA0, command=0x00, data_array=None):
         """
-        打包检测坐标数据帧
+        按照新协议格式打包数据帧
         
         Args:
-            find_bool: 是否找到目标 (布尔值)
-            x: 目标中心x坐标 (-0.5到0.5)
-            y: 目标中心y坐标 (-0.5到0.5)
-            w: 目标宽度 (0到1)
-            h: 目标高度 (0到1)
-            conf: 检测置信度 (0到1)
-            type_byte: 帧类型 (默认0xA2 - 检测坐标帧)
+            datatype: 消息类型 (0xA0: 上位机->下位机, 0xB0: 下位机->上位机)
+            command: 命令字
+            data_array: 数据域数组，最多8个uint32值
         
         Returns:
-            打包好的数据帧字节
+            打包好的32字节数据帧
         """
-        # 创建32字节的数据帧
         frame = bytearray(32)
         
-        # 帧头
+        # 帧头 's'
         frame[0] = ord('s')
         
         # 消息类型
-        frame[1] = type_byte  # 0xA2: 检测坐标帧
+        frame[1] = datatype
         
-        # 是否找到目标
-        frame[2] = 1 if find_bool else 0
+        # 命令字
+        frame[2] = command
         
-        # x, y坐标 (使用小端字节序)
-        x_bytes = struct.pack('<f', float(x))
-        y_bytes = struct.pack('<f', float(y))
+        # 数据域 (8个uint32值，每个4字节)
+        if data_array is None:
+            data_array = [0] * 8
         
-        # 复制x坐标到帧
-        for i in range(4):
-            frame[3 + i] = x_bytes[i]
+        # 确保数据数组不超过8个元素
+        data_array = data_array[:8]
+        while len(data_array) < 8:
+            data_array.append(0)
         
-        # 复制y坐标到帧
-        for i in range(4):
-            frame[7 + i] = y_bytes[i]
+        # 打包数据域，使用小端字节序
+        for i, value in enumerate(data_array):
+            uint32_bytes = struct.pack('<I', int(value))  # 'I' 表示无符号32位整数，小端
+            frame[3 + i*4:7 + i*4] = uint32_bytes
         
-        # w, h尺寸数据 (可选)
-        w_bytes = struct.pack('<f', float(w))
-        h_bytes = struct.pack('<f', float(h))
-        
-        # 复制w到帧
-        for i in range(4):
-            frame[11 + i] = w_bytes[i]
-        
-        # 复制h到帧
-        for i in range(4):
-            frame[15 + i] = h_bytes[i]
-        
-        # 置信度数据
-        conf_bytes = struct.pack('<f', float(conf))
-        for i in range(4):
-            frame[19 + i] = conf_bytes[i]
-        
-        # 帧尾
+        # 帧尾 'e'
         frame[31] = ord('e')
         
         return bytes(frame)
-
-    def send_detection_data(self, find_bool, x, y, w, h, conf=0.0):
+    
+    def parse_new_protocol_frame(self, data):
         """
-        发送检测坐标数据
+        解析新协议格式的数据帧
         
         Args:
-            find_bool: 是否找到目标
-            x, y: 目标中心坐标
-            w, h: 目标尺寸
-            conf: 检测置信度
+            data: 接收到的32字节数据
         
         Returns:
-            是否发送成功
-        """
-        # 打包数据帧
-        frame = self.pack_detection_frame(find_bool, x, y, w, h, conf)
-        # 发送数据帧
-        return self.send_data(frame)
-
-    def pack_command_frame(self, light_on=False, light_off=False, brightness_up=False, brightness_down=False, posture_reminder=False, eye_rest_reminder=False, type_byte=0xA3):
-        """
-        打包控制命令帧
-        
-        Args:
-            light_on: 开灯命令 (布尔值)
-            light_off: 关灯命令 (布尔值)
-            brightness_up: 增加亮度 (布尔值)
-            brightness_down: 减少亮度 (布尔值)
-            posture_reminder: 姿势提醒 (布尔值)
-            eye_rest_reminder: 眼睛休息提醒 (布尔值)
-            type_byte: 帧类型 (默认0xA3 - 控制命令帧)
-        
-        Returns:
-            打包好的数据帧字节
-        """
-        # 创建32字节的数据帧
-        frame = bytearray(32)
-        
-        # 帧头
-        frame[0] = ord('s')
-        
-        # 消息类型
-        frame[1] = type_byte  # 0xA3: 控制命令帧
-        
-        # 控制位
-        frame[2] = 1 if light_on else 0            # 开灯控制位
-        frame[3] = 1 if light_off else 0           # 关灯控制位
-        frame[4] = 1 if brightness_up else 0       # 增加亮度控制位
-        frame[5] = 1 if brightness_down else 0     # 减少亮度控制位
-        frame[6] = 1 if posture_reminder else 0    # 姿势提醒控制位
-        frame[7] = 1 if eye_rest_reminder else 0   # 眼睛休息提醒控制位
-        
-        # 保留位 (预留给未来功能)
-        for i in range(8, 31):
-            frame[i] = 0
-        
-        # 帧尾
-        frame[31] = ord('e')
-        
-        return bytes(frame)
-
-    def parse_command_response(self, data):
-        """
-        解析命令响应帧数据:
-        char start = 's';  //0 帧头取 's'
-        char type = 0xB3;  //1 消息类型：下->上：0xB3
-        char light_on_ack;       //2 开灯命令确认
-        char light_off_ack;      //3 关灯命令确认
-        char brightness_up_ack;  //4 增加亮度命令确认
-        char brightness_down_ack;//5 减少亮度命令确认
-        char posture_ack;        //6 姿势提醒命令确认
-        char eye_rest_ack;       //7 眼睛休息提醒命令确认
-        char end = 'e';    //31 帧尾取'e'
+            解析后的数据字典，包含datatype, command, data数组
         """
         if not isinstance(data, (bytes, bytearray)) or len(data) < 32:
             return None
@@ -529,71 +398,65 @@ class SerialHandler:
             return None  # 帧头或帧尾不匹配
             
         try:
-            msg_type = data[1]  # 消息类型，应为0xB3
+            datatype = data[1]  # 消息类型
+            command = data[2]   # 命令字
             
-            if msg_type != 0xB3:
-                return None  # 消息类型不匹配
-                
-            # 解析确认字段
-            light_on_ack = data[2] == 1
-            light_off_ack = data[3] == 1
-            brightness_up_ack = data[4] == 1
-            brightness_down_ack = data[5] == 1
-            posture_ack = data[6] == 1
-            eye_rest_ack = data[7] == 1
+            # 解析数据域 (8个uint32值)
+            data_array = []
+            for i in range(8):
+                start_idx = 3 + i * 4
+                end_idx = start_idx + 4
+                uint32_value = struct.unpack('<I', data[start_idx:end_idx])[0]
+                data_array.append(uint32_value)
             
             return {
-                'type': msg_type,
-                'light_on_ack': light_on_ack,
-                'light_off_ack': light_off_ack,
-                'brightness_up_ack': brightness_up_ack,
-                'brightness_down_ack': brightness_down_ack,
-                'posture_ack': posture_ack,
-                'eye_rest_ack': eye_rest_ack
+                'datatype': datatype,
+                'command': command,
+                'data': data_array
             }
         except Exception as e:
-            print(f"解析命令响应帧数据出错: {str(e)}")
+            print(f"解析新协议帧数据出错: {str(e)}")
             return None
-
-    def send_command(self, light_on=False, light_off=False, brightness_up=False, brightness_down=False, posture_reminder=False, eye_rest_reminder=False):
+    
+    def send_new_protocol_command(self, command, data_array=None):
         """
-        发送控制命令并读取响应
+        发送新协议控制命令
         
         Args:
-            light_on: 开灯命令 (布尔值)
-            light_off: 关灯命令 (布尔值)
-            brightness_up: 增加亮度 (布尔值)
-            brightness_down: 减少亮度 (布尔值)
-            posture_reminder: 姿势提醒 (布尔值)
-            eye_rest_reminder: 眼睛休息提醒 (布尔值)
+            command: 命令字 (如0x00=开机, 0x01=关机等)
+            data_array: 数据域数组 (可选)
         
         Returns:
-            命令响应数据或None(如果发送失败)
+            是否发送成功
         """
         try:
-            # 打包命令帧
-            frame = self.pack_command_frame(
-                light_on, light_off, 
-                brightness_up, brightness_down,
-                posture_reminder, eye_rest_reminder
+            # 打包新协议命令帧
+            frame = self.pack_new_protocol_frame(
+                datatype=0xA0,  # 上位机->下位机
+                command=command,
+                data_array=data_array
             )
             
             # 发送命令帧
-            if not self.send_data(frame):
-                print("发送命令帧失败")
-                return None
+            return self.send_data(frame)
                 
-            # 等待并读取响应帧
-            time.sleep(0.1)  # 给设备一些响应时间
-            
-            # 如果有足够的数据可读，尝试读取响应帧
-            if self.is_connected() and self.serial.in_waiting >= 32:
-                raw_data = self.serial.read(32)
-                if len(raw_data) == 32:
-                    return self.parse_command_response(raw_data)
-            
-            return None
         except Exception as e:
-            print(f"发送命令出错: {str(e)}")
+            print(f"发送新协议命令出错: {str(e)}")
+            return False
+    
+    def read_new_protocol_frame(self):
+        """读取一个新协议格式的数据帧并解析"""
+        if not self.is_connected():
+            return None
+            
+        try:
+            # 读取32字节的完整帧
+            raw_data = self.serial.read(32)
+            if len(raw_data) == 32:
+                return self.parse_new_protocol_frame(raw_data)
+            else:
+                return None
+        except Exception as e:
+            print(f"读取新协议帧数据出错: {str(e)}")
             return None
 
