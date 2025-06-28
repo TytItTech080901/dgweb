@@ -12,15 +12,27 @@ class SerialCommunicationHandler:
     """
     def __init__(self, port=None, baudrate=115200):
         self.handler = SerialHandler(port=port, baudrate=baudrate)
-        self.initialized = True
         self.port = port  # 添加port属性
         self.baudrate = baudrate  # 添加baudrate属性
-        self._frame_queue = queue.Queue(maxsize=100)  # 限制队列大小以避免内存溢出
-        # 启动帧监控
-        self._start_frame_monitor()
+        
+        # 检查串口是否成功连接
+        self.initialized = self.handler.is_connected()
+        
+        if self.initialized:
+            print(f"串口通信处理器初始化成功: {self.handler.port}")
+            self._frame_queue = queue.Queue(maxsize=100)  # 限制队列大小以避免内存溢出
+            # 启动帧监控
+            self._start_frame_monitor()
+        else:
+            print(f"串口通信处理器初始化失败: 无法连接到串口设备")
+            self._frame_queue = None
     
     def _start_frame_monitor(self):
         """启动帧监控，将收到的帧数据放入队列"""
+        if not self.initialized:
+            print("串口未连接，跳过帧监控启动")
+            return
+            
         def frame_callback(frame_data):
             try:
                 # 根据帧类型处理数据

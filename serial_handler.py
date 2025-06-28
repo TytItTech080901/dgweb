@@ -32,18 +32,21 @@ class SerialHandler:
         for port in ports:
             print(f"  - {port.device}: {port.description} [{port.hwid}]")
         
-        # 首先尝试查找STM Virtual COM Port设备
+        # 首先尝试查找STM Virtual COM Port设备或Lampbot设备
         for port in ports:
-            if "0483:5740" in port.hwid or "STMicroelectronics Virtual COM Port" in port.description:
+            if ("0483:5740" in port.hwid or 
+                "STMicroelectronics Virtual COM Port" in port.description or
+                "Lampbot Virtual ComPort" in port.description or
+                "Virtual COM Port" in port.description):
                 try:
-                    print(f"尝试连接STM设备: {port.device}")
+                    print(f"尝试连接VCP设备: {port.device}")
                     self._fix_permission(port.device)
                     test_serial = serial.Serial(port.device, self.baudrate, timeout=1)
                     test_serial.close()
-                    print(f"找到STM Virtual COM Port设备: {port.device}")
+                    print(f"找到VCP设备: {port.device}")
                     return port.device
                 except Exception as e:
-                    print(f"无法连接到STM设备 {port.device}: {str(e)}")
+                    print(f"无法连接到VCP设备 {port.device}: {str(e)}")
                     continue
         
         # 尝试直接使用/dev/ttyACM0
@@ -85,10 +88,21 @@ class SerialHandler:
             
             # 检查当前权限
             try:
-                current_mode = os.stat(port_path).st_mode & 0o777
-                if current_mode & 0o006:  # 检查是否有读写权限
+                stat_info = os.stat(port_path)
+                current_mode = stat_info.st_mode & 0o777
+                print(f"串口设备 {port_path} 当前权限: {oct(current_mode)}")
+                
+                # 检查是否为字符设备
+                import stat
+                if not stat.S_ISCHR(stat_info.st_mode):
+                    print(f"{port_path} 不是字符设备")
+                    return False
+                
+                # 检查是否有读写权限（对于组用户）
+                if current_mode & 0o060:  # 检查组读写权限
                     print(f"串口设备 {port_path} 已有足够权限: {oct(current_mode)}")
                     return True
+                    
             except Exception as e:
                 print(f"无法获取 {port_path} 权限信息: {str(e)}")
             
@@ -101,10 +115,10 @@ class SerialHandler:
             except Exception as e:
                 print(f"无法修改 {port_path} 权限: {str(e)}")
                 
-            return False
+            return True  # 即使权限修改失败，也尝试连接
         except Exception as e:
             print(f"尝试修复权限时出错: {str(e)}")
-            return False
+            return True  # 即使出错，也尝试连接
 
     def connect(self):
         if not self.port:

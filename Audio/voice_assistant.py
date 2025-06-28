@@ -12,7 +12,7 @@ class Agent:
     asr_model = "gummy-chat-v1"  # asr模型名称
     tts_model = "cosyvoice-v1"  # tts模型名称
     tts_voice = "longxiaochun"  # tts语音名称
-    assistant_model = "qwen-plus"  # 大模型名称
+    assistant_model = "qwen-turbo-2025-04-28"  # 大模型名称
 
     assistant = None  # 大模型助手
     thread = None  # 线程
@@ -198,14 +198,14 @@ class Agent:
 
 
 def main():
-    with open("Audio/config.json", "r", encoding="utf-8") as config_file:
+    with open("config.json", "r", encoding="utf-8") as config_file:
         config = json.load(config_file)
     instructions = config["instructions"]
     dashscope.api_key = config["api_key"]
 
     my_agent = Agent(
         instructions=instructions,
-        tools_json_path="Audio/tools.json",
+        tools_json_path="tools.json",
     )
 
     # 关键词模型路径
