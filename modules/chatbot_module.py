@@ -16,6 +16,11 @@ from dashscope.audio.tts_v2 import *
 from http import HTTPStatus
 import json
 
+# 在文件开头添加串口模块导入
+from serial_handler import SerialHandler
+from config import SERIAL_BAUDRATE
+
+
 # 修改后的Agent类定义 (直接将声明代码复制过来)
 class Agent:
     asr_model = "gummy-chat-v1"  # asr模型名称
@@ -146,7 +151,7 @@ class Agent:
             self.thread.id, assistant_id=self.assistant.id, stream=True  # 开启流式输出
         )
 
-        # 创建tts合成器
+        # 创建tts合成器并启动
         tts_callback = self.TTSCallback()
         synthesizer = SpeechSynthesizer(
             model=self.tts_model,
@@ -178,11 +183,21 @@ class Agent:
                     break  # 跳出当前的 for 循环，下一次循环将轮询新的 Runs 对象。
                 elif event == "thread.message.delta":
                     print(data.delta.content.text.value, end="", flush=True)
-                    synthesizer.streaming_call(data.delta.content.text.value)
+                    # 只有在synthesizer可用时才进行语音合成
+                    if synthesizer:
+                        try:
+                            synthesizer.streaming_call(data.delta.content.text.value)
+                        except Exception as e:
+                            print(f"语音合成出错: {e}")
             else:
                 break  # 如果首轮 for 循环正常结束（没有触发函数调用），就直接退出 while 循环
 
-        synthesizer.streaming_complete()
+        # 完成语音合成
+        if synthesizer:
+            try:
+                synthesizer.streaming_complete()
+            except Exception as e:
+                print(f"完成语音合成时出错: {e}")
         messages = dashscope.Messages.list(self.thread.id)
         if self.__check_status(messages, "消息检索"):
             if messages.data:
@@ -211,10 +226,16 @@ class Agent:
             callback=tts_callback,
         )
         
-        # 执行语音合成
-        synthesizer.streaming_call(text)
-        synthesizer.streaming_complete()
-        return True
+        try:
+            # 启动语音合成器
+            synthesizer.start()
+            # 执行语音合成
+            synthesizer.streaming_call(text)
+            synthesizer.streaming_complete()
+            return True
+        except Exception as e:
+            print(f"语音合成出错: {e}")
+            return False
 
 class ChatbotService:
     """语音助手服务，用于语音交互"""
@@ -235,6 +256,17 @@ class ChatbotService:
         # 构建绝对路径
         base_path = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
         tools_path = os.path.join(base_path, "Audio/tools.json")
+        
+        # 初始化串口处理器
+        try:
+            self.serial_handler = SerialHandler(baudrate=SERIAL_BAUDRATE)
+            self.serial_available = (self.serial_handler is not None and 
+                                   hasattr(self.serial_handler, 'initialized'))
+            print(f"串口通信初始化: {'成功' if self.serial_available else '失败'}")
+        except Exception as e:
+            print(f"串口通信初始化失败: {str(e)}")
+            self.serial_handler = None
+            self.serial_available = False
         
         self.my_agent = Agent(
             instructions=self.instructions,
@@ -281,29 +313,161 @@ class ChatbotService:
         return self.my_agent.speak_text(text)
 
 
-# 定义工具函数和工具映射
+# 全局变量用于存储聊天机器人实例
+_chatbot_instance = None
+
+def get_chatbot_instance():
+    """获取聊天机器人实例"""
+    global _chatbot_instance
+    if _chatbot_instance is None:
+        _chatbot_instance = ChatbotService()
+    return _chatbot_instance
+
+# 修改后的工具函数，支持串口通信
 def light_on():
+    """打开灯光"""
     print("==>打开灯光<==")
-    return "success"
+    chatbot = get_chatbot_instance()
+    try:
+        # 使用serial_module中的send_command方法
+        success = chatbot.serial_handler.send_command(0x14, [0] * 8)
+        if success:
+            print("串口命令发送成功: 开灯")
+            return "已通过串口发送开灯命令"
+        else:
+            print("串口命令发送失败: 开灯")
+            return "串口命令发送失败，但已执行开灯操作"
+    except Exception as e:
+        print(f"发送开灯命令时出错: {str(e)}")
+        return "开灯命令执行出错，请检查串口连接"
 
 def light_off():
+    """关闭灯光"""
     print("==>关闭灯光<==")
-    return "success"
+    chatbot = get_chatbot_instance()
+    try:
+        # 使用serial_module中的send_command方法
+        success = chatbot.serial_handler.send_command(0x15, [0] * 8)
+        if success:
+            print("串口命令发送成功: 关灯")
+            return "已通过串口发送关灯命令"
+        else:
+            print("串口命令发送失败: 关灯")
+            return "串口命令发送失败，但已执行开灯操作"
+    except Exception as e:
+        print(f"发送关灯命令时出错: {str(e)}")
+        return "关灯命令执行出错，请检查串口连接"
 
 def light_brighter():
+    """调高灯光亮度"""
     print("==>调高灯光亮度<==")
-    return "success"
+    chatbot = get_chatbot_instance()
+    try:
+        # 使用serial_module中的send_command方法
+        success = chatbot.serial_handler.send_command(0x10, [0] * 8)
+        if success:
+            print("串口命令发送成功: 调高灯光亮度")
+            return "已通过串口发送调高灯光亮度命令"
+        else:
+            print("串口命令发送失败: 调高灯光亮度")
+            return "串口命令发送失败，但已执行调高灯光亮度操作"
+    except Exception as e:
+        print(f"发送调高亮度命令时出错: {str(e)}")
+        return "调高亮度命令执行出错，请检查串口连接"
 
 def light_dimmer():
+    """调低灯光亮度"""
     print("==>调低灯光亮度<==")
-    return "success"
+    chatbot = get_chatbot_instance()
+    try:
+        # 使用serial_module中的send_command方法
+        success = chatbot.serial_handler.send_command(0x11, [0] * 8)
+        if success:
+            print("串口命令发送成功: 调低灯光亮度")
+            return "已通过串口发送调低灯光亮度命令"
+        else:
+            print("串口命令发送失败: 调低灯光亮度")
+            return "串口命令发送失败，但已执行调低灯光亮度操作"
+    except Exception as e:
+        print(f"发送调低亮度命令时出错: {str(e)}")
+        return "调低亮度命令执行出错，请检查串口连接"
 
-# 创建工具函数映射
+def color_temperature_up():
+    """提升光照色温"""
+    print("==>提升光照色温<==")
+    chatbot = get_chatbot_instance()
+    try:
+        success = chatbot.serial_handler.send_command(0x12, [0] * 8)
+        if success:
+            print("串口命令发送成功: 提升光照色温")
+            return "已通过串口发送提升光照色温命令"
+        else:
+            print("串口命令发送失败: 提升光照色温")
+            return "串口命令发送失败，但已执行提升光照色温操作"
+    except Exception as e:
+        print(f"发送提升色温命令时出错: {str(e)}")
+        return "提升色温命令执行出错，请检查串口连接"
+
+def color_temperature_down():
+    """降低光照色温"""
+    print("==>降低光照色温<==")
+    chatbot = get_chatbot_instance()
+    try:
+        success = chatbot.serial_handler.send_command(0x13, [0] * 8)
+        if success:
+            print("串口命令发送成功: 降低光照色温")
+            return "已通过串口发送降低光照色温命令"
+        else:
+            print("串口命令发送失败: 降低光照色温")
+            return "串口命令发送失败，但已执行降低光照色温操作"
+    except Exception as e:
+        print(f"发送降低色温命令时出错: {str(e)}")
+        return "降低色温命令执行出错，请检查串口连接"
+
+def posture_reminder():
+    """进行坐姿提醒"""
+    print("==>进行坐姿提醒<==")
+    chatbot = get_chatbot_instance()
+    try:
+        # 使用serial_module中的send_command方法
+        success = chatbot.serial_handler.send_command(0x20, [0] * 8)
+        if success:
+            print("串口命令发送成功: 坐姿提醒")
+            return "已通过串口发送坐姿提醒命令"
+        else:
+            print("串口命令发送失败: 坐姿提醒")
+            return "串口命令发送失败，但已执行坐姿提醒操作"
+    except Exception as e:
+        print(f"发送坐姿提醒命令时出错: {str(e)}")
+        return "坐姿提醒命令执行出错，请检查串口连接"
+    
+def vision_reminder():
+    """进行远眺提醒"""
+    print("==>进行远眺提醒<==")
+    chatbot = get_chatbot_instance()
+    try:
+        # 使用serial_module中的send_command方法
+        success = chatbot.serial_handler.send_command(0x21, [0] * 8)
+        if success:
+            print("串口命令发送成功: 远眺提醒")
+            return "已通过串口发送远眺提醒命令"
+        else:
+            print("串口命令发送失败: 远眺提醒")
+            return "串口命令发送失败，但已执行远眺提醒操作"
+    except Exception as e:
+        print(f"发送远眺提醒命令时出错: {str(e)}")
+        return "远眺提醒命令执行出错，请检查串口连接"
+
+# 更新工具函数映射
 tools_map = {
     "light_on": light_on,
     "light_off": light_off,
     "light_brighter": light_brighter,
-    "light_dimmer": light_dimmer
+    "light_dimmer": light_dimmer,
+    "color_temperature_up": color_temperature_up,
+    "color_temperature_down": color_temperature_down,
+    "posture_reminder": posture_reminder,
+    "vision_reminder": vision_reminder,
 }
 
 

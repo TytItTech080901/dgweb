@@ -9,7 +9,7 @@ import os
 import re
 from datetime import datetime
 import numpy as np
-from config import DEBUG, DB_CONFIG, DEBUG_BUTTON_VISIBLE
+from config import DEBUG, DB_CONFIG
 from db_handler import DBHandler
 from modules.video_stream_module import VideoStreamHandler
 from modules.posture_module import WebPostureMonitor, POSTURE_MODULE_AVAILABLE
@@ -47,12 +47,17 @@ last_event_time = time.time()
 @routes.route('/')
 def index():
     """渲染主页"""
-    return render_template('main.html', debug_button_visible=DEBUG_BUTTON_VISIBLE)
+    return render_template('main.html')
 
 @routes.route('/debug')
 def debug():
     """渲染调试页面"""
     return render_template('debug.html')
+
+@routes.route('/protocol_debug')
+def protocol_debug():
+    """渲染串口协议调试页面"""
+    return render_template('protocol_debug.html')
 
 @routes.route('/api/status')
 def api_status():
