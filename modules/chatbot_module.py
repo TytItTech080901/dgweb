@@ -17,7 +17,7 @@ from http import HTTPStatus
 import json
 
 # 在文件开头添加串口模块导入
-from .serial_module import SerialCommunicationHandler
+from serial_handler import SerialHandler
 from config import SERIAL_BAUDRATE
 
 
@@ -259,10 +259,9 @@ class ChatbotService:
         
         # 初始化串口处理器
         try:
-            self.serial_handler = SerialCommunicationHandler(baudrate=SERIAL_BAUDRATE)
+            self.serial_handler = SerialHandler(baudrate=SERIAL_BAUDRATE)
             self.serial_available = (self.serial_handler is not None and 
-                                   hasattr(self.serial_handler, 'initialized') and 
-                                   self.serial_handler.initialized)
+                                   hasattr(self.serial_handler, 'initialized'))
             print(f"串口通信初始化: {'成功' if self.serial_available else '失败'}")
         except Exception as e:
             print(f"串口通信初始化失败: {str(e)}")
@@ -329,157 +328,135 @@ def light_on():
     """打开灯光"""
     print("==>打开灯光<==")
     chatbot = get_chatbot_instance()
-    
-    if chatbot.serial_available:
-        try:
-            # 使用serial_module中的send_command方法
-            response, message = chatbot.serial_handler.send_command({
-                'light_on': True
-            })
-            print(f"串口命令结果: {message}")
-            return message
-        except Exception as e:
-            print(f"发送开灯命令时出错: {str(e)}")
-            return "开灯命令执行出错，请检查串口连接"
-    else:
-        print("串口不可用，仅执行模拟开灯操作")
-        return "串口不可用，已执行模拟开灯操作"
+    try:
+        # 使用serial_module中的send_command方法
+        success = chatbot.serial_handler.send_command(0x14, [0] * 8)
+        if success:
+            print("串口命令发送成功: 开灯")
+            return "已通过串口发送开灯命令"
+        else:
+            print("串口命令发送失败: 开灯")
+            return "串口命令发送失败，但已执行开灯操作"
+    except Exception as e:
+        print(f"发送开灯命令时出错: {str(e)}")
+        return "开灯命令执行出错，请检查串口连接"
 
 def light_off():
     """关闭灯光"""
     print("==>关闭灯光<==")
     chatbot = get_chatbot_instance()
-    
-    if chatbot.serial_available:
-        try:
-            # 使用serial_module中的send_command方法
-            response, message = chatbot.serial_handler.send_command({
-                'light_off': True
-            })
-            print(f"串口命令结果: {message}")
-            return message
-        except Exception as e:
-            print(f"发送关灯命令时出错: {str(e)}")
-            return "关灯命令执行出错，请检查串口连接"
-    else:
-        print("串口不可用，仅执行模拟关灯操作")
-        return "串口不可用，已执行模拟关灯操作"
+    try:
+        # 使用serial_module中的send_command方法
+        success = chatbot.serial_handler.send_command(0x15, [0] * 8)
+        if success:
+            print("串口命令发送成功: 关灯")
+            return "已通过串口发送关灯命令"
+        else:
+            print("串口命令发送失败: 关灯")
+            return "串口命令发送失败，但已执行开灯操作"
+    except Exception as e:
+        print(f"发送关灯命令时出错: {str(e)}")
+        return "关灯命令执行出错，请检查串口连接"
 
 def light_brighter():
     """调高灯光亮度"""
     print("==>调高灯光亮度<==")
     chatbot = get_chatbot_instance()
-    
-    if chatbot.serial_available:
-        try:
-            # 使用serial_module中的send_command方法
-            response, message = chatbot.serial_handler.send_command({
-                'brightness_up': True
-            })
-            print(f"串口命令结果: {message}")
-            return message
-        except Exception as e:
-            print(f"发送调高亮度命令时出错: {str(e)}")
-            return "调高亮度命令执行出错，请检查串口连接"
-    else:
-        print("串口不可用，仅执行模拟调高亮度操作")
-        return "串口不可用，已执行模拟调高亮度操作"
+    try:
+        # 使用serial_module中的send_command方法
+        success = chatbot.serial_handler.send_command(0x10, [0] * 8)
+        if success:
+            print("串口命令发送成功: 调高灯光亮度")
+            return "已通过串口发送调高灯光亮度命令"
+        else:
+            print("串口命令发送失败: 调高灯光亮度")
+            return "串口命令发送失败，但已执行调高灯光亮度操作"
+    except Exception as e:
+        print(f"发送调高亮度命令时出错: {str(e)}")
+        return "调高亮度命令执行出错，请检查串口连接"
 
 def light_dimmer():
     """调低灯光亮度"""
     print("==>调低灯光亮度<==")
     chatbot = get_chatbot_instance()
-    
-    if chatbot.serial_available:
-        try:
-            # 使用serial_module中的send_command方法
-            response, message = chatbot.serial_handler.send_command({
-                'brightness_down': True
-            })
-            print(f"串口命令结果: {message}")
-            return message
-        except Exception as e:
-            print(f"发送调低亮度命令时出错: {str(e)}")
-            return "调低亮度命令执行出错，请检查串口连接"
-    else:
-        print("串口不可用，仅执行模拟调低亮度操作")
-        return "串口不可用，已执行模拟调低亮度操作"
+    try:
+        # 使用serial_module中的send_command方法
+        success = chatbot.serial_handler.send_command(0x11, [0] * 8)
+        if success:
+            print("串口命令发送成功: 调低灯光亮度")
+            return "已通过串口发送调低灯光亮度命令"
+        else:
+            print("串口命令发送失败: 调低灯光亮度")
+            return "串口命令发送失败，但已执行调低灯光亮度操作"
+    except Exception as e:
+        print(f"发送调低亮度命令时出错: {str(e)}")
+        return "调低亮度命令执行出错，请检查串口连接"
 
 def color_temperature_up():
     """提升光照色温"""
     print("==>提升光照色温<==")
     chatbot = get_chatbot_instance()
-    
-    if chatbot.serial_available:
-        try:
-            # 目前serial_module中没有色温控制，使用通用数据发送
-            response, message = chatbot.serial_handler.send_data("COLOR_TEMP_UP")
-            print(f"串口命令结果: {message}")
-            return message if message else "已发送提升色温命令"
-        except Exception as e:
-            print(f"发送提升色温命令时出错: {str(e)}")
-            return "提升色温命令执行出错，请检查串口连接"
-    else:
-        print("串口不可用，仅执行模拟提升色温操作")
-        return "串口不可用，已执行模拟提升色温操作"
+    try:
+        success = chatbot.serial_handler.send_command(0x12, [0] * 8)
+        if success:
+            print("串口命令发送成功: 提升光照色温")
+            return "已通过串口发送提升光照色温命令"
+        else:
+            print("串口命令发送失败: 提升光照色温")
+            return "串口命令发送失败，但已执行提升光照色温操作"
+    except Exception as e:
+        print(f"发送提升色温命令时出错: {str(e)}")
+        return "提升色温命令执行出错，请检查串口连接"
 
 def color_temperature_down():
     """降低光照色温"""
     print("==>降低光照色温<==")
     chatbot = get_chatbot_instance()
-    
-    if chatbot.serial_available:
-        try:
-            # 目前serial_module中没有色温控制，使用通用数据发送
-            response, message = chatbot.serial_handler.send_data("COLOR_TEMP_DOWN")
-            print(f"串口命令结果: {message}")
-            return message if message else "已发送降低色温命令"
-        except Exception as e:
-            print(f"发送降低色温命令时出错: {str(e)}")
-            return "降低色温命令执行出错，请检查串口连接"
-    else:
-        print("串口不可用，仅执行模拟降低色温操作")
-        return "串口不可用，已执行模拟降低色温操作"
+    try:
+        success = chatbot.serial_handler.send_command(0x13, [0] * 8)
+        if success:
+            print("串口命令发送成功: 降低光照色温")
+            return "已通过串口发送降低光照色温命令"
+        else:
+            print("串口命令发送失败: 降低光照色温")
+            return "串口命令发送失败，但已执行降低光照色温操作"
+    except Exception as e:
+        print(f"发送降低色温命令时出错: {str(e)}")
+        return "降低色温命令执行出错，请检查串口连接"
 
 def posture_reminder():
     """进行坐姿提醒"""
     print("==>进行坐姿提醒<==")
     chatbot = get_chatbot_instance()
+    try:
+        # 使用serial_module中的send_command方法
+        success = chatbot.serial_handler.send_command(0x20, [0] * 8)
+        if success:
+            print("串口命令发送成功: 坐姿提醒")
+            return "已通过串口发送坐姿提醒命令"
+        else:
+            print("串口命令发送失败: 坐姿提醒")
+            return "串口命令发送失败，但已执行坐姿提醒操作"
+    except Exception as e:
+        print(f"发送坐姿提醒命令时出错: {str(e)}")
+        return "坐姿提醒命令执行出错，请检查串口连接"
     
-    if chatbot.serial_available:
-        try:
-            # 使用serial_module中的send_command方法
-            response, message = chatbot.serial_handler.send_command({
-                'posture_reminder': True
-            })
-            print(f"串口命令结果: {message}")
-            return message
-        except Exception as e:
-            print(f"发送坐姿提醒命令时出错: {str(e)}")
-            return "坐姿提醒命令执行出错，请检查串口连接"
-    else:
-        print("串口不可用，仅执行模拟坐姿提醒操作")
-        return "串口不可用，已执行模拟坐姿提醒操作"
-
 def vision_reminder():
     """进行远眺提醒"""
     print("==>进行远眺提醒<==")
     chatbot = get_chatbot_instance()
-    
-    if chatbot.serial_available:
-        try:
-            # 使用serial_module中的send_command方法
-            response, message = chatbot.serial_handler.send_command({
-                'eye_rest_reminder': True
-            })
-            print(f"串口命令结果: {message}")
-            return message
-        except Exception as e:
-            print(f"发送远眺提醒命令时出错: {str(e)}")
-            return "远眺提醒命令执行出错，请检查串口连接"
-    else:
-        print("串口不可用，仅执行模拟远眺提醒操作")
-        return "串口不可用，已执行模拟远眺提醒操作"
+    try:
+        # 使用serial_module中的send_command方法
+        success = chatbot.serial_handler.send_command(0x21, [0] * 8)
+        if success:
+            print("串口命令发送成功: 远眺提醒")
+            return "已通过串口发送远眺提醒命令"
+        else:
+            print("串口命令发送失败: 远眺提醒")
+            return "串口命令发送失败，但已执行远眺提醒操作"
+    except Exception as e:
+        print(f"发送远眺提醒命令时出错: {str(e)}")
+        return "远眺提醒命令执行出错，请检查串口连接"
 
 # 更新工具函数映射
 tools_map = {
