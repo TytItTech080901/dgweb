@@ -198,14 +198,14 @@ class Agent:
 
 
 def main():
-    with open("Audio/config.json", "r", encoding="utf-8") as config_file:
+    with open("config.json", "r", encoding="utf-8") as config_file:
         config = json.load(config_file)
     instructions = config["instructions"]
     dashscope.api_key = config["api_key"]
 
     my_agent = Agent(
         instructions=instructions,
-        tools_json_path="Audio/tools.json",
+        tools_json_path="tools.json",
     )
 
     # 关键词模型路径

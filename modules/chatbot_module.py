@@ -159,14 +159,6 @@ class Agent:
             format=AudioFormat.PCM_22050HZ_MONO_16BIT,
             callback=tts_callback,
         )
-        
-        # 启动语音合成器
-        try:
-            synthesizer.start()
-        except Exception as e:
-            print(f"启动语音合成器失败: {e}")
-            # 如果TTS启动失败，仍然继续处理，只是不播放语音
-            synthesizer = None
 
         while True:  # 添加外层循环
             for event, data in run:  # 事件流和事件数据的详细信息
