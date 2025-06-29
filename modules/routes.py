@@ -2047,7 +2047,7 @@ def update_guardian_message_status(message_id):
 
 @routes_bp.route('/video_feed')
 def video_feed():
-    """原始视频流接口，支持分辨率参数"""
+    """原始视频流接口，支持分辨率参数，仅返回纯原始视频不带任何文字标记"""
     try:
         # 获取分辨率参数
         resolution = request.args.get('resolution', '480p')
@@ -2075,19 +2075,54 @@ def video_feed():
             print("DEBUG: 视频流未启用，现在启用它")
             video_stream_handler.enable_streaming()
         
-        # 生成原始视频流
-        def generate_raw_video_stream():
+        # 生成纯原始视频流（不带任何标记和处理）
+        def generate_pure_raw_video_stream():
             try:
                 # 启用视频流
                 if not video_stream_handler.get_streaming_status():
                     video_stream_handler.enable_streaming()
                 
-                # 获取视频流
-                for frame in video_stream_handler.generate_raw_video_stream(resolution):
-                    yield frame
+                # 获取原始视频流帧
+                while True:
+                    # 直接使用全局姿势监测器获取原始摄像头帧（不经过任何处理）
+                    global posture_monitor
+                    frame = None
+                    
+                    if posture_monitor and hasattr(posture_monitor, 'cap') and posture_monitor.cap.isOpened():
+                        ret, raw_frame = posture_monitor.cap.read()
+                        if ret and raw_frame is not None and raw_frame.size > 0:
+                            frame = raw_frame.copy()  # 获取完全未处理的原始相机帧
+                    
+                    # 如果无法获取原始帧，使用备用空白帧
+                    if frame is None:
+                        frame = np.ones((480, 640, 3), dtype=np.uint8) * 200
+                    
+                    # 调整分辨率（如果需要）
+                    if resolution != '480p':
+                        resolution_map = {
+                            'high': (720, 540),
+                            'medium': (640, 480),
+                            'low': (320, 240),
+                            '720p': (720, 540),
+                            '480p': (640, 480),
+                            '360p': (480, 360),
+                            '240p': (320, 240)
+                        }
+                        if resolution in resolution_map:
+                            width, height = resolution_map[resolution]
+                            frame = cv2.resize(frame, (width, height))
+                    
+                    # 编码并返回帧
+                    success, buffer = cv2.imencode('.jpg', frame, [int(cv2.IMWRITE_JPEG_QUALITY), 90])
+                    if success:
+                        yield (b'--frame\r\n'
+                               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+                    
+                    # 控制帧率
+                    time.sleep(0.033)  # 约30fps
                     
             except Exception as e:
-                print(f"生成原始视频流出错: {str(e)}")
+                print(f"生成纯原始视频流出错: {str(e)}")
                 import traceback
                 traceback.print_exc()
                 
@@ -2095,25 +2130,22 @@ def video_feed():
                 img = np.ones((480, 640, 3), dtype=np.uint8) * 200
                 
                 # 将图像编码为JPEG并返回
-                try:
-                    success, buffer = cv2.imencode('.jpg', img, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
-                    if success:
-                        yield (b'--frame\r\n'
-                               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
-                except Exception as inner_e:
-                    print(f"生成错误帧时出错: {str(inner_e)}")
+                success, buffer = cv2.imencode('.jpg', img, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+                if success:
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
                 
                 # 防止循环过快
                 time.sleep(2)
         
         # 返回视频流响应
         return Response(
-            stream_with_context(generate_raw_video_stream()),
+            stream_with_context(generate_pure_raw_video_stream()),
             mimetype='multipart/x-mixed-replace; boundary=frame'
         )
         
     except Exception as e:
-        print(f"生成原始视频流出错: {str(e)}")
+        print(f"生成纯原始视频流出错: {str(e)}")
         return "视频流生成失败", 500
 
 @routes_bp.route('/api/guardian/video_status', methods=['GET'])

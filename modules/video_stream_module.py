@@ -697,7 +697,7 @@ class VideoStreamHandler:
         return self.is_streaming
     
     def generate_raw_video_stream(self, resolution_param=None):
-        """生成原始视频流（无处理）用于家长监护
+        """生成原始视频流（完全无处理）用于家长监护
         
         Args:
             resolution_param: 分辨率参数 ('high', 'medium', 'low') 或直接的(width, height)元组
@@ -726,7 +726,7 @@ class VideoStreamHandler:
         
         print(f"DEBUG: 家长监护视频流分辨率设置为 {self.stream_width}x{self.stream_height}")
         
-        # 如果视频流未启动，返回静态信息帧，但确保帧上没有OpenCV添加的任何文本或图形
+        # 如果视频流未启动，返回纯色帧（不添加任何文本）
         if not self.is_streaming:
             # 创建纯色帧，不添加任何文本
             static_frame = np.ones((self.stream_height, self.stream_width, 3), dtype=np.uint8) * 220
@@ -748,25 +748,30 @@ class VideoStreamHandler:
         # 主循环 - 只要流处于活动状态就继续生成帧
         while self.is_streaming:
             try:
-                # 获取要显示的帧
+                # 获取原始摄像头帧 - 完全不添加任何处理
                 frame = None
                 
-                # 获取原始帧 - 完全不做任何处理
-                if hasattr(self, 'last_raw_frame') and self.last_raw_frame is not None and self.last_raw_frame.size > 0:
-                    # 使用最后的原始帧（完全未经处理的）
-                    try:
-                        frame = self.last_raw_frame.copy()
-                    except Exception as e:
-                        print(f"ERROR: 复制原始帧时出错: {str(e)}")
-                        frame = None
+                # 直接访问姿势监测器的摄像头
+                try:
+                    from app import posture_monitor
+                    if posture_monitor and hasattr(posture_monitor, 'cap') and posture_monitor.cap.isOpened():
+                        ret, raw_frame = posture_monitor.cap.read()
+                        if ret and raw_frame is not None and raw_frame.size > 0:
+                            frame = raw_frame.copy()  # 获取完全未处理的原始相机帧
+                            # 保存为最新原始帧
+                            self.last_raw_frame = frame.copy()
+                except Exception as e:
+                    print(f"ERROR: 直接访问摄像头失败: {str(e)}")
                 
-                # 如果没有有效的原始帧，使用一个纯色帧
+                # 如果直接获取失败，尝试使用最近保存的原始帧
+                if frame is None and hasattr(self, 'last_raw_frame') and self.last_raw_frame is not None:
+                    frame = self.last_raw_frame.copy()
+                
+                # 如果没有有效的原始帧，使用纯色帧
                 if frame is None or frame.size == 0:
-                    # 创建一个纯色帧，不添加任何文本
                     frame = np.ones((self.stream_height, self.stream_width, 3), dtype=np.uint8) * 220
-                    print("WARNING: 没有原始视频帧可用，使用纯色帧")
                 
-                # 仅仅调整分辨率，绝对不添加任何文本或图形
+                # 仅调整分辨率，不添加任何文本或叠加
                 if frame.shape[1] != self.stream_width or frame.shape[0] != self.stream_height:
                     try:
                         frame = cv2.resize(frame, (self.stream_width, self.stream_height))
@@ -821,7 +826,7 @@ class VideoStreamHandler:
                 except:
                     # 如果连错误帧都无法编码，使用最简单的空白帧
                     try:
-                        blank_frame = np.zeros((240, 320, 3), dtype=np.uint8)
+                        blank_frame = np.ones((240, 320, 3), dtype=np.uint8) * 220
                         success, encoded_image = cv2.imencode('.jpg', blank_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 60])
                         if success:
                             yield (b'--frame\r\n'
