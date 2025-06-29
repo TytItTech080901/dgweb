@@ -93,6 +93,9 @@ class VideoStreamHandler:
         self.last_pose_frame = self.default_frame.copy()
         self.last_emotion_frame = self.default_frame.copy()
         
+        # 初始化原始帧属性
+        self.last_raw_frame = None
+        
         # 当前流分辨率（可动态调整）
         self.stream_width = process_width if process_width is not None else DEFAULT_STREAM_WIDTH
         self.stream_height = process_height if process_height is not None else DEFAULT_STREAM_HEIGHT
@@ -207,6 +210,12 @@ class VideoStreamHandler:
             return
             
         with self._pose_lock:
+            # 保存原始帧，确保是未经任何处理的原始摄像头图像
+            if frame is not None and frame.size > 0:
+                # 创建一个深拷贝，以确保原始帧不受后续处理的影响
+                self.last_raw_frame = frame.copy()
+            
+            # 处理用于流传输的帧
             resized_frame = self._prepare_frame_for_streaming(frame)
             self.last_pose_frame = resized_frame
             
@@ -664,8 +673,17 @@ class VideoStreamHandler:
     # 添加控制视频流传输的方法
     def enable_streaming(self):
         """启用视频流传输"""
-        self.is_streaming = True
-        print("DEBUG: 视频流传输已启用")
+        if not self.is_streaming:
+            self.is_streaming = True
+            print("DEBUG: 视频流传输已启用")
+            
+            # 预热：确保last_raw_frame已初始化
+            if self.last_raw_frame is None:
+                # 如果没有原始帧，创建一个纯色的初始帧（不添加任何文本）
+                temp_frame = np.ones((self.stream_height, self.stream_width, 3), dtype=np.uint8) * 220
+                self.last_raw_frame = temp_frame
+                print("DEBUG: 初始化last_raw_frame为纯色帧")
+        
         return True
         
     def disable_streaming(self):
@@ -677,3 +695,143 @@ class VideoStreamHandler:
     def get_streaming_status(self):
         """获取视频流传输状态"""
         return self.is_streaming
+    
+    def generate_raw_video_stream(self, resolution_param=None):
+        """生成原始视频流（无处理）用于家长监护
+        
+        Args:
+            resolution_param: 分辨率参数 ('high', 'medium', 'low') 或直接的(width, height)元组
+        """
+        # 设置分辨率
+        original_width, original_height = self.stream_width, self.stream_height
+        
+        # 标准化分辨率参数
+        if resolution_param:
+            if isinstance(resolution_param, str):
+                # 根据字符串参数设置分辨率
+                resolution_map = {
+                    'high': (720, 540),     # 720p equivalent for 4:3
+                    'medium': (640, 480),   # 480p 标准
+                    'low': (320, 240),      # 240p 低分辨率
+                    '720p': (720, 540),
+                    '480p': (640, 480),
+                    '360p': (480, 360),
+                    '240p': (320, 240)
+                }
+                if resolution_param in resolution_map:
+                    self.stream_width, self.stream_height = resolution_map[resolution_param]
+            elif isinstance(resolution_param, tuple) and len(resolution_param) == 2:
+                # 直接使用提供的宽高
+                self.stream_width, self.stream_height = resolution_param
+        
+        print(f"DEBUG: 家长监护视频流分辨率设置为 {self.stream_width}x{self.stream_height}")
+        
+        # 如果视频流未启动，返回静态信息帧，但确保帧上没有OpenCV添加的任何文本或图形
+        if not self.is_streaming:
+            # 创建纯色帧，不添加任何文本
+            static_frame = np.ones((self.stream_height, self.stream_width, 3), dtype=np.uint8) * 220
+            
+            # 压缩并编码为JPEG
+            success, encoded_image = cv2.imencode('.jpg', static_frame, self.stream_params)
+            if success:
+                # 返回静态帧
+                yield (b'--frame\r\n'
+                       b'Content-Type: image/jpeg\r\n\r\n' + encoded_image.tobytes() + b'\r\n')
+            
+            # 恢复原始分辨率
+            self.stream_width, self.stream_height = original_width, original_height
+            return
+        
+        # 计数器，用于周期性检查视频流状态
+        frame_count = 0
+        
+        # 主循环 - 只要流处于活动状态就继续生成帧
+        while self.is_streaming:
+            try:
+                # 获取要显示的帧
+                frame = None
+                
+                # 获取原始帧 - 完全不做任何处理
+                if hasattr(self, 'last_raw_frame') and self.last_raw_frame is not None and self.last_raw_frame.size > 0:
+                    # 使用最后的原始帧（完全未经处理的）
+                    try:
+                        frame = self.last_raw_frame.copy()
+                    except Exception as e:
+                        print(f"ERROR: 复制原始帧时出错: {str(e)}")
+                        frame = None
+                
+                # 如果没有有效的原始帧，使用一个纯色帧
+                if frame is None or frame.size == 0:
+                    # 创建一个纯色帧，不添加任何文本
+                    frame = np.ones((self.stream_height, self.stream_width, 3), dtype=np.uint8) * 220
+                    print("WARNING: 没有原始视频帧可用，使用纯色帧")
+                
+                # 仅仅调整分辨率，绝对不添加任何文本或图形
+                if frame.shape[1] != self.stream_width or frame.shape[0] != self.stream_height:
+                    try:
+                        frame = cv2.resize(frame, (self.stream_width, self.stream_height))
+                    except Exception as e:
+                        print(f"ERROR: 调整帧大小时出错: {str(e)}")
+                        # 使用纯色帧
+                        frame = np.ones((self.stream_height, self.stream_width, 3), dtype=np.uint8) * 220
+                
+                # 压缩并编码为JPEG - 使用高质量设置以保持原始画面质量
+                stream_params = [int(cv2.IMWRITE_JPEG_QUALITY), 95]
+                success, encoded_image = cv2.imencode('.jpg', frame, stream_params)
+                if success:
+                    yield (b'--frame\r\n'
+                           b'Content-Type: image/jpeg\r\n\r\n' + encoded_image.tobytes() + b'\r\n')
+                else:
+                    print("WARNING: 帧编码失败，使用备用帧")
+                    # 使用纯色备用帧
+                    backup_frame = np.ones((self.stream_height, self.stream_width, 3), dtype=np.uint8) * 200
+                    success, backup_encoded = cv2.imencode('.jpg', backup_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+                    if success:
+                        yield (b'--frame\r\n'
+                               b'Content-Type: image/jpeg\r\n\r\n' + backup_encoded.tobytes() + b'\r\n')
+                
+                # 每隔50帧检查一次视频流状态
+                frame_count += 1
+                if frame_count % 50 == 0:
+                    if not self.is_streaming:
+                        print("DEBUG: 视频流已停止，结束流生成")
+                        break
+                
+                # 控制帧率 - 基于当前系统性能动态调整
+                try:
+                    # 低性能设备使用较低帧率
+                    target_fps = min(STREAM_FPS_TARGET, 15)  # 最高15fps以减轻系统负担
+                    sleep_time = max(1.0 / target_fps - 0.01, 0.01)  # 确保至少有一些延迟
+                    time.sleep(sleep_time)
+                except:
+                    # 出错时使用安全的默认值
+                    time.sleep(0.067)  # 约15fps
+                
+            except Exception as e:
+                print(f"ERROR: 生成原始视频流出错: {str(e)}")
+                # 发送纯色错误帧
+                error_frame = np.ones((self.stream_height, self.stream_width, 3), dtype=np.uint8) * 180
+                
+                try:
+                    # 使用高质量设置以确保可以编码
+                    success, encoded_image = cv2.imencode('.jpg', error_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+                    if success:
+                        yield (b'--frame\r\n'
+                               b'Content-Type: image/jpeg\r\n\r\n' + encoded_image.tobytes() + b'\r\n')
+                except:
+                    # 如果连错误帧都无法编码，使用最简单的空白帧
+                    try:
+                        blank_frame = np.zeros((240, 320, 3), dtype=np.uint8)
+                        success, encoded_image = cv2.imencode('.jpg', blank_frame, [int(cv2.IMWRITE_JPEG_QUALITY), 60])
+                        if success:
+                            yield (b'--frame\r\n'
+                                   b'Content-Type: image/jpeg\r\n\r\n' + encoded_image.tobytes() + b'\r\n')
+                    except:
+                        pass
+                
+                # 错误后等待较长时间再重试
+                time.sleep(2)
+        
+        # 恢复原始分辨率设置
+        self.stream_width, self.stream_height = original_width, original_height
+        print("DEBUG: 原始视频流生成结束，已恢复分辨率设置")

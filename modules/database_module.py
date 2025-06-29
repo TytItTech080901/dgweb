@@ -1315,3 +1315,14 @@ def cleanup_old_images(max_images_to_keep=100):
         import traceback
         traceback.print_exc()
         return 0
+
+# 获取数据库处理器实例
+def get_db_handler():
+    """
+    获取数据库处理器实例
+    Returns:
+        DBHandler: 数据库处理器实例
+    """
+    from db_handler import DBHandler
+    db = DBHandler(DB_CONFIG)
+    return db

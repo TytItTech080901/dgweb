@@ -1103,3 +1103,194 @@ def get_posture_distribution():
 def detection_page():
     """渲染目标检测与串口自动发送控制页面"""
     return render_template('detection.html')
+
+@routes.route('/video_feed')
+def video_feed():
+    """提供原始视频流用于家长监护"""
+    try:
+        # 获取分辨率参数
+        resolution = request.args.get('resolution', 'medium')  # 默认中等分辨率
+        
+        # 解析分辨率参数
+        if resolution.endswith('p'):
+            resolution = resolution[:-1]  # 移除'p'后缀
+        
+        resolution_map = {
+            '720': 'high',
+            '480': 'medium', 
+            '240': 'low'
+        }
+        
+        resolution_param = resolution_map.get(resolution, resolution)
+        
+        print(f"请求原始视频流，分辨率参数: {resolution_param}")
+        
+        response = Response(
+            video_stream_handler.generate_raw_video_stream(resolution_param),
+            mimetype='multipart/x-mixed-replace; boundary=frame'
+        )
+        
+        # 添加缓存控制头
+        response.headers['Cache-Control'] = 'no-store, no-cache, must-revalidate, max-age=0'
+        response.headers['Pragma'] = 'no-cache'
+        response.headers['Expires'] = '0'
+        
+        return response
+    except Exception as e:
+        print(f"生成原始视频流出错: {str(e)}")
+        return "视频流生成失败", 500
+
+# =============================================================================
+# 家长监护 - 留言系统API
+# =============================================================================
+
+@routes.route('/api/guardian/send_message', methods=['POST'])
+def send_guardian_message():
+    """发送家长留言"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'status': 'error',
+                'message': '无效的请求数据'
+            }), 400
+        
+        # 获取请求参数
+        sender = data.get('sender', '').strip()
+        content = data.get('content', '').strip()
+        message_type = data.get('type', 'immediate')
+        scheduled_time = data.get('scheduled_time')
+        
+        # 基本验证
+        if not sender:
+            return jsonify({
+                'status': 'error',
+                'message': '发送者身份不能为空'
+            }), 400
+        
+        if not content:
+            return jsonify({
+                'status': 'error',
+                'message': '留言内容不能为空'
+            }), 400
+        
+        # 发送留言
+        result = db.send_guardian_message(sender, content, message_type, scheduled_time)
+        
+        if result['status'] == 'success':
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+        
+    except Exception as e:
+        print(f"发送家长留言API出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'服务器错误: {str(e)}'
+        }), 500
+
+@routes.route('/api/guardian/get_messages', methods=['GET'])
+def get_guardian_messages():
+    """获取家长留言历史"""
+    try:
+        # 获取分页参数
+        limit = request.args.get('limit', 50, type=int)
+        offset = request.args.get('offset', 0, type=int)
+        
+        # 限制参数范围
+        limit = min(max(limit, 1), 100)  # 限制在1-100之间
+        offset = max(offset, 0)
+        
+        # 获取留言历史
+        result = db.get_guardian_messages(limit, offset)
+        
+        if result['status'] == 'success':
+            return jsonify(result)
+        else:
+            return jsonify(result), 500
+        
+    except Exception as e:
+        print(f"获取家长留言历史API出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'服务器错误: {str(e)}'
+        }), 500
+
+@routes.route('/api/guardian/message_status/<int:message_id>', methods=['PUT'])
+def update_guardian_message_status(message_id):
+    """更新留言状态"""
+    try:
+        data = request.get_json()
+        
+        if not data or 'status' not in data:
+            return jsonify({
+                'status': 'error',
+                'message': '缺少status参数'
+            }), 400
+        
+        new_status = data['status']
+        
+        # 更新状态
+        result = db.update_message_status(message_id, new_status)
+        
+        if result['status'] == 'success':
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+        
+    except Exception as e:
+        print(f"更新留言状态API出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'服务器错误: {str(e)}'
+        }), 500
+
+@routes.route('/api/guardian/video_status', methods=['GET'])
+def get_video_stream_status():
+    """获取视频流状态"""
+    try:
+        status = video_stream_handler.get_streaming_status()
+        return jsonify({
+            'status': 'success',
+            'is_streaming': status,
+            'message': '已启用' if status else '已禁用'
+        })
+    except Exception as e:
+        print(f"获取视频流状态API出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'服务器错误: {str(e)}'
+        }), 500
+
+@routes.route('/api/guardian/enable_stream', methods=['POST'])
+def enable_video_stream():
+    """启用视频流"""
+    try:
+        video_stream_handler.enable_streaming()
+        return jsonify({
+            'status': 'success',
+            'message': '视频流已启用'
+        })
+    except Exception as e:
+        print(f"启用视频流API出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'服务器错误: {str(e)}'
+        }), 500
+
+@routes.route('/api/guardian/disable_stream', methods=['POST'])
+def disable_video_stream():
+    """禁用视频流"""
+    try:
+        video_stream_handler.disable_streaming()
+        return jsonify({
+            'status': 'success',
+            'message': '视频流已禁用'
+        })
+    except Exception as e:
+        print(f"禁用视频流API出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'服务器错误: {str(e)}'
+        }), 500

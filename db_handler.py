@@ -78,6 +78,24 @@ class DBHandler:
                     VALUES (0.8, 0.6, 60)
                 """)
             
+            # 创建家长留言表
+            cursor.execute("""
+                CREATE TABLE IF NOT EXISTS guardian_messages (
+                    id INT PRIMARY KEY AUTO_INCREMENT,
+                    sender VARCHAR(50) NOT NULL COMMENT '发送者身份(妈妈/爸爸)',
+                    content TEXT NOT NULL COMMENT '留言内容',
+                    message_type ENUM('immediate', 'scheduled') DEFAULT 'immediate' COMMENT '发送类型',
+                    send_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP COMMENT '发送时间',
+                    scheduled_time TIMESTAMP NULL COMMENT '定时发送时间',
+                    status ENUM('pending', 'sent', 'delivered', 'failed') DEFAULT 'pending' COMMENT '消息状态',
+                    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+                    INDEX idx_send_time (send_time),
+                    INDEX idx_status (status),
+                    INDEX idx_message_type (message_type)
+                )
+            """)
+            
             conn.commit()
             cursor.close()
             conn.close()
@@ -562,3 +580,217 @@ class DBHandler:
                 'labels': ["8-10", "10-12", "12-14", "14-16", "16-18", "18-20"],
                 'data': [0, 0, 0, 0, 0, 0]
             }
+        
+    # 家长留言系统方法
+    def send_guardian_message(self, sender, content, message_type='immediate', scheduled_time=None):
+        """发送家长留言
+        
+        Args:
+            sender: 发送者身份 ('妈妈' 或 '爸爸')
+            content: 留言内容
+            message_type: 消息类型 ('immediate' 或 'scheduled')
+            scheduled_time: 定时发送时间 (仅当message_type='scheduled'时使用)
+        
+        Returns:
+            dict: 包含状态和消息ID的字典
+        """
+        try:
+            conn = self.get_connection()
+            if not conn:
+                return {'status': 'error', 'message': '数据库连接失败'}
+            
+            cursor = conn.cursor()
+            
+            # 验证发送者身份
+            if sender not in ['妈妈', '爸爸']:
+                return {'status': 'error', 'message': '无效的发送者身份'}
+            
+            # 验证留言内容
+            if not content or len(content.strip()) == 0:
+                return {'status': 'error', 'message': '留言内容不能为空'}
+            
+            if len(content) > 200:
+                return {'status': 'error', 'message': '留言内容不能超过200个字符'}
+            
+            # 验证定时发送参数
+            if message_type == 'scheduled':
+                if not scheduled_time:
+                    return {'status': 'error', 'message': '定时发送必须指定发送时间'}
+                
+                # 检查定时时间是否在未来
+                current_time = datetime.now()
+                if isinstance(scheduled_time, str):
+                    try:
+                        scheduled_time = datetime.fromisoformat(scheduled_time.replace('Z', '+00:00'))
+                    except ValueError:
+                        return {'status': 'error', 'message': '无效的时间格式'}
+                
+                if scheduled_time <= current_time:
+                    return {'status': 'error', 'message': '定时发送时间必须在未来'}
+            
+            # 设置消息状态
+            status = 'sent' if message_type == 'immediate' else 'pending'
+            
+            # 插入留言记录
+            query = """
+                INSERT INTO guardian_messages 
+                (sender, content, message_type, scheduled_time, status) 
+                VALUES (%s, %s, %s, %s, %s)
+            """
+            
+            cursor.execute(query, (sender, content.strip(), message_type, scheduled_time, status))
+            message_id = cursor.lastrowid
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            return {
+                'status': 'success',
+                'message': '留言发送成功' if message_type == 'immediate' else '留言已安排定时发送',
+                'message_id': message_id
+            }
+            
+        except Exception as e:
+            print(f"发送家长留言时出错: {str(e)}")
+            return {'status': 'error', 'message': f'发送失败: {str(e)}'}
+    
+    def get_guardian_messages(self, limit=50, offset=0):
+        """获取家长留言历史
+        
+        Args:
+            limit: 返回的最大记录数
+            offset: 偏移量（用于分页）
+        
+        Returns:
+            dict: 包含状态和留言列表的字典
+        """
+        try:
+            conn = self.get_connection()
+            if not conn:
+                return {'status': 'error', 'message': '数据库连接失败'}
+            
+            cursor = conn.cursor(dictionary=True)
+            
+            # 查询留言记录，按发送时间倒序排列
+            query = """
+                SELECT 
+                    id,
+                    sender,
+                    content,
+                    message_type,
+                    send_time,
+                    scheduled_time,
+                    status,
+                    created_at
+                FROM guardian_messages 
+                ORDER BY send_time DESC, created_at DESC
+                LIMIT %s OFFSET %s
+            """
+            
+            cursor.execute(query, (limit, offset))
+            messages = cursor.fetchall()
+            
+            # 获取总数
+            cursor.execute("SELECT COUNT(*) as total FROM guardian_messages")
+            total_count = cursor.fetchone()['total']
+            
+            cursor.close()
+            conn.close()
+            
+            # 格式化时间字段
+            for message in messages:
+                if message['send_time']:
+                    message['send_time'] = message['send_time'].strftime('%Y-%m-%d %H:%M:%S')
+                if message['scheduled_time']:
+                    message['scheduled_time'] = message['scheduled_time'].strftime('%Y-%m-%d %H:%M:%S')
+                if message['created_at']:
+                    message['created_at'] = message['created_at'].strftime('%Y-%m-%d %H:%M:%S')
+            
+            return {
+                'status': 'success',
+                'messages': messages,
+                'total': total_count,
+                'limit': limit,
+                'offset': offset
+            }
+            
+        except Exception as e:
+            print(f"获取家长留言历史时出错: {str(e)}")
+            return {'status': 'error', 'message': f'获取失败: {str(e)}'}
+    
+    def update_message_status(self, message_id, status):
+        """更新留言状态
+        
+        Args:
+            message_id: 留言ID
+            status: 新状态 ('pending', 'sent', 'delivered', 'failed')
+        
+        Returns:
+            dict: 操作结果
+        """
+        try:
+            conn = self.get_connection()
+            if not conn:
+                return {'status': 'error', 'message': '数据库连接失败'}
+            
+            cursor = conn.cursor()
+            
+            # 验证状态值
+            valid_statuses = ['pending', 'sent', 'delivered', 'failed']
+            if status not in valid_statuses:
+                return {'status': 'error', 'message': '无效的状态值'}
+            
+            # 更新状态
+            query = "UPDATE guardian_messages SET status = %s WHERE id = %s"
+            cursor.execute(query, (status, message_id))
+            
+            if cursor.rowcount == 0:
+                cursor.close()
+                conn.close()
+                return {'status': 'error', 'message': '留言记录不存在'}
+            
+            conn.commit()
+            cursor.close()
+            conn.close()
+            
+            return {'status': 'success', 'message': '状态更新成功'}
+            
+        except Exception as e:
+            print(f"更新留言状态时出错: {str(e)}")
+            return {'status': 'error', 'message': f'更新失败: {str(e)}'}
+    
+    def get_pending_scheduled_messages(self):
+        """获取待发送的定时留言
+        
+        Returns:
+            list: 待发送的定时留言列表
+        """
+        try:
+            conn = self.get_connection()
+            if not conn:
+                return []
+            
+            cursor = conn.cursor(dictionary=True)
+            
+            # 查询到达发送时间的待发送定时留言
+            query = """
+                SELECT id, sender, content, scheduled_time 
+                FROM guardian_messages 
+                WHERE message_type = 'scheduled' 
+                AND status = 'pending' 
+                AND scheduled_time <= NOW()
+                ORDER BY scheduled_time ASC
+            """
+            
+            cursor.execute(query)
+            messages = cursor.fetchall()
+            
+            cursor.close()
+            conn.close()
+            
+            return messages
+            
+        except Exception as e:
+            print(f"获取待发送定时留言时出错: {str(e)}")
+            return []

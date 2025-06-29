@@ -7,6 +7,8 @@ import queue
 import time
 import traceback
 import importlib.util
+import numpy as np
+import cv2
 from modules.database_module import save_record_to_db, get_history_records, clear_history, clear_all_posture_records
 from modules.posture_module import WebPostureMonitor, posture_params
 from config import DEBUG_BUTTON_VISIBLE  # 从config导入调试按钮显示配置
@@ -1912,30 +1914,259 @@ def reset_chatbot():
             'message': f'重置语音助手对话上下文出错: {str(e)}'
         })
 
-# 命令控制API
-@routes_bp.route('/api/command', methods=['POST'])
-def send_command():
-    """发送控制命令到设备"""
-    if not serial_handler:
+# =============================================================================
+# 家长监护 - 留言系统API
+# =============================================================================
+
+@routes_bp.route('/api/guardian/send_message', methods=['POST'])
+def send_guardian_message():
+    """发送家长留言"""
+    try:
+        data = request.get_json()
+        
+        if not data:
+            return jsonify({
+                'status': 'error',
+                'message': '无效的请求数据'
+            }), 400
+        
+        # 获取请求参数
+        sender = data.get('sender', '').strip()
+        content = data.get('content', '').strip()
+        message_type = data.get('type', 'immediate')
+        scheduled_time = data.get('scheduled_time')
+        
+        # 基本验证
+        if not sender:
+            return jsonify({
+                'status': 'error',
+                'message': '发送者身份不能为空'
+            }), 400
+        
+        if not content:
+            return jsonify({
+                'status': 'error',
+                'message': '留言内容不能为空'
+            }), 400
+        
+        # 导入数据库处理器
+        from modules.database_module import get_db_handler
+        db = get_db_handler()
+        
+        # 发送留言
+        result = db.send_guardian_message(sender, content, message_type, scheduled_time)
+        
+        if result['status'] == 'success':
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+        
+    except Exception as e:
+        print(f"发送家长留言API出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'服务器错误: {str(e)}'
+        }), 500
+
+@routes_bp.route('/api/guardian/get_messages', methods=['GET'])
+def get_guardian_messages():
+    """获取家长留言历史"""
+    try:
+        # 获取分页参数
+        limit = request.args.get('limit', 50, type=int)
+        offset = request.args.get('offset', 0, type=int)
+        
+        # 限制参数范围
+        limit = min(max(limit, 1), 100)  # 限制在1-100之间
+        offset = max(offset, 0)
+        
+        # 导入数据库处理器
+        from modules.database_module import get_db_handler
+        db = get_db_handler()
+        
+        # 获取留言历史
+        result = db.get_guardian_messages(limit, offset)
+        
+        if result['status'] == 'success':
+            return jsonify({
+                'success': True,
+                'messages': result['messages'],
+                'total': result['total'],
+                'limit': result['limit'],
+                'offset': result['offset']
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'message': result['message']
+            }), 500
+        
+    except Exception as e:
+        print(f"获取家长留言历史API出错: {str(e)}")
         return jsonify({
             'success': False,
-            'message': '串口通信未初始化'
-        }), 503
-    
-    # 获取命令数据
-    command_data = request.json
-    
-    if not command_data:
+            'message': f'服务器错误: {str(e)}'
+        }), 500
+
+@routes_bp.route('/api/guardian/message_status/<int:message_id>', methods=['PUT'])
+def update_guardian_message_status(message_id):
+    """更新留言状态"""
+    try:
+        data = request.get_json()
+        
+        if not data or 'status' not in data:
+            return jsonify({
+                'status': 'error',
+                'message': '缺少状态参数'
+            }), 400
+        
+        status = data['status']
+        
+        # 导入数据库处理器
+        from modules.database_module import get_db_handler
+        db = get_db_handler()
+        
+        # 更新状态
+        result = db.update_message_status(message_id, status)
+        
+        if result['status'] == 'success':
+            return jsonify(result)
+        else:
+            return jsonify(result), 400
+        
+    except Exception as e:
+        print(f"更新留言状态API出错: {str(e)}")
         return jsonify({
-            'success': False,
-            'message': '无效的命令数据'
-        }), 400
-    
-    # 调用send_command方法
-    response, message = serial_handler.send_command(command_data)
-    
-    return jsonify({
-        'success': response is not None,
-        'message': message,
-        'response': response
-    })
+            'status': 'error',
+            'message': f'服务器错误: {str(e)}'
+        }), 500
+
+# =============================================================================
+# 家长监护 - 视频流API
+# =============================================================================
+
+@routes_bp.route('/video_feed')
+def video_feed():
+    """原始视频流接口，支持分辨率参数"""
+    try:
+        # 获取分辨率参数
+        resolution = request.args.get('resolution', '480p')
+        
+        if not video_stream_handler:
+            # 如果视频流处理器未初始化，返回纯色图像（不添加任何文本）
+            error_msg = "视频流处理器未初始化"
+            print(f"ERROR: {error_msg}")
+            
+            # 创建一个纯色图像
+            img = np.ones((480, 640, 3), dtype=np.uint8) * 200
+            
+            # 将图像编码为JPEG并返回
+            success, buffer = cv2.imencode('.jpg', img, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+            if success:
+                return Response(
+                    (b'--frame\r\n'
+                     b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n'),
+                    mimetype='multipart/x-mixed-replace; boundary=frame'
+                )
+            return "视频流处理器未初始化", 503
+        
+        # 确保视频流已启用
+        if not video_stream_handler.get_streaming_status():
+            print("DEBUG: 视频流未启用，现在启用它")
+            video_stream_handler.enable_streaming()
+        
+        # 生成原始视频流
+        def generate_raw_video_stream():
+            try:
+                # 启用视频流
+                if not video_stream_handler.get_streaming_status():
+                    video_stream_handler.enable_streaming()
+                
+                # 获取视频流
+                for frame in video_stream_handler.generate_raw_video_stream(resolution):
+                    yield frame
+                    
+            except Exception as e:
+                print(f"生成原始视频流出错: {str(e)}")
+                import traceback
+                traceback.print_exc()
+                
+                # 创建一个纯色图像，不添加任何文本
+                img = np.ones((480, 640, 3), dtype=np.uint8) * 200
+                
+                # 将图像编码为JPEG并返回
+                try:
+                    success, buffer = cv2.imencode('.jpg', img, [int(cv2.IMWRITE_JPEG_QUALITY), 80])
+                    if success:
+                        yield (b'--frame\r\n'
+                               b'Content-Type: image/jpeg\r\n\r\n' + buffer.tobytes() + b'\r\n')
+                except Exception as inner_e:
+                    print(f"生成错误帧时出错: {str(inner_e)}")
+                
+                # 防止循环过快
+                time.sleep(2)
+        
+        # 返回视频流响应
+        return Response(
+            stream_with_context(generate_raw_video_stream()),
+            mimetype='multipart/x-mixed-replace; boundary=frame'
+        )
+        
+    except Exception as e:
+        print(f"生成原始视频流出错: {str(e)}")
+        return "视频流生成失败", 500
+
+@routes_bp.route('/api/guardian/video_status', methods=['GET'])
+def get_video_status():
+    """获取视频流状态"""
+    try:
+        if not video_stream_handler:
+            return jsonify({
+                'status': 'error',
+                'message': '视频流处理器未初始化',
+                'video_active': False
+            }), 503
+        
+        # 获取当前视频流状态
+        is_streaming = video_stream_handler.get_streaming_status()
+        
+        # 如果请求中包含enable=true参数，启用视频流
+        if request.args.get('enable') == 'true' and not is_streaming:
+            video_stream_handler.enable_streaming()
+            is_streaming = True
+        
+        # 如果请求中包含disable=true参数，禁用视频流
+        if request.args.get('disable') == 'true' and is_streaming:
+            video_stream_handler.disable_streaming()
+            is_streaming = False
+        
+        # 获取当前分辨率
+        width, height = video_stream_handler.stream_width, video_stream_handler.stream_height
+        resolution = f"{width}x{height}"
+        
+        # 尝试获取FPS信息
+        fps = 0
+        try:
+            fps = video_stream_handler.pose_stream_fps.get_fps()
+        except:
+            pass
+        
+        # 检查是否有有效的原始帧
+        has_raw_frame = hasattr(video_stream_handler, 'last_raw_frame') and video_stream_handler.last_raw_frame is not None
+        
+        return jsonify({
+            'status': 'success',
+            'video_active': is_streaming,
+            'has_frame': has_raw_frame,
+            'resolution': resolution,
+            'fps': round(fps, 1),
+            'timestamp': time.strftime('%Y-%m-%d %H:%M:%S')
+        })
+        
+    except Exception as e:
+        print(f"获取视频流状态API出错: {str(e)}")
+        return jsonify({
+            'status': 'error',
+            'message': f'服务器错误: {str(e)}',
+            'video_active': False
+        }), 500

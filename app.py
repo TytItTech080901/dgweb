@@ -179,6 +179,19 @@ def create_app():
         chatbot_service_instance=chatbot_service
     )
     
+    # 初始化家长监护定时处理器
+    try:
+        print("\n==================================================")
+        print("正在初始化家长监护定时处理器...")
+        from guardian_scheduler import init_guardian_scheduler
+        guardian_scheduler = init_guardian_scheduler()
+        print("家长监护定时处理器初始化成功")
+    except Exception as e:
+        print(f"家长监护定时处理器初始化失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        guardian_scheduler = None
+    
     # 注册应用退出时的清理函数
     def cleanup():
         print("正在关闭服务器...")
@@ -194,6 +207,12 @@ def create_app():
                 chatbot_service.reset()
             except:
                 pass
+        # 关闭家长监护定时处理器
+        try:
+            from guardian_scheduler import shutdown_guardian_scheduler
+            shutdown_guardian_scheduler()
+        except:
+            pass
     
     atexit.register(cleanup)
     
