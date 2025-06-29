@@ -3333,12 +3333,25 @@
             messageItem.className = 'message-item' + (messageData.type === 'scheduled' ? ' scheduled' : '');
             
             const now = new Date();
-            const timeStr = messageData.type === 'scheduled' 
-                ? '定时发送 ' + new Date(messageData.scheduled_time).toLocaleString('zh-CN')
-                : now.toLocaleString('zh-CN');
+            let timeStr;
+            if (messageData.type === 'scheduled' && messageData.scheduled_time) {
+                try {
+                    // 尝试安全解析日期
+                    const scheduledDate = new Date(messageData.scheduled_time);
+                    if (!isNaN(scheduledDate.getTime())) {
+                        timeStr = '定时发送 ' + scheduledDate.toLocaleString('zh-CN');
+                    } else {
+                        timeStr = '定时发送 (时间待定)';
+                    }
+                } catch (e) {
+                    timeStr = '定时发送 (时间待定)';
+                }
+            } else {
+                timeStr = now.toLocaleString('zh-CN');
+            }
             
             messageItem.innerHTML = `
-                <div class="sender">${messageData.sender}</div>
+                <div class="sender">${messageData.sender} ✅</div>
                 <div class="content">${messageData.content}</div>
                 <div class="time">${timeStr}</div>
             `;
@@ -3407,13 +3420,13 @@
                 // 格式化时间显示
                 let timeDisplay = '';
                 if (message.message_type === 'scheduled' && message.scheduled_time) {
-                    const scheduledTime = new Date(message.scheduled_time);
+                    // 使用已格式化的时间字符串，无需再次解析
                     timeDisplay = message.status === 'sent' 
-                        ? `定时发送 ${scheduledTime.toLocaleString('zh-CN')}`
-                        : `定时待发 ${scheduledTime.toLocaleString('zh-CN')}`;
+                        ? `定时发送 ${message.scheduled_time}`
+                        : `定时待发 ${message.scheduled_time}`;
                 } else {
-                    const createTime = new Date(message.created_time);
-                    timeDisplay = createTime.toLocaleString('zh-CN');
+                    // 使用已格式化的send_time或created_at
+                    timeDisplay = message.send_time || message.created_at || new Date().toLocaleString('zh-CN');
                 }
                 
                 // 状态标识
@@ -3429,7 +3442,7 @@
                 }
                 
                 messageItem.innerHTML = `
-                    <div class="sender">${message.sender_identity} ${statusIcon}</div>
+                    <div class="sender">${message.sender} ${statusIcon}</div>
                     <div class="content">${message.content}</div>
                     <div class="time">${timeDisplay}</div>
                 `;

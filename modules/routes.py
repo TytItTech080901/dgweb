@@ -1955,6 +1955,7 @@ def send_guardian_message():
         
         # 发送留言
         result = db.send_guardian_message(sender, content, message_type, scheduled_time)
+        print(f"DEBUG: 数据库方法返回结果: {result}")
         
         if result['status'] == 'success':
             return jsonify(result)
@@ -1962,7 +1963,9 @@ def send_guardian_message():
             return jsonify(result), 400
         
     except Exception as e:
-        print(f"发送家长留言API出错: {str(e)}")
+        print(f"ERROR: 发送家长留言API出错: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'status': 'error',
             'message': f'服务器错误: {str(e)}'

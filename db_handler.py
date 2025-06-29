@@ -614,22 +614,57 @@ class DBHandler:
             
             # 验证定时发送参数
             if message_type == 'scheduled':
+                print(f"DEBUG: 处理定时发送，原始时间: {scheduled_time}")
+                
                 if not scheduled_time:
                     return {'status': 'error', 'message': '定时发送必须指定发送时间'}
                 
                 # 检查定时时间是否在未来
                 current_time = datetime.now()
+                print(f"DEBUG: 当前时间: {current_time}")
+                
                 if isinstance(scheduled_time, str):
                     try:
-                        scheduled_time = datetime.fromisoformat(scheduled_time.replace('Z', '+00:00'))
-                    except ValueError:
+                        # 处理UTC时间转换为本地时间
+                        if scheduled_time.endswith('Z'):
+                            # 移除Z后缀并解析为UTC时间
+                            utc_time_str = scheduled_time[:-1]
+                            utc_time = datetime.fromisoformat(utc_time_str)
+                            print(f"DEBUG: UTC时间: {utc_time}")
+                            
+                            # 将UTC时间转换为本地时间（加8小时）
+                            from datetime import timedelta
+                            scheduled_time = utc_time + timedelta(hours=8)
+                            print(f"DEBUG: 转换为本地时间: {scheduled_time}")
+                        else:
+                            # 直接解析为本地时间
+                            scheduled_time = datetime.fromisoformat(scheduled_time)
+                            print(f"DEBUG: 直接解析的本地时间: {scheduled_time}")
+                        
+                    except ValueError as e:
+                        print(f"ERROR: 时间格式解析错误: {str(e)}")
                         return {'status': 'error', 'message': '无效的时间格式'}
                 
-                if scheduled_time <= current_time:
-                    return {'status': 'error', 'message': '定时发送时间必须在未来'}
+                # 确保两个datetime对象都不带时区信息进行比较
+                if hasattr(scheduled_time, 'tzinfo') and scheduled_time.tzinfo is not None:
+                    scheduled_time = scheduled_time.replace(tzinfo=None)
+                if hasattr(current_time, 'tzinfo') and current_time.tzinfo is not None:
+                    current_time = current_time.replace(tzinfo=None)
+                
+                print(f"DEBUG: 时间比较 - 定时时间: {scheduled_time}, 当前时间: {current_time}")
+                
+                # 增加30秒的缓冲时间，避免网络延迟导致的问题
+                from datetime import timedelta
+                buffer_current_time = current_time + timedelta(seconds=30)
+                print(f"DEBUG: 缓冲后的当前时间: {buffer_current_time}")
+                
+                if scheduled_time <= buffer_current_time:
+                    print("ERROR: 定时发送时间不在未来（考虑30秒缓冲）")
+                    return {'status': 'error', 'message': '定时发送时间必须在当前时间30秒之后'}
             
             # 设置消息状态
             status = 'sent' if message_type == 'immediate' else 'pending'
+            print(f"DEBUG: 消息状态设置为: {status}")
             
             # 插入留言记录
             query = """
@@ -652,7 +687,9 @@ class DBHandler:
             }
             
         except Exception as e:
-            print(f"发送家长留言时出错: {str(e)}")
+            print(f"ERROR: 发送家长留言时出错: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return {'status': 'error', 'message': f'发送失败: {str(e)}'}
     
     def get_guardian_messages(self, limit=50, offset=0):
