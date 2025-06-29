@@ -170,6 +170,30 @@ def create_app():
             traceback.print_exc()
             chatbot_service = None
 
+    # 初始化家长监护定时处理器
+    try:
+        print("\n==================================================")
+        print("正在初始化家长监护定时处理器...")
+        from guardian_scheduler import init_guardian_scheduler
+        guardian_scheduler = init_guardian_scheduler()
+        print("家长监护定时处理器初始化成功")
+
+        # 如果语音助手可用，将其设置到定时处理器
+        try:
+            if guardian_scheduler and chatbot_service:
+                guardian_scheduler.chatbot = chatbot_service
+                print("家长监护定时处理器已设置语音助手服务")
+        except Exception as e:
+            print(f"设置家长监护定时处理器的语音助手服务失败: {str(e)}")
+            guardian_scheduler.chatbot = None
+
+    except Exception as e:
+        print(f"家长监护定时处理器初始化失败: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        guardian_scheduler = None
+    
+
     # 设置路由模块依赖的服务
     setup_services(
         posture_monitor_instance=posture_monitor,
@@ -178,20 +202,7 @@ def create_app():
         detection_service_instance=detection_service,
         chatbot_service_instance=chatbot_service
     )
-    
-    # 初始化家长监护定时处理器
-    try:
-        print("\n==================================================")
-        print("正在初始化家长监护定时处理器...")
-        from guardian_scheduler import init_guardian_scheduler
-        guardian_scheduler = init_guardian_scheduler()
-        print("家长监护定时处理器初始化成功")
-    except Exception as e:
-        print(f"家长监护定时处理器初始化失败: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        guardian_scheduler = None
-    
+
     # 注册应用退出时的清理函数
     def cleanup():
         print("正在关闭服务器...")
