@@ -258,6 +258,15 @@
             border-left: 4px solid var(--warning-color);
         }
 
+        .alert-info {
+            background-color: rgba(66, 133, 244, 0.2);
+            border-left: 4px solid var(--primary-color);
+        }
+
+        .alert-info .alert-icon {
+            color: var(--primary-color);
+        }
+
         .alert-icon {
             margin-right: 10px;
             font-size: 1.5rem;
@@ -295,7 +304,7 @@
                 display: block;
             }
 
-            .gallery-item .time {
+            .gallery-item            .time {
                 position: absolute;
                 bottom: 0;
                 left: 0;
@@ -306,6 +315,69 @@
                 font-size: 0.7rem;
                 text-align: center;
             }
+
+        /* 家长监护样式 */
+        .video-container {
+            padding: 15px 0;
+        }
+
+        .video-container img {
+            transition: opacity 0.3s ease;
+        }
+
+        .video-container img:hover {
+            opacity: 0.95;
+        }
+
+        .message-item {
+            background: #f8f9fa;
+            border-radius: 8px;
+            padding: 10px;
+            margin-bottom: 8px;
+            border-left: 3px solid var(--primary-color);
+        }
+
+        .message-item .sender {
+            font-weight: 600;
+            color: var(--primary-color);
+            font-size: 0.9rem;
+            margin-bottom: 3px;
+        }
+
+        .message-item .content {
+            color: var(--text-color);
+            line-height: 1.4;
+            margin-bottom: 5px;
+        }
+
+        .message-item .time {
+            font-size: 0.8rem;
+            color: #666;
+            position: static;
+            background: none;
+            padding: 0;
+        }
+
+        .message-item.scheduled {
+            border-left-color: var(--warning-color);
+            background: rgba(251, 188, 5, 0.1);
+        }
+
+        .message-item.scheduled .sender {
+            color: var(--warning-color);
+        }
+
+        #message-content:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(66, 133, 244, 0.1);
+        }
+
+        select:focus, input[type="date"]:focus, input[type="time"]:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 2px rgba(66, 133, 244, 0.1);
+        }
 
         @media (max-width: 768px) {
             .dashboard {
@@ -455,6 +527,7 @@
             <button class="tab-btn active" onclick="openTab('posture-tab')">坐姿检测</button>
             <button class="tab-btn" onclick="openTab('eye-tab')">用眼情况</button>
             <button class="tab-btn" onclick="openTab('emotion-tab')">情绪反馈</button>
+            <button class="tab-btn" onclick="openTab('guardian-tab')">家长监护</button>
         </div>
 
         <!-- 坐姿检测标签页内容 -->
@@ -701,6 +774,162 @@
                 <button class="btn btn-secondary">
                     <span>⚙️ 设置提醒</span>
                 </button>
+            </div>
+        </div>
+
+        <!-- 家长监护标签页内容 -->
+        <div id="guardian-tab" class="tab-content">
+            <div class="dashboard-title">孩子状态实时监护面板</div>
+            
+            <div class="alert alert-info" style="margin-bottom: 20px;">
+                <div class="alert-icon">👨‍👩‍👧‍👦</div>
+                <div class="alert-content">
+                    <h3>家长监护功能</h3>
+                    <p>通过实时视频流查看孩子状态，并可发送关爱留言。系统将自动调整视频质量以适应网络状况。</p>
+                </div>
+            </div>
+
+            <div class="dashboard">
+                <!-- 实时视频监控卡片 -->
+                <div class="card" style="grid-column: span 2;">
+                    <div class="card-header">
+                        <h2 class="card-title">孩子状态</h2>
+                        <div class="card-icon">📹</div>
+                    </div>
+                    <div class="video-container">
+                        <!-- 视频流容器 -->
+                        <div id="live-video-container" style="position: relative; background: #000; border-radius: 8px; overflow: hidden; min-height: 300px;">
+                            <img id="live-video-stream" 
+                                 src="/video_feed" 
+                                 alt="实时视频流" 
+                                 style="width: 100%; height: auto; display: block;"
+                                 onerror="handleVideoError(this)">
+                            
+                            <!-- 视频状态指示器 -->
+                            <div id="video-status" style="position: absolute; top: 10px; left: 10px; background: rgba(0,0,0,0.7); color: white; padding: 5px 10px; border-radius: 15px; font-size: 12px;">
+                                <span id="status-dot" style="display: inline-block; width: 8px; height: 8px; background: #34a853; border-radius: 50%; margin-right: 5px;"></span>
+                                实时连接
+                            </div>
+                            
+                            <!-- 视频加载中提示 -->
+                            <div id="video-loading" style="position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); color: white; text-align: center; display: none;">
+                                <div style="font-size: 24px; margin-bottom: 10px;">⏳</div>
+                                <div>正在加载视频流...</div>
+                            </div>
+                        </div>
+                        
+                        <!-- 视频控制选项 -->
+                        <div style="margin-top: 15px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <label for="resolution-select" style="font-weight: 500;">分辨率:</label>
+                                <select id="resolution-select" onchange="changeVideoResolution()" style="padding: 5px 10px; border: 1px solid #ddd; border-radius: 4px; background: white;">
+                                    <option value="high">高清 (720p)</option>
+                                    <option value="medium" selected>标清 (480p)</option>
+                                    <option value="low">低清 (240p)</option>
+                                </select>
+                            </div>
+                            
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <span style="font-weight: 500;">网络状态:</span>
+                                <span id="network-status" style="color: #34a853; font-weight: 500;">良好</span>
+                            </div>
+                            
+                            <button onclick="refreshVideoStream()" class="btn" style="padding: 5px 15px; font-size: 14px; background: var(--secondary-color);">
+                                🔄 刷新视频
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 留言功能卡片 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">给孩子留言</h2>
+                        <div class="card-icon">💌</div>
+                    </div>
+                    <div style="padding: 10px 0;">
+                        <!-- 身份选择 -->
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 500;">发送身份：</label>
+                            <div style="display: flex; gap: 10px;">
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="sender-identity" value="妈妈" checked style="cursor: pointer;">
+                                    <span>👩 妈妈</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="sender-identity" value="爸爸" style="cursor: pointer;">
+                                    <span>👨 爸爸</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- 留言内容 -->
+                        <div style="margin-bottom: 15px;">
+                            <label for="message-content" style="display: block; margin-bottom: 8px; font-weight: 500;">留言内容：</label>
+                            <textarea id="message-content" 
+                                    placeholder="写下想对孩子说的话..." 
+                                    style="width: 100%; min-height: 80px; padding: 10px; border: 1px solid #ddd; border-radius: 4px; resize: vertical; font-family: inherit;"
+                                    maxlength="200"></textarea>
+                            <div style="text-align: right; font-size: 12px; color: #666; margin-top: 5px;">
+                                <span id="message-counter">0</span>/200 字符
+                            </div>
+                        </div>
+                        
+                        <!-- 发送选项 -->
+                        <div style="margin-bottom: 15px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 500;">发送方式：</label>
+                            <div style="display: flex; flex-direction: column; gap: 8px;">
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="send-type" value="immediate" checked style="cursor: pointer;" onchange="toggleScheduleOptions()">
+                                    <span>⚡ 立即发送</span>
+                                </label>
+                                <label style="display: flex; align-items: center; gap: 5px; cursor: pointer;">
+                                    <input type="radio" name="send-type" value="scheduled" style="cursor: pointer;" onchange="toggleScheduleOptions()">
+                                    <span>⏰ 定时发送</span>
+                                </label>
+                            </div>
+                        </div>
+                        
+                        <!-- 定时发送选项 -->
+                        <div id="schedule-options" style="display: none; margin-bottom: 15px; padding: 10px; background: #f9f9f9; border-radius: 4px;">
+                            <label style="display: block; margin-bottom: 8px; font-weight: 500;">选择发送时间：</label>
+                            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                                <div style="flex: 1; min-width: 120px;">
+                                    <label style="display: block; margin-bottom: 3px; font-size: 12px; color: #666;">日期：</label>
+                                    <input type="date" id="schedule-date" style="width: 100%; padding: 5px; border: 1px solid #ddd; border-radius: 3px;">
+                                </div>
+                                <div style="flex: 1; min-width: 100px;">
+                                    <label style="display: block; margin-bottom: 3px; font-size: 12px; color: #666;">时间：</label>
+                                    <input type="time" id="schedule-time" style="width: 100%; padding: 5px; border: 1px solid #ddd; border-radius: 3px;">
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 发送按钮 -->
+                        <button onclick="sendMessage()" class="btn btn-primary" style="width: 100%; padding: 10px; font-size: 16px;">
+                            <span id="send-btn-text">💝 发送留言</span>
+                        </button>
+                    </div>
+                </div>
+
+                <!-- 留言历史卡片 -->
+                <div class="card">
+                    <div class="card-header">
+                        <h2 class="card-title">留言历史</h2>
+                        <div class="card-icon">📝</div>
+                    </div>
+                    <div id="message-history" style="max-height: 300px; overflow-y: auto;">
+                        <!-- 留言历史将通过JavaScript动态加载 -->
+                        <div class="loading-indicator" style="text-align: center; padding: 20px; color: #666;">
+                            加载留言历史中...
+                        </div>
+                    </div>
+                    <div style="text-align: center; margin-top: 10px;">
+                        <button onclick="loadMessageHistory()" class="btn btn-secondary" style="padding: 5px 15px; font-size: 14px;">
+                            🔄 刷新历史
+                        </button>
+                    </div>
+                </div>
             </div>
         </div>
     </div>
@@ -1029,6 +1258,9 @@
             
             // 初始化情绪反馈标签页中的图表
             initEmotionCharts();
+            
+            // 初始化家长监护功能
+            initGuardianFeatures();
         });
 
         // 加载最近的坐姿图像记录
@@ -2912,6 +3144,408 @@
                 trend.resize();
                 bar.resize();
                 heatmap.resize();
+            });
+        }
+
+        // 家长监护功能 JavaScript
+        
+        // 初始化页面时的设置
+        // 初始化家长监护功能
+        function initGuardianFeatures() {
+            // 检查家长监护相关元素是否存在
+            const scheduleDateEl = document.getElementById('schedule-date');
+            const scheduleTimeEl = document.getElementById('schedule-time');
+            const messageContentEl = document.getElementById('message-content');
+            const messageCounterEl = document.getElementById('message-counter');
+            
+            if (!scheduleDateEl || !scheduleTimeEl || !messageContentEl || !messageCounterEl) {
+                console.log('家长监护元素未找到，跳过初始化');
+                return;
+            }
+            
+            // 设置默认日期和时间
+            const now = new Date();
+            const tomorrow = new Date(now);
+            tomorrow.setDate(tomorrow.getDate() + 1);
+            
+            scheduleDateEl.value = tomorrow.toISOString().split('T')[0];
+            scheduleTimeEl.value = '18:00';
+            
+            // 初始化留言字符计数器
+            messageContentEl.addEventListener('input', function() {
+                const length = this.value.length;
+                messageCounterEl.textContent = length;
+                
+                // 根据字符数改变颜色
+                if (length > 180) {
+                    messageCounterEl.style.color = '#ea4335';
+                } else if (length > 150) {
+                    messageCounterEl.style.color = '#fbbc05';
+                } else {
+                    messageCounterEl.style.color = '#666';
+                }
+            });
+            
+            // 加载留言历史
+            loadMessageHistory();
+            
+            // 启动视频流监控
+            setupVideoMonitoring();
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // 这个事件监听器已被移到主要的初始化函数中
+            // 保留这里以防有其他独立的功能需要初始化
+        });
+
+        // 切换定时发送选项显示/隐藏
+        function toggleScheduleOptions() {
+            const scheduleOptions = document.getElementById('schedule-options');
+            const sendBtnText = document.getElementById('send-btn-text');
+            const scheduledRadio = document.querySelector('input[name="send-type"][value="scheduled"]');
+            
+            if (scheduledRadio.checked) {
+                scheduleOptions.style.display = 'block';
+                sendBtnText.textContent = '⏰ 定时发送';
+            } else {
+                scheduleOptions.style.display = 'none';
+                sendBtnText.textContent = '💝 发送留言';
+            }
+        }
+
+        // 发送留言
+        function sendMessage() {
+            const senderIdentity = document.querySelector('input[name="sender-identity"]:checked').value;
+            const messageContent = document.getElementById('message-content').value.trim();
+            const sendType = document.querySelector('input[name="send-type"]:checked').value;
+            
+            if (!messageContent) {
+                alert('请输入留言内容！');
+                return;
+            }
+            
+            if (messageContent.length > 200) {
+                alert('留言内容不能超过200个字符！');
+                return;
+            }
+            
+            const messageData = {
+                sender: senderIdentity,
+                content: messageContent,
+                type: sendType
+            };
+            
+            if (sendType === 'scheduled') {
+                const scheduleDate = document.getElementById('schedule-date').value;
+                const scheduleTime = document.getElementById('schedule-time').value;
+                
+                if (!scheduleDate || !scheduleTime) {
+                    alert('请选择发送时间！');
+                    return;
+                }
+                
+                const scheduledDateTime = new Date(scheduleDate + 'T' + scheduleTime);
+                const now = new Date();
+                
+                if (scheduledDateTime <= now) {
+                    alert('定时发送时间必须晚于当前时间！');
+                    return;
+                }
+                
+                messageData.scheduled_time = scheduledDateTime.toISOString();
+            }
+            
+            // 发送留言请求（这里先模拟，实际需要连接后端API）
+            console.log('发送留言:', messageData);
+            
+            // 模拟发送成功
+            setTimeout(() => {
+                alert(sendType === 'immediate' ? '留言发送成功！' : '留言已安排定时发送！');
+                
+                // 清空表单
+                document.getElementById('message-content').value = '';
+                document.getElementById('message-counter').textContent = '0';
+                document.getElementById('message-counter').style.color = '#666';
+                
+                // 添加到留言历史
+                addMessageToHistory(messageData);
+                
+            }, 500);
+        }
+
+        // 添加留言到历史记录
+        function addMessageToHistory(messageData) {
+            const historyContainer = document.getElementById('message-history');
+            const loadingIndicator = historyContainer.querySelector('.loading-indicator');
+            if (loadingIndicator) {
+                loadingIndicator.remove();
+            }
+            
+            const messageItem = document.createElement('div');
+            messageItem.className = 'message-item' + (messageData.type === 'scheduled' ? ' scheduled' : '');
+            
+            const now = new Date();
+            const timeStr = messageData.type === 'scheduled' 
+                ? '定时发送 ' + new Date(messageData.scheduled_time).toLocaleString('zh-CN')
+                : now.toLocaleString('zh-CN');
+            
+            messageItem.innerHTML = `
+                <div class="sender">${messageData.sender}</div>
+                <div class="content">${messageData.content}</div>
+                <div class="time">${timeStr}</div>
+            `;
+            
+            // 插入到顶部
+            historyContainer.insertBefore(messageItem, historyContainer.firstChild);
+            
+            // 如果消息太多，移除最后一个
+            const messages = historyContainer.querySelectorAll('.message-item');
+            if (messages.length > 10) {
+                messages[messages.length - 1].remove();
+            }
+        }
+
+        // 加载留言历史
+        function loadMessageHistory() {
+            const historyContainer = document.getElementById('message-history');
+            
+            // 模拟加载历史数据（实际需要从后端API获取）
+            const mockHistory = [
+                { sender: '妈妈', content: '宝贝，记得保持正确坐姿哦！妈妈爱你💕', time: '2025-06-29 14:30:00', type: 'immediate' },
+                { sender: '爸爸', content: '儿子，学习累了就休息一下，眼睛要保护好！', time: '2025-06-29 10:15:00', type: 'immediate' },
+                { sender: '妈妈', content: '今天表现很棒！晚上有你最爱的红烧肉🍖', time: '2025-06-28 16:45:00', type: 'immediate' }
+            ];
+            
+            historyContainer.innerHTML = '';
+            
+            mockHistory.forEach(message => {
+                const messageItem = document.createElement('div');
+                messageItem.className = 'message-item' + (message.type === 'scheduled' ? ' scheduled' : '');
+                
+                messageItem.innerHTML = `
+                    <div class="sender">${message.sender}</div>
+                    <div class="content">${message.content}</div>
+                    <div class="time">${message.time}</div>
+                `;
+                
+                historyContainer.appendChild(messageItem);
+            });
+        }
+
+        // 更改视频分辨率
+        function changeVideoResolution() {
+            const resolution = document.getElementById('resolution-select').value;
+            const videoStream = document.getElementById('live-video-stream');
+            
+            // 显示加载状态
+            showVideoLoading();
+            
+            // 模拟分辨率切换（实际需要修改视频流URL参数）
+            let newSrc = '/video_feed';
+            switch(resolution) {
+                case 'high':
+                    newSrc += '?resolution=720p';
+                    break;
+                case 'medium':
+                    newSrc += '?resolution=480p';
+                    break;
+                case 'low':
+                    newSrc += '?resolution=240p';
+                    break;
+            }
+            
+            setTimeout(() => {
+                videoStream.src = newSrc;
+                hideVideoLoading();
+                updateNetworkStatus(resolution);
+            }, 1000);
+        }
+
+        // 刷新视频流
+        function refreshVideoStream() {
+            const videoStream = document.getElementById('live-video-stream');
+            showVideoLoading();
+            
+            // 重新加载视频流
+            let currentSrc = videoStream.src;
+            
+            // 移除之前的t参数，避免URL累积
+            currentSrc = currentSrc.split('&t=')[0].split('?t=')[0];
+            
+            // 清空当前源
+            videoStream.src = '';
+            
+            setTimeout(() => {
+                // 添加时间戳参数来强制刷新
+                const separator = currentSrc.includes('?') ? '&' : '?';
+                videoStream.src = currentSrc + separator + 't=' + Date.now();
+                hideVideoLoading();
+            }, 500);
+        }
+
+        // 显示视频加载状态
+        function showVideoLoading() {
+            const videoLoading = document.getElementById('video-loading');
+            const videoStatus = document.getElementById('video-status');
+            
+            if (videoLoading) {
+                videoLoading.style.display = 'block';
+            }
+            if (videoStatus) {
+                videoStatus.style.display = 'none';
+            }
+        }
+
+        // 隐藏视频加载状态
+        function hideVideoLoading() {
+            const videoLoading = document.getElementById('video-loading');
+            const videoStatus = document.getElementById('video-status');
+            
+            if (videoLoading) {
+                videoLoading.style.display = 'none';
+            }
+            if (videoStatus) {
+                videoStatus.style.display = 'block';
+            }
+        }
+
+        // 处理视频错误
+        function handleVideoError(img) {
+            img.style.display = 'none';
+            const container = img.parentElement;
+            
+            // 移除旧的错误提示
+            const oldErrorDiv = container.querySelector('.video-error');
+            if (oldErrorDiv) {
+                oldErrorDiv.remove();
+            }
+            
+            // 创建新的错误提示
+            const errorDiv = document.createElement('div');
+            errorDiv.className = 'video-error';
+            errorDiv.style.cssText = `
+                position: absolute; 
+                top: 50%; 
+                left: 50%; 
+                transform: translate(-50%, -50%); 
+                color: white; 
+                text-align: center; 
+                background: rgba(0,0,0,0.7); 
+                padding: 20px; 
+                border-radius: 8px;
+            `;
+            errorDiv.innerHTML = `
+                <div style="font-size: 24px; margin-bottom: 10px;">📷</div>
+                <div>视频连接失败</div>
+                <div style="font-size: 12px; margin: 10px 0; color: #ccc;">请检查设备连接或网络状态</div>
+                <button onclick="refreshVideoStream()" style="margin-top: 10px; padding: 8px 16px; background: var(--primary-color); color: white; border: none; border-radius: 4px; cursor: pointer; font-size: 14px;">
+                    🔄 重新连接
+                </button>
+            `;
+            container.appendChild(errorDiv);
+            
+            // 更新状态指示器
+            const statusDot = document.getElementById('status-dot');
+            const videoStatus = document.getElementById('video-status');
+            if (statusDot && videoStatus) {
+                statusDot.style.background = '#ea4335';
+                videoStatus.innerHTML = '<span id="status-dot" style="display: inline-block; width: 8px; height: 8px; background: #ea4335; border-radius: 50%; margin-right: 5px;"></span>连接失败';
+            }
+        }
+
+        // 更新网络状态
+        function updateNetworkStatus(resolution) {
+            const networkStatus = document.getElementById('network-status');
+            
+            switch(resolution) {
+                case 'high':
+                    networkStatus.textContent = '优秀';
+                    networkStatus.style.color = '#34a853';
+                    break;
+                case 'medium':
+                    networkStatus.textContent = '良好';
+                    networkStatus.style.color = '#34a853';
+                    break;
+                case 'low':
+                    networkStatus.textContent = '一般';
+                    networkStatus.style.color = '#fbbc05';
+                    break;
+            }
+        }
+
+        // 设置视频监控
+        function setupVideoMonitoring() {
+            const videoStream = document.getElementById('live-video-stream');
+            
+            // 检查视频流元素是否存在
+            if (!videoStream) {
+                console.log('视频流元素未找到，跳过视频监控设置');
+                return;
+            }
+            
+            let reconnectAttempts = 0;
+            const maxReconnectAttempts = 3;
+            
+            // 监控视频加载状态
+            videoStream.onload = function() {
+                hideVideoLoading();
+                reconnectAttempts = 0; // 重置重连尝试次数
+                
+                // 更新状态指示器
+                const statusDot = document.getElementById('status-dot');
+                const videoStatus = document.getElementById('video-status');
+                if (statusDot && videoStatus) {
+                    statusDot.style.background = '#34a853';
+                    videoStatus.innerHTML = '<span id="status-dot" style="display: inline-block; width: 8px; height: 8px; background: #34a853; border-radius: 50%; margin-right: 5px;"></span>实时连接';
+                }
+                
+                // 清除错误提示
+                const errorDiv = videoStream.parentElement.querySelector('.video-error');
+                if (errorDiv) {
+                    errorDiv.remove();
+                }
+                videoStream.style.display = 'block';
+            };
+            
+            // 监控视频错误
+            videoStream.onerror = function() {
+                console.log('视频流连接错误，尝试自动重连...');
+                
+                if (reconnectAttempts < maxReconnectAttempts) {
+                    reconnectAttempts++;
+                    console.log(`第 ${reconnectAttempts} 次重连尝试...`);
+                    
+                    setTimeout(() => {
+                        refreshVideoStream();
+                    }, 2000 * reconnectAttempts); // 递增延迟重连
+                } else {
+                    console.log('达到最大重连次数，停止自动重连');
+                    handleVideoError(this);
+                }
+            };
+            
+            // 定期检查视频流状态（心跳检测）
+            let heartbeatInterval = setInterval(() => {
+                // 检查视频流是否正常工作
+                const videoStatus = document.getElementById('video-status');
+                const statusDot = document.getElementById('status-dot');
+                
+                if (videoStatus && statusDot) {
+                    // 简单的连接状态检测
+                    if (videoStream.src && !videoStream.complete) {
+                        // 视频流可能有问题
+                        console.log('视频流心跳检测：连接可能有问题');
+                        statusDot.style.background = '#fbbc05';
+                        videoStatus.innerHTML = '<span id="status-dot" style="display: inline-block; width: 8px; height: 8px; background: #fbbc05; border-radius: 50%; margin-right: 5px;"></span>连接不稳定';
+                    }
+                }
+            }, 30000); // 每30秒检查一次
+            
+            // 页面卸载时清理定时器
+            window.addEventListener('beforeunload', () => {
+                if (heartbeatInterval) {
+                    clearInterval(heartbeatInterval);
+                }
             });
         }
     </script>
