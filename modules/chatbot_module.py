@@ -225,7 +225,16 @@ class Agent:
             format=AudioFormat.PCM_22050HZ_MONO_16BIT,
             callback=tts_callback,
         )
-    
+        
+        try:
+            # 执行语音合成
+            synthesizer.streaming_call(text)
+            synthesizer.streaming_complete()
+            return True
+        except Exception as e:
+            print(f"语音合成出错: {e}")
+            return False
+
 class ChatbotService:
     """语音助手服务，用于语音交互"""
 
