@@ -2,15 +2,47 @@
 
 一个集成了智能台灯控制、坐姿监测、用眼健康管理、串口通信和AI语音交互的综合性Web系统。
 
-An integrated web system featuring smart lamp control, posture monitoring, eye health management, serial communication, and AI voice interaction.
+An integrated web system featuring smart lamp control, posture monitoring, eye healt# 开放端口配置 | Server Configuration  
+OPEN_HOST = '0.0.0.0'
+OPEN_PORT = 5002  # 默认端口5002，避免冲突anagement, serial communication, and AI voice interaction.
 
 ## 🎯 核心功能 | Core Features
 
 ### 🔊 AI语音助手 | AI Voice Assistant
-- 基于通义千问的智能对话系统 | Intelligent conversation system based on Qwen
-- 实时语音识别与合成 | Real-time speech recognition and synthesis
-- 智能台灯控制指令 | Smart lamp control commands
-- 多轮对话上下文保持 | Multi-turn conversation context maintenance
+- **智能对话系统** | Intelligent conversation system
+  - 基于通义千问大语言模型 | Based on Qwen LLM
+  - 儿童友好的交互方式 | Child-friendly interaction
+  - 多轮对话上下文保持 | Multi-turn conversation context
+- **语音识别与合成** | Speech recognition and synthesis
+  - 实时语音识别(ASR) | Real-time Automatic Speech Recognition
+  - 高质量语音合成(TTS) | High-quality Text-to-Speech
+  - 自适应采样率支持 | Adaptive sample rate support
+- **台灯智能控制** | Smart lamp control
+  - 自然语言命令解析 | Natural language command parsing
+  - 亮度和色温智能调节 | Intelligent brightness and color temperature adjustment
+  - 语音反馈确认 | Voice feedback confirmation
+- **音频设备适配** | Audio device adaptation
+  - 多采样率自动检测 | Multi-sample rate auto-detection
+  - PyAudio兼容性优化 | PyAudio compatibility optimization
+  - 设备状态实时监控 | Real-time device status monitoring
+
+### 👨‍👩‍👧‍👦 家长监护系统 | Parental Guardian System
+- **定时留言功能** | Scheduled messaging
+  - 支持立即发送和定时发送 | Support immediate and scheduled sending
+  - 智能状态管理（pending/sent/failed）| Intelligent status management
+  - 实际发送时间记录 | Actual sending time recording
+- **语音朗读留言** | Voice message playback
+  - 自动TTS语音合成 | Automatic TTS voice synthesis
+  - 多采样率音频适配 | Multi-sample rate audio adaptation
+  - 智能音频设备检测 | Intelligent audio device detection
+- **留言状态跟踪** | Message status tracking
+  - 实时状态更新 | Real-time status updates
+  - 历史记录查询 | Historical record queries
+  - 发送失败重试机制 | Retry mechanism for failed sends
+- **远程关怀功能** | Remote care features
+  - 实时视频监控 | Real-time video monitoring
+  - 家长留言管理界面 | Parental message management interface
+  - 儿童使用情况报告 | Children usage reports
 
 ### 💡 智能台灯控制 | Smart Lamp Control
 - 台灯开关控制 | Lamp on/off control
@@ -48,12 +80,17 @@ Py-server/
 ├── config.py             # 系统配置 | System configuration
 ├── routes.py             # 主路由模块 | Main routing module
 ├── serial_handler.py     # 串口处理器 | Serial handler
+├── db_handler.py         # 数据库处理器 | Database handler
+├── guardian_scheduler.py # 家长监护定时处理器 | Guardian scheduler
+├── test_voice.py         # 语音系统测试 | Voice system test
+├── detect_audio.sh       # 音频设备检测脚本 | Audio device detection
 ├── modules/              # 功能模块 | Function modules
 │   ├── chatbot_module.py     # AI语音助手 | AI voice assistant
 │   ├── serial_module.py      # 串口通信 | Serial communication
 │   ├── posture_module.py     # 坐姿监测 | Posture monitoring
 │   ├── detection_module.py   # 目标检测 | Object detection
 │   ├── database_module.py    # 数据库操作 | Database operations
+│   ├── video_stream_module.py # 视频流处理 | Video stream processing
 │   └── routes.py            # 模块路由 | Module routes
 ├── templates/            # 网页模板 | Web templates
 │   ├── main.html             # 主页面 | Main page
@@ -62,6 +99,9 @@ Py-server/
 │   └── detection.html        # 检测页面 | Detection page
 ├── static/               # 静态资源 | Static resources
 ├── Audio/                # 语音模块 | Audio module
+│   ├── config.json           # 语音配置 | Voice configuration
+│   ├── tools.json            # 工具配置 | Tools configuration
+│   └── voice_assistant.py    # 语音助手 | Voice assistant
 ├── Yolo/                 # 目标检测模型 | Object detection models
 └── docs/                 # 文档 | Documentation
     ├── serial_comm.md        # 串口协议文档 | Serial protocol docs
@@ -73,6 +113,8 @@ Py-server/
 用户语音 → 语音识别 → AI对话 → 命令解析 → 串口发送 → 台灯控制
 Camera → 姿态检测 → 数据分析 → 健康提醒 → 报告生成
 串口设备 ↔ 协议解析 ↔ 数据库存储 ↔ Web界面显示
+家长留言 → 定时调度 → 语音合成 → 音频播放 → 状态更新
+视频流 → 处理优化 → 实时传输 → 家长监护 → 远程关怀
 ```
 
 ## 🚀 快速开始 | Quick Start
@@ -93,6 +135,12 @@ python -m venv venv
 source venv/bin/activate  # Linux/Mac
 # venv\Scripts\activate  # Windows
 pip install -r requirements.txt
+
+# 安装语音相关依赖 | Install voice-related dependencies
+pip install dashscope pyaudio
+
+# 安装RKNN工具包（如果需要）| Install RKNN toolkit (if needed)
+pip install rknn_toolkit_lite2-2.3.2-cp39-cp39-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
 ```
 
 ### 2. 配置系统 | System Configuration
@@ -115,6 +163,28 @@ Configure API key in `Audio/config.json`:
     "instructions": "你是瞳灵智能台灯的语音助手..."
 }
 ```
+
+#### 音频设备配置 | Audio Device Configuration
+检测音频设备支持的采样率：
+Check audio device supported sample rates:
+```bash
+# 运行音频设备检测脚本 | Run audio device detection script
+./detect_audio.sh
+
+# 或手动检测 | Or manually detect
+arecord -l  # 列出录音设备 | List recording devices
+aplay -l   # 列出播放设备 | List playback devices
+
+# 测试语音系统 | Test voice system
+python test_voice.py
+```
+
+#### 家长监护配置 | Guardian System Configuration
+系统会自动创建以下数据库表：
+The system will automatically create the following database tables:
+- `guardian_messages`: 存储家长留言 | Store parental messages
+- `serial_history`: 存储串口通信历史 | Store serial communication history
+- `posture_records`: 存储坐姿记录 | Store posture records
 
 #### 系统配置 | System Configuration
 编辑 `config.py` 根据需要调整设置：
@@ -140,7 +210,7 @@ OPEN_PORT = 5000
 python app.py
 
 # 访问系统 | Access system
-# 浏览器打开 | Open in browser: http://localhost:5000
+# 浏览器打开 | Open in browser: http://localhost:5002
 ```
 
 ### 4. 功能验证 | Feature Verification
@@ -148,6 +218,7 @@ python app.py
 1. **语音助手测试** | Voice Assistant Test
    - 主页面点击"开始语音交互" | Click "Start Voice Interaction" on main page
    - 说话测试语音识别和合成 | Speak to test voice recognition and synthesis
+   - 运行测试脚本：`python test_voice.py` | Run test script: `python test_voice.py`
 
 2. **台灯控制测试** | Lamp Control Test
    - 连接STM串口设备 | Connect STM serial device
@@ -156,6 +227,45 @@ python app.py
 3. **坐姿监测测试** | Posture Monitoring Test
    - 确保摄像头正常工作 | Ensure camera is working
    - 查看实时姿态检测结果 | View real-time posture detection results
+
+4. **家长监护测试** | Guardian System Test
+   - 在主页面填写家长留言 | Fill in parental message on main page
+   - 测试立即发送和定时发送功能 | Test immediate and scheduled sending
+   - 验证语音朗读功能 | Verify voice reading functionality
+   - 查看留言历史和状态 | Check message history and status
+
+5. **音频设备测试** | Audio Device Test
+   ```bash
+   # 一键检测音频设备和采样率 | One-click audio device and sample rate detection
+   ./detect_audio.sh
+   
+   # 手动检测录音设备 | Manual recording device detection
+   arecord -l
+   
+   # 手动检测播放设备 | Manual playback device detection  
+   aplay -l
+   
+   # 测试特定采样率 | Test specific sample rate
+   arecord -f S16_LE -c 1 -r 16000 -d 1 test.wav
+   aplay test.wav
+   
+   # 综合语音系统测试 | Comprehensive voice system test
+   python test_voice.py
+   ```
+   
+   **测试输出示例** | Test Output Example:
+   ```
+   === 检测音频设备信息 ===
+   1. 录音设备列表:
+   card 1: USB [USB Audio], device 0: USB Audio [USB Audio]
+   
+   2. 播放设备列表:
+   card 0: PCH [HDA Intel PCH], device 0: ALC287 Analog [ALC287 Analog]
+   
+   3. 测试常用采样率支持情况:
+   测试采样率 16000Hz: 录音✅ 播放✅
+   测试采样率 44100Hz: 录音✅ 播放✅
+   ```
 
 ## 📖 使用指南 | User Guide
 
@@ -200,6 +310,34 @@ python app.py
    - 监测用眼时长 | Monitor eye usage duration
    - 智能休息提醒 | Intelligent rest reminders
    - 导出PDF健康报告 | Export PDF health reports
+
+### �‍👩‍👧‍👦 家长监护功能 | Guardian Features
+
+1. **发送定时留言** | Send Scheduled Messages
+   ```
+   1. 在主页面找到"家长留言"区域
+   2. 填写留言内容
+   3. 选择发送时间（立即发送或指定时间）
+   4. 点击"发送留言"按钮
+   5. 系统会显示留言状态和发送时间
+   ```
+
+2. **留言状态说明** | Message Status Description
+   - **pending**: 定时待发 - 等待指定时间发送
+   - **sent**: 已发送 - 显示实际发送的时间
+   - **failed**: 发送失败 - 需要重新发送
+
+3. **语音朗读功能** | Voice Reading Feature
+   - 留言发送时自动进行语音朗读
+   - 支持多种采样率自适应
+   - 兼容不同音频设备
+   - 朗读完成后记录发送时间
+
+4. **留言历史管理** | Message History Management
+   - 查看所有历史留言
+   - 按时间排序显示
+   - 支持留言状态筛选
+   - 可重新发送失败的留言
 
 ### 🔧 调试与开发 | Debug & Development
 
@@ -257,7 +395,7 @@ data[4-7]: 保留字段
 
 1. **Web调试界面** | Web Debug Interface
    ```
-   访问地址: http://localhost:5000/protocol_debug
+   访问地址: http://localhost:5002/protocol_debug
    功能: 发送/接收协议帧，实时监控数据
    ```
 
@@ -305,15 +443,25 @@ The following options can be configured in `config.py`:
 - 支持的操作系统：Linux (推荐)、Windows、macOS | Supported OS: Linux (recommended), Windows, macOS
 
 ### 软件要求 | Software Requirements
-- Python 3.9+
-- MySQL 数据库 | MySQL Database
-- conda 或 pip 环境管理 | conda or pip environment management
-- 现代浏览器 (Chrome, Firefox, Safari) | Modern browser
+- **Python 3.9+** | Python 3.9 or higher
+- **MySQL 5.7+** | MySQL Database 5.7 or higher
+- **conda 或 pip** | conda or pip environment management
+- **现代浏览器** | Modern browser (Chrome, Firefox, Safari)
+- **系统音频支持** | System audio support (ALSA/PulseAudio)
 
 ### 依赖服务 | Dependencies
-- 阿里云通义千问API | Alibaba Cloud Qwen API
-- OpenCV 计算机视觉库 | OpenCV computer vision library
-- PyTorch 深度学习框架 | PyTorch deep learning framework
+- **阿里云通义千问API** | Alibaba Cloud Qwen API
+  - dashscope SDK
+  - 语音识别与合成服务 | Speech recognition and synthesis services
+- **计算机视觉库** | Computer Vision Libraries
+  - OpenCV 4.5+
+  - MediaPipe 0.8.9+
+- **深度学习框架** | Deep Learning Framework
+  - PyTorch (可选) | PyTorch (optional)
+  - RKNN Toolkit Lite (ARM设备) | RKNN Toolkit Lite (for ARM devices)
+- **音频处理库** | Audio Processing Libraries
+  - PyAudio
+  - 系统音频驱动 | System audio drivers
 
 ## 串口帧数据处理 | Serial Frame Data Processing
 
@@ -338,26 +486,90 @@ The following options can be configured in `config.py`:
 #### 问题：语音识别不工作
 **解决方案：**
 ```bash
-# 检查麦克风权限
+# 1. 检查麦克风权限
 sudo usermod -a -G audio $USER
+# 重新登录生效
 
-# 检查API配置
+# 2. 检查API配置
 cat Audio/config.json
 # 确保api_key正确配置
 
-# 检查依赖
+# 3. 检查依赖安装
 pip install dashscope pyaudio
+
+# 4. 测试麦克风
+arecord -f S16_LE -c 1 -r 16000 -d 3 test_mic.wav
+aplay test_mic.wav
+
+# 5. 检查音频设备权限
+ls -la /dev/snd/
 ```
 
-#### 问题：TTS合成失败
+#### 问题：TTS合成失败或无声音
 **解决方案：**
-```python
-# 检查TTS服务状态
+```bash
+# 1. 检查音频输出设备
+aplay -l
+
+# 2. 测试音频播放
+speaker-test -t wav -c 1
+
+# 3. 检查采样率支持
+./detect_audio.sh
+
+# 4. 测试TTS功能
 python -c "
-from modules.chatbot_module import ChatbotService
-chatbot = ChatbotService()
+from modules.chatbot_module import get_chatbot_instance
+chatbot = get_chatbot_instance()
 chatbot.speak_text('测试语音合成')
 "
+
+# 5. 检查PulseAudio（如果使用）
+pulseaudio --check
+pulseaudio --start
+```
+
+#### 问题：采样率不支持错误
+**解决方案：**
+```bash
+# 1. 运行采样率检测
+python test_voice.py
+
+# 2. 修改chatbot_module.py中的采样率设置
+# 在TTSCallback和ASRCallback类中调整采样率参数
+
+# 3. 手动测试不同采样率
+for rate in 8000 16000 22050 44100 48000; do
+    echo "测试 ${rate}Hz"
+    timeout 2 arecord -f S16_LE -c 1 -r $rate test_${rate}.wav 2>/dev/null
+    [ $? -eq 0 ] && echo "✅ ${rate}Hz 录音支持" || echo "❌ ${rate}Hz 录音不支持"
+done
+```
+
+#### 问题：家长留言语音朗读失败
+**解决方案：**
+```bash
+# 1. 检查guardian_scheduler.py是否运行
+ps aux | grep guardian_scheduler
+
+# 2. 检查数据库连接
+python -c "
+from db_handler import DBHandler
+from config import DB_CONFIG
+db = DBHandler(DB_CONFIG)
+print('数据库连接:', db.test_connection())
+"
+
+# 3. 手动测试留言朗读
+python -c "
+from modules.chatbot_module import get_chatbot_instance
+chatbot = get_chatbot_instance()
+result = chatbot.speak_text('这是一条测试留言')
+print('朗读结果:', result)
+"
+
+# 4. 检查留言状态更新
+mysql -u serial_user -p serial_data -e "SELECT * FROM guardian_messages ORDER BY created_at DESC LIMIT 5;"
 ```
 
 ### 💡 台灯控制问题 | Lamp Control Issues
@@ -435,7 +647,7 @@ mysql -u root -p < init_database.sql
 **解决方案：**
 ```bash
 # 检查SSE连接
-curl -N http://localhost:5000/api/frame_events
+curl -N http://localhost:5002/api/frame_events
 
 # 重启服务
 sudo systemctl restart flask_server
@@ -455,6 +667,52 @@ When encountering issues, please provide:
 - 📧 Email: support@example.com
 - 🐛 Issues: GitHub Issues页面
 - 📚 文档: 查看 `docs/` 目录
+
+## 📋 更新日志 | Changelog
+
+### v2.0.0 (2025-06-30)
+- ✨ **新增家长监护系统** | Added parental guardian system
+  - 定时留言功能 | Scheduled messaging
+  - 语音朗读留言 | Voice message reading
+  - 留言状态跟踪 | Message status tracking
+  - 实时发送时间记录 | Real-time sending time recording
+
+- 🔊 **语音系统优化** | Voice system optimization
+  - 多采样率自适应支持 | Multi-sample rate adaptive support
+  - 音频设备兼容性提升 | Improved audio device compatibility
+  - TTS/ASR稳定性增强 | Enhanced TTS/ASR stability
+  - 新增语音测试脚本 | Added voice testing scripts
+
+- 🛠️ **系统工具增强** | System tools enhancement
+  - 新增 `detect_audio.sh` 音频检测脚本 | Added audio detection script
+  - 新增 `test_voice.py` 语音测试工具 | Added voice testing tool
+  - 改进调试和故障排除功能 | Improved debugging and troubleshooting
+
+- 📚 **文档完善** | Documentation improvement
+  - 详细的安装配置指南 | Detailed installation and configuration guide
+  - 完整的功能使用说明 | Complete feature usage instructions
+  - 丰富的故障排除方案 | Comprehensive troubleshooting solutions
+
+### v1.0.0 (2025-06-01)
+- 🎉 **项目初始版本** | Initial project version
+- 💡 智能台灯控制 | Smart lamp control
+- 👁️ 坐姿监测系统 | Posture monitoring system
+- 🔌 串口通信协议 | Serial communication protocol
+- 🌐 Web管理界面 | Web management interface
+
+## 🔮 未来计划 | Future Plans
+
+### v2.1.0 (计划中 | Planned)
+- 🤖 增强AI对话能力 | Enhanced AI conversation capabilities
+- 📱 移动端应用支持 | Mobile app support
+- 🌙 智能睡眠模式 | Intelligent sleep mode
+- 🎨 个性化主题设置 | Personalized theme settings
+
+### v2.2.0 (计划中 | Planned)
+- 🌐 多语言支持 | Multi-language support
+- 🔐 用户账户系统 | User account system
+- 📊 高级数据分析 | Advanced data analytics
+- 🏠 智能家居集成 | Smart home integration
 
 ## 🤝 贡献指南 | Contributing Guide
 
