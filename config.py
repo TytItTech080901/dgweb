@@ -21,7 +21,7 @@ DEBUG_BUTTON_VISIBLE = True  # 控制main.html中调试按钮的显示
 
 # 语音助手配置
 ENABLE_CHATBOT = True  # 是否启用语音助手
-ENABLE_WELCOME_MESSAGE = False  # 是否启用欢迎消息
+ENABLE_WELCOME_MESSAGE = True  # 是否启用欢迎消息
 AUTO_START_CHATBOT_LOOP = True  # 是否自动启动语音助手对话循环
 
 # 开放端口配置

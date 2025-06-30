@@ -227,8 +227,6 @@ class Agent:
         )
         
         try:
-            # 启动语音合成器
-            synthesizer.start()
             # 执行语音合成
             synthesizer.streaming_call(text)
             synthesizer.streaming_complete()
