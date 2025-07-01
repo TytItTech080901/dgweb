@@ -3568,7 +3568,8 @@
                     const originalData = [];
                     option.series.forEach((series, index) => {
                         if (series.data) {
-                            originalData[index] = series.data.slice();
+                            // 深拷贝原始数据
+                            originalData[index] = JSON.parse(JSON.stringify(series.data));
                             
                             // 根据数据类型设置空数据
                             if (Array.isArray(series.data[0])) {
@@ -3628,8 +3629,8 @@
                     top: 0,
                     textStyle: {
                         color: '#333',
-                        fontSize: 14,
-                        fontWeight: 'normal'
+                        fontSize: 16,
+                        fontWeight: 'bold'
                     },
                     subtextStyle: {
                         color: '#666',
@@ -3637,58 +3638,107 @@
                     }
                 },
                 tooltip: {
-                    trigger: 'item'
+                    trigger: 'item',
+                    formatter: function(params) {
+                        const emotionNames = ['高兴', '悲伤', '愤怒', '惊讶', '平静'];
+                        const emotions = ['😊', '😢', '😠', '😲', '😌'];
+                        let result = `<div style="padding: 8px;"><b>${params.name}</b><br/>`;
+                        params.value.forEach((val, index) => {
+                            result += `${emotions[index]} ${emotionNames[index]}: <b>${val}</b>/5<br/>`;
+                        });
+                        result += '</div>';
+                        return result;
+                    }
                 },
                 legend: {
-                    data: ['今日情绪'],
-                    bottom: 0
+                    data: ['今日情绪', '昨日对比'],
+                    bottom: 5,
+                    textStyle: {
+                        color: '#666',
+                        fontSize: 12
+                    }
                 },
                 radar: {
                     indicator: [
-                        { name: '高兴', max: 5 },
-                        { name: '悲伤', max: 5 },
-                        { name: '愤怒', max: 5 },
-                        { name: '惊讶', max: 5 },
-                        { name: '平静', max: 5 },
+                        { name: '高兴', max: 5, color: '#30d887' },
+                        { name: '悲伤', max: 5, color: '#ff708d' },
+                        { name: '愤怒', max: 5, color: '#ffb822' },
+                        { name: '惊讶', max: 5, color: '#5b8cff' },
+                        { name: '平静', max: 5, color: '#36c2ff' },
                     ],
-                    radius: '65%',
-                    splitNumber: 4,
-                    axisName: {
-                        color: '#666'
+                    center: ['50%', '52%'],
+                    radius: '60%',
+                    splitNumber: 5,
+                    name: {
+                        textStyle: {
+                            color: '#333',
+                            fontSize: 13,
+                            fontWeight: 'bold'
+                        }
                     },
                     splitLine: {
                         lineStyle: {
-                            color: 'rgba(0, 0, 0, 0.1)'
+                            color: 'rgba(66, 133, 244, 0.2)',
+                            width: 1
                         }
                     },
                     splitArea: {
-                        show: false
+                        show: true,
+                        areaStyle: {
+                            color: ['rgba(66, 133, 244, 0.05)', 'rgba(66, 133, 244, 0.02)']
+                        }
                     },
                     axisLine: {
                         lineStyle: {
-                            color: 'rgba(0, 0, 0, 0.1)'
+                            color: 'rgba(66, 133, 244, 0.3)',
+                            width: 2
                         }
                     }
                 },
-                series: [{
-                    name: '情绪雷达图',
-                    type: 'radar',
-                    data: [{
-                        value: [4, 2, 1, 3, 4],
-                        name: '今日情绪',
-                        areaStyle: {
-                            color: 'rgba(91, 140, 255, 0.4)'
-                        },
-                        lineStyle: {
-                            width: 2,
-                            color: '#5b8cff'
-                        },
-                        symbolSize: 6,
-                        itemStyle: {
-                            color: '#5b8cff'
-                        }
-                    }]
-                }]
+                series: [
+                    {
+                        name: '情绪雷达图',
+                        type: 'radar',
+                        data: [
+                            {
+                                value: [4.2, 1.8, 0.5, 2.8, 4.5],
+                                name: '今日情绪',
+                                areaStyle: {
+                                    color: 'rgba(52, 168, 83, 0.3)'
+                                },
+                                lineStyle: {
+                                    width: 3,
+                                    color: '#30d887'
+                                },
+                                symbolSize: 8,
+                                itemStyle: {
+                                    color: '#30d887',
+                                    shadowBlur: 5,
+                                    shadowColor: 'rgba(52, 168, 83, 0.5)'
+                                }
+                            },
+                            {
+                                value: [3.5, 2.5, 1.2, 2.0, 3.8],
+                                name: '昨日对比',
+                                areaStyle: {
+                                    color: 'rgba(91, 140, 255, 0.2)'
+                                },
+                                lineStyle: {
+                                    width: 2,
+                                    color: '#5b8cff',
+                                    type: 'dashed'
+                                },
+                                symbolSize: 6,
+                                itemStyle: {
+                                    color: '#5b8cff'
+                                }
+                            }
+                        ]
+                    }
+                ],
+                animation: true,
+                animationDuration: 1500,
+                animationEasing: 'elasticOut'
             });
 
             // 趋势图
@@ -3702,8 +3752,8 @@
                     top: 0,
                     textStyle: {
                         color: '#333',
-                        fontSize: 14,
-                        fontWeight: 'normal'
+                        fontSize: 16,
+                        fontWeight: 'bold'
                     },
                     subtextStyle: {
                         color: '#666',
@@ -3713,30 +3763,58 @@
                 tooltip: {
                     trigger: 'axis',
                     axisPointer: {
-                        type: 'shadow'
+                        type: 'cross',
+                        label: {
+                            backgroundColor: '#6a7985'
+                        }
+                    },
+                    formatter: function(params) {
+                        let result = `<div style="padding: 8px;"><b>${params[0].axisValue}</b><br/>`;
+                        params.forEach(param => {
+                            const emotionLevel = param.value > 1 ? '😊 很开心' : 
+                                               param.value > 0 ? '🙂 开心' :
+                                               param.value === 0 ? '😐 平静' :
+                                               param.value > -1 ? '😔 有点不开心' : '😢 不开心';
+                            result += `${param.marker} ${param.seriesName}: <b>${param.value}</b> (${emotionLevel})<br/>`;
+                        });
+                        result += '</div>';
+                        return result;
+                    }
+                },
+                legend: {
+                    data: ['情绪值', '平均情绪'],
+                    bottom: 5,
+                    textStyle: {
+                        color: '#666',
+                        fontSize: 12
                     }
                 },
                 grid: {
                     left: '3%',
                     right: '4%',
-                    bottom: '3%',
+                    bottom: '15%',
+                    top: '20%',
                     containLabel: true
                 },
                 xAxis: {
                     type: 'category',
                     boundaryGap: false,
-                    data: ['8:00', '10:00', '12:00', '14:00', '16:00', '18:00', '20:00'],
+                    data: ['7:00', '8:00', '9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00', '19:00', '20:00'],
                     axisLine: {
                         lineStyle: {
                             color: '#ddd'
                         }
                     },
                     axisLabel: {
-                        color: '#666'
+                        color: '#666',
+                        fontSize: 11,
+                        rotate: 45
                     }
                 },
                 yAxis: {
                     type: 'value',
+                    min: -3,
+                    max: 3,
                     axisLine: {
                         show: false
                     },
@@ -3744,37 +3822,79 @@
                         show: false
                     },
                     axisLabel: {
-                        color: '#666'
+                        color: '#666',
+                        formatter: function(value) {
+                            const labels = {
+                                3: '非常开心 😊',
+                                2: '开心 🙂',
+                                1: '愉快 😌',
+                                0: '平静 😐',
+                                '-1': '有点沮丧 😔',
+                                '-2': '不开心 😢',
+                                '-3': '很难过 😭'
+                            };
+                            return labels[value] || value;
+                        }
                     },
                     splitLine: {
                         lineStyle: {
-                            color: 'rgba(0, 0, 0, 0.05)'
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            type: 'dashed'
                         }
                     }
                 },
-                series: [{
-                    name: '情绪值',
-                    type: 'line',
-                    smooth: true,
-                    data: [1, 0, 2, 1, -2, 0, 1],
-                    areaStyle: {
-                        color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-                            { offset: 0, color: 'rgba(54, 194, 255, 0.5)' },
-                            { offset: 1, color: 'rgba(54, 194, 255, 0.1)' }
-                        ])
+                series: [
+                    {
+                        name: '情绪值',
+                        type: 'line',
+                        smooth: true,
+                        data: [0.5, 1.2, 1.8, 1.5, 2.1, 1.3, 0.8, 0.2, -1.5, -2.1, -0.5, 0.8, 1.5, 1.2],
+                        areaStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: 'rgba(52, 168, 83, 0.4)' },
+                                { offset: 0.5, color: 'rgba(52, 168, 83, 0.2)' },
+                                { offset: 1, color: 'rgba(52, 168, 83, 0.05)' }
+                            ])
+                        },
+                        lineStyle: {
+                            width: 3,
+                            color: '#30d887',
+                            shadowBlur: 5,
+                            shadowColor: 'rgba(52, 168, 83, 0.3)'
+                        },
+                        itemStyle: {
+                            color: '#30d887',
+                            shadowBlur: 3,
+                            shadowColor: 'rgba(52, 168, 83, 0.5)'
+                        },
+                        symbolSize: 8,
+                        emphasis: {
+                            focus: 'series',
+                            itemStyle: {
+                                shadowBlur: 10,
+                                shadowColor: 'rgba(52, 168, 83, 0.8)'
+                            }
+                        }
                     },
-                    lineStyle: {
-                        width: 3,
-                        color: '#36c2ff'
-                    },
-                    itemStyle: {
-                        color: '#36c2ff'
-                    },
-                    symbolSize: 8,
-                    emphasis: {
-                        focus: 'series'
+                    {
+                        name: '平均情绪',
+                        type: 'line',
+                        smooth: true,
+                        data: [0.8, 1.0, 1.2, 1.1, 1.4, 1.0, 0.6, 0.3, -0.8, -1.2, -0.2, 0.5, 1.0, 0.9],
+                        lineStyle: {
+                            width: 2,
+                            color: '#36c2ff',
+                            type: 'dashed'
+                        },
+                        itemStyle: {
+                            color: '#36c2ff'
+                        },
+                        symbolSize: 6
                     }
-                }]
+                ],
+                animation: true,
+                animationDuration: 2000,
+                animationEasing: 'quadraticOut'
             });
 
             // 柱状图
@@ -3788,8 +3908,8 @@
                     top: 0,
                     textStyle: {
                         color: '#333',
-                        fontSize: 14,
-                        fontWeight: 'normal'
+                        fontSize: 16,
+                        fontWeight: 'bold'
                     },
                     subtextStyle: {
                         color: '#666',
@@ -3800,35 +3920,56 @@
                     trigger: 'axis',
                     axisPointer: {
                         type: 'shadow'
+                    },
+                    formatter: function(params) {
+                        let result = `<div style="padding: 8px;"><b>${params[0].axisValue}</b><br/>`;
+                        let total = 0;
+                        params.forEach(param => {
+                            total += param.value;
+                        });
+                        params.forEach(param => {
+                            const percentage = ((param.value / total) * 100).toFixed(1);
+                            const emotions = {'高兴': '😊', '悲伤': '😢', '愤怒': '😠', '惊讶': '😲', '平静': '😌'};
+                            result += `${emotions[param.seriesName] || ''} ${param.seriesName}: <b>${param.value}</b>次 (${percentage}%)<br/>`;
+                        });
+                        result += `<br/>总计: <b>${total}</b>次情绪识别</div>`;
+                        return result;
                     }
                 },
                 legend: {
-                    data: ['高兴', '悲伤', '愤怒', '惊讶'],
-                    bottom: 0,
+                    data: ['高兴', '悲伤', '愤怒', '惊讶', '平静'],
+                    bottom: 5,
                     textStyle: {
-                        color: '#666'
+                        color: '#666',
+                        fontSize: 12
                     }
                 },
                 grid: {
                     left: '3%',
                     right: '4%',
-                    bottom: '15%',
+                    bottom: '20%',
+                    top: '20%',
                     containLabel: true
                 },
                 xAxis: {
                     type: 'category',
-                    data: ['上午 (8-12)', '中午 (12-14)', '下午 (14-18)'],
+                    data: ['早晨\n(6-9点)', '上午\n(9-12点)', '中午\n(12-14点)', '下午\n(14-18点)', '晚上\n(18-22点)'],
                     axisLine: {
                         lineStyle: {
                             color: '#ddd'
                         }
                     },
                     axisLabel: {
-                        color: '#666'
+                        color: '#666',
+                        fontSize: 11
                     }
                 },
                 yAxis: {
                     type: 'value',
+                    name: '次数',
+                    nameTextStyle: {
+                        color: '#666'
+                    },
                     axisLine: {
                         show: false
                     },
@@ -3840,7 +3981,8 @@
                     },
                     splitLine: {
                         lineStyle: {
-                            color: 'rgba(0, 0, 0, 0.05)'
+                            color: 'rgba(0, 0, 0, 0.05)',
+                            type: 'dashed'
                         }
                     }
                 },
@@ -3849,41 +3991,41 @@
                         name: '高兴',
                         type: 'bar',
                         stack: '情绪',
-                        data: [3, 2, 1],
+                        data: [8, 12, 6, 5, 9],
                         itemStyle: {
-                            color: '#30d887'
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#30d887' },
+                                { offset: 1, color: '#26b870' }
+                            ]),
+                            shadowBlur: 3,
+                            shadowColor: 'rgba(48, 216, 135, 0.3)'
                         },
                         emphasis: {
                             itemStyle: {
-                                color: '#30d887'
+                                color: '#30d887',
+                                shadowBlur: 10,
+                                shadowColor: 'rgba(48, 216, 135, 0.6)'
                             }
                         }
                     },
                     {
-                        name: '悲伤',
+                        name: '平静',
                         type: 'bar',
                         stack: '情绪',
-                        data: [1, 0, 3],
+                        data: [4, 8, 10, 12, 6],
                         itemStyle: {
-                            color: '#ff708d'
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#36c2ff' },
+                                { offset: 1, color: '#2ba3e0' }
+                            ]),
+                            shadowBlur: 3,
+                            shadowColor: 'rgba(54, 194, 255, 0.3)'
                         },
                         emphasis: {
                             itemStyle: {
-                                color: '#ff708d'
-                            }
-                        }
-                    },
-                    {
-                        name: '愤怒',
-                        type: 'bar',
-                        stack: '情绪',
-                        data: [0, 1, 2],
-                        itemStyle: {
-                            color: '#ffb822'
-                        },
-                        emphasis: {
-                            itemStyle: {
-                                color: '#ffb822'
+                                color: '#36c2ff',
+                                shadowBlur: 10,
+                                shadowColor: 'rgba(54, 194, 255, 0.6)'
                             }
                         }
                     },
@@ -3891,32 +4033,107 @@
                         name: '惊讶',
                         type: 'bar',
                         stack: '情绪',
-                        data: [1, 1, 0],
+                        data: [2, 3, 1, 4, 2],
                         itemStyle: {
-                            color: '#5b8cff'
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#5b8cff' },
+                                { offset: 1, color: '#4975e0' }
+                            ]),
+                            shadowBlur: 3,
+                            shadowColor: 'rgba(91, 140, 255, 0.3)'
                         },
                         emphasis: {
                             itemStyle: {
-                                color: '#5b8cff'
+                                color: '#5b8cff',
+                                shadowBlur: 10,
+                                shadowColor: 'rgba(91, 140, 255, 0.6)'
                             }
                         }
                     },
-                ]
+                    {
+                        name: '愤怒',
+                        type: 'bar',
+                        stack: '情绪',
+                        data: [1, 0, 2, 3, 1],
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#ffb822' },
+                                { offset: 1, color: '#e6a31c' }
+                            ]),
+                            shadowBlur: 3,
+                            shadowColor: 'rgba(255, 184, 34, 0.3)'
+                        },
+                        emphasis: {
+                            itemStyle: {
+                                color: '#ffb822',
+                                shadowBlur: 10,
+                                shadowColor: 'rgba(255, 184, 34, 0.6)'
+                            }
+                        }
+                    },
+                    {
+                        name: '悲伤',
+                        type: 'bar',
+                        stack: '情绪',
+                        data: [1, 0, 1, 6, 2],
+                        itemStyle: {
+                            color: new echarts.graphic.LinearGradient(0, 0, 0, 1, [
+                                { offset: 0, color: '#ff708d' },
+                                { offset: 1, color: '#e6607a' }
+                            ]),
+                            shadowBlur: 3,
+                            shadowColor: 'rgba(255, 112, 141, 0.3)'
+                        },
+                        emphasis: {
+                            itemStyle: {
+                                color: '#ff708d',
+                                shadowBlur: 10,
+                                shadowColor: 'rgba(255, 112, 141, 0.6)'
+                            }
+                        }
+                    }
+                ],
+                animation: true,
+                animationDuration: 1800,
+                animationEasing: 'bounceOut'
             });
 
             // 热力图
             const heatmap = echarts.init(document.getElementById('heatmapChartEmotion'));
+            
+            // 生成更丰富的热力图数据
+            const heatmapData = [];
+            const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+            const timeSlots = ['早晨', '上午', '中午', '下午', '晚上'];
+            
+            // 模拟一周的情绪数据，带有一些规律性
+            const emotionPatterns = [
+                [1.2, 1.8, 0.5, 1.5, 1.0], // 周一
+                [1.5, 2.0, 1.0, 1.2, 0.8], // 周二  
+                [1.0, 1.5, -0.5, 0.5, 1.2], // 周三
+                [0.8, 1.2, 0.2, -1.2, -0.8], // 周四
+                [0.5, 0.8, -1.5, -2.0, -0.5], // 周五（下午情绪低落）
+                [2.0, 2.2, 1.8, 1.5, 1.8], // 周六（情绪良好）
+                [1.8, 1.5, 1.2, 1.0, 0.8]  // 周日
+            ];
+            
+            emotionPatterns.forEach((dayData, dayIndex) => {
+                dayData.forEach((value, timeIndex) => {
+                    heatmapData.push([dayIndex, timeIndex, value]);
+                });
+            });
+            
             heatmap.setOption({
                 backgroundColor: 'transparent',
                 title: {
                     text: '周情绪热力图',
-                    subtext: '情绪值(-2到2分)',
+                    subtext: '情绪值(-2到2分)，颜色越深情绪越积极',
                     left: 'center',
                     top: 0,
                     textStyle: {
                         color: '#333',
-                        fontSize: 14,
-                        fontWeight: 'normal'
+                        fontSize: 16,
+                        fontWeight: 'bold'
                     },
                     subtextStyle: {
                         color: '#666',
@@ -3926,21 +4143,35 @@
                 tooltip: {
                     position: 'top',
                     formatter: function (params) {
-                        return `${params.data[1]} ${params.data[0]}<br>情绪值: ${params.data[2]}`;
+                        const day = days[params.data[0]];
+                        const time = timeSlots[params.data[1]];
+                        const value = params.data[2];
+                        const emotionDesc = value > 1.5 ? '😊 非常开心' :
+                                          value > 0.5 ? '🙂 开心' :
+                                          value > -0.5 ? '😐 平静' :
+                                          value > -1.5 ? '😔 有点沮丧' : '😢 沮丧';
+                        return `<div style="padding: 8px;">
+                                    <b>${day} ${time}</b><br/>
+                                    情绪值: <b>${value}</b><br/>
+                                    状态: ${emotionDesc}
+                                </div>`;
                     }
                 },
                 grid: {
-                    top: '15%',
-                    left: '3%',
-                    right: '4%',
-                    bottom: '15%',
+                    top: '25%',
+                    left: '10%',
+                    right: '15%',
+                    bottom: '25%',
                     containLabel: true
                 },
                 xAxis: {
                     type: 'category',
-                    data: ['周一', '周二', '周三', '周四', '周五', '周六', '周日'],
+                    data: days,
                     splitArea: {
-                        show: true
+                        show: true,
+                        areaStyle: {
+                            color: ['rgba(250,250,250,0.3)', 'rgba(245,245,245,0.3)']
+                        }
                     },
                     axisLine: {
                         lineStyle: {
@@ -3948,14 +4179,19 @@
                         }
                     },
                     axisLabel: {
-                        color: '#666'
+                        color: '#666',
+                        fontSize: 12,
+                        fontWeight: 'bold'
                     }
                 },
                 yAxis: {
                     type: 'category',
-                    data: ['早晨', '上午', '中午', '下午', '晚上'],
+                    data: timeSlots,
                     splitArea: {
-                        show: true
+                        show: true,
+                        areaStyle: {
+                            color: ['rgba(250,250,250,0.3)', 'rgba(245,245,245,0.3)']
+                        }
                     },
                     axisLine: {
                         lineStyle: {
@@ -3963,7 +4199,9 @@
                         }
                     },
                     axisLabel: {
-                        color: '#666'
+                        color: '#666',
+                        fontSize: 12,
+                        fontWeight: 'bold'
                     }
                 },
                 visualMap: {
@@ -3972,35 +4210,42 @@
                     calculable: true,
                     orient: 'horizontal',
                     left: 'center',
-                    bottom: '0%',
+                    bottom: '8%',
                     inRange: {
-                        color: ['#ff708d', '#ffb822', '#f8f9fa', '#36c2ff', '#30d887']
+                        color: ['#ff4757', '#ff708d', '#ffa726', '#fff176', '#81c784', '#30d887']
                     },
+                    text: ['积极 😊', '消极 😢'],
                     textStyle: {
-                        color: '#666'
-                    }
+                        color: '#666',
+                        fontSize: 12
+                    },
+                    itemWidth: 20,
+                    itemHeight: 140
                 },
                 series: [{
                     name: '情绪值',
                     type: 'heatmap',
-                    data: [
-                        [0, 0, 2], [1, 0, 1], [2, 0, -1], [3, 0, 2], [4, 0, 1], [5, 0, 0], [6, 0, 1],
-                        [0, 1, 1], [1, 1, 2], [2, 1, 0], [3, 1, 1], [4, 1, 2], [5, 1, 1], [6, 1, 0],
-                        [0, 2, 0], [1, 2, 1], [2, 2, -2], [3, 2, -1], [4, 2, 0], [5, 2, 1], [6, 2, 2],
-                        [0, 3, -1], [1, 3, 0], [2, 3, 1], [3, 3, 0], [4, 3, -1], [5, 3, 2], [6, 3, 1],
-                        [0, 4, 0], [1, 4, 1], [2, 4, 0], [3, 4, -1], [4, 4, 0], [5, 4, 1], [6, 4, 0]
-                    ],
+                    data: heatmapData,
                     label: {
-                        show: false
+                        show: true,
+                        color: '#fff',
+                        fontSize: 11,
+                        fontWeight: 'bold',
+                        formatter: function(params) {
+                            return params.data[2].toFixed(1);
+                        }
                     },
                     emphasis: {
                         itemStyle: {
-                            shadowBlur: 10,
-                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                            shadowBlur: 15,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)',
+                            borderColor: '#fff',
+                            borderWidth: 2
                         }
                     },
                     progressive: 1000,
-                    animation: false
+                    animation: true,
+                    animationDuration: 1000
                 }]
             });
 
@@ -4011,6 +4256,23 @@
                 bar.resize();
                 heatmap.resize();
             });
+            
+            // 添加图表交互效果
+            radar.on('legendselectchanged', function (params) {
+                console.log('雷达图图例选择变化:', params);
+            });
+            
+            trend.on('dataZoom', function (params) {
+                console.log('趋势图缩放:', params);
+            });
+            
+            // 返回图表实例供外部调用
+            return {
+                radar: radar,
+                trend: trend,
+                bar: bar,
+                heatmap: heatmap
+            };
         }
 
         // 家长监护功能 JavaScript
