@@ -18,6 +18,7 @@ from modules.serial_module import SerialCommunicationHandler
 from modules.routes import routes_bp, setup_services
 from modules.detection_module import DetectionService
 from modules.chatbot_module import ChatbotService
+from modules.lamp_control_module import create_lamp_control_blueprint
 
 def create_app():
     """创建并配置Flask应用"""
@@ -25,9 +26,21 @@ def create_app():
     # 初始化Flask应用
     app = Flask(__name__)
     
+    # 添加favicon路由
+    @app.route('/favicon.ico')
+    def favicon():
+        from flask import send_from_directory
+        return send_from_directory(os.path.join(app.root_path, 'static'),
+                                   'favicon.ico', mimetype='image/vnd.microsoft.icon')
+    
     # 注册路由蓝图
     app.register_blueprint(routes_bp)
     print("路由蓝图注册完成")
+    
+    # 注册台灯控制蓝图
+    lamp_bp = create_lamp_control_blueprint(serial_handler=None)  # 先初始化为None，后面会更新
+    app.register_blueprint(lamp_bp)
+    print("台灯控制蓝图注册完成")
     
     # 初始化数据库
     init_database()
@@ -88,6 +101,15 @@ def create_app():
     # 通知用户串口和姿势分析系统的状态
     if serial_available:
         print("串口通信系统初始化成功")
+        # 更新台灯控制蓝图的串口处理器
+        try:
+            # 重新创建带有串口的台灯控制蓝图，并替换之前的蓝图
+            app.blueprints.pop('lamp')  # 移除旧的蓝图
+            lamp_bp = create_lamp_control_blueprint(serial_handler=serial_handler)
+            app.register_blueprint(lamp_bp)
+            print("台灯控制蓝图已更新串口处理器")
+        except Exception as e:
+            print(f"更新台灯控制蓝图串口处理器失败: {str(e)}")
     else:
         print("串口通信系统未启动，但姿势分析系统可以正常工作")
 
