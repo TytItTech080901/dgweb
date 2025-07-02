@@ -41,15 +41,28 @@ class LampControlHandler:
     def get_lamp_status(self):
         """获取台灯当前状态"""
         try:
-            # TODO: 通过串口查询台灯实际状态
-            # if self.serial_handler:
-            #     # 发送查询状态命令
-            #     status_cmd = "GET_STATUS"
-            #     response = self.serial_handler.send_command(status_cmd)
-            #     if response:
-            #         # 解析返回的状态数据
-            #         pass
-            
+            if self.serial_handler:
+                data = self.serial_handler.request_data(0x40)
+                if data is None:
+                    self.logger.error("无法从台灯获取状态数据")
+                    return None
+                else:
+                    if data['datatype'] != 0xB0:
+                        self.logger.error(f"未知数据类型: {data['datatype']}")
+                        return None
+                    if data['command'] != 0x41:
+                        self.logger.error(f"未知命令: {data['command']}")
+                        return None
+                    # 解析数据
+                    if data["data"][0] == 0x00:
+                        self.lamp_status['power'] = False
+                    elif data["data"][0] == 0x01:
+                        self.lamp_status['power'] = True
+                    else:
+                        self.logger.error(f"未知电源状态: {data['data'][0]}")
+                        return None
+                    self.lamp_status['brightness'] = data["data"][2]  # 亮度
+                    self.lamp_status['color_temp'] = data["data"][3]  # 色温
             self.lamp_status['last_update'] = datetime.now().isoformat()
             return self.lamp_status
         except Exception as e:
@@ -64,10 +77,19 @@ class LampControlHandler:
             power_on (bool): True为开灯，False为关灯
         """
         try:
-            # TODO: 通过串口发送开关命令
-            # if self.serial_handler:
-            #     cmd = f"POWER:{'ON' if power_on else 'OFF'}"
-            #     self.serial_handler.send_command(cmd)
+            # 使用serial_module中的send_command方法
+            if power_on:
+                success = self.serial_handler.send_command(0x14, [0] * 8)
+                if success:
+                    print("串口命令发送成功: 开灯")
+                else:
+                    print("串口命令发送失败: 开灯")
+            else:
+                success = self.serial_handler.send_command(0x15, [0] * 8)
+                if success:
+                    print("串口命令发送成功: 关灯")
+                else:
+                    print("串口命令发送失败: 关灯")
             
             self.lamp_status['power'] = power_on
             self.lamp_status['last_update'] = datetime.now().isoformat()
@@ -87,12 +109,12 @@ class LampControlHandler:
         try:
             # 限制亮度范围
             brightness = max(0, min(100, brightness))
-            
-            # TODO: 通过串口发送亮度命令
-            # if self.serial_handler:
-            #     cmd = f"BRIGHTNESS:{brightness}"
-            #     self.serial_handler.send_command(cmd)
-            
+
+            if self.serial_handler:
+                self.serial_handler.send_command_setting_light(brightness, self.lamp_status['color_temp'])
+            else:
+                return False
+
             self.lamp_status['brightness'] = brightness
             self.lamp_status['last_update'] = datetime.now().isoformat()
             self.logger.info(f"设置台灯亮度为: {brightness}%")
@@ -112,10 +134,10 @@ class LampControlHandler:
             # 限制色温范围
             color_temp = max(2700, min(6500, color_temp))
             
-            # TODO: 通过串口发送色温命令
-            # if self.serial_handler:
-            #     cmd = f"COLOR_TEMP:{color_temp}"
-            #     self.serial_handler.send_command(cmd)
+            if self.serial_handler:
+                self.serial_handler.send_command_setting_light(self.lamp_status['brightness'], color_temp)
+            else:
+                return False
             
             self.lamp_status['color_temp'] = color_temp
             self.lamp_status['last_update'] = datetime.now().isoformat()
@@ -125,34 +147,34 @@ class LampControlHandler:
             self.logger.error(f"设置台灯色温失败: {e}")
             return False
     
-    def set_rgb_color(self, r, g, b):
-        """
-        设置台灯RGB颜色
+    # 没办法调节RGB颜色，暂时注释掉
+    # def set_rgb_color(self, r, g, b):
+    #     """
+    #     设置台灯RGB颜色
         
-        Args:
-            r (int): 红色值 (0-255)
-            g (int): 绿色值 (0-255) 
-            b (int): 蓝色值 (0-255)
-        """
-        try:
-            # 限制RGB值范围
-            r = max(0, min(255, r))
-            g = max(0, min(255, g))
-            b = max(0, min(255, b))
+    #     Args:
+    #         r (int): 红色值 (0-255)
+    #         g (int): 绿色值 (0-255) 
+    #         b (int): 蓝色值 (0-255)
+    #     """
+    #     try:
+    #         # 限制RGB值范围
+    #         r = max(0, min(255, r))
+    #         g = max(0, min(255, g))
+    #         b = max(0, min(255, b))
             
-            # TODO: 通过串口发送RGB颜色命令
-            # if self.serial_handler:
-            #     cmd = f"RGB:{r},{g},{b}"
-            #     self.serial_handler.send_command(cmd)
+    #         # if self.serial_handler:
+    #         #     cmd = f"RGB:{r},{g},{b}"
+    #         #     self.serial_handler.send_command(cmd)
             
-            self.lamp_status['rgb_color'] = {'r': r, 'g': g, 'b': b}
-            self.lamp_status['color_mode'] = 'rgb'
-            self.lamp_status['last_update'] = datetime.now().isoformat()
-            self.logger.info(f"设置台灯RGB颜色为: R{r} G{g} B{b}")
-            return True
-        except Exception as e:
-            self.logger.error(f"设置台灯RGB颜色失败: {e}")
-            return False
+    #         self.lamp_status['rgb_color'] = {'r': r, 'g': g, 'b': b}
+    #         self.lamp_status['color_mode'] = 'rgb'
+    #         self.lamp_status['last_update'] = datetime.now().isoformat()
+    #         self.logger.info(f"设置台灯RGB颜色为: R{r} G{g} B{b}")
+    #         return True
+    #     except Exception as e:
+    #         self.logger.error(f"设置台灯RGB颜色失败: {e}")
+    #         return False
     
     def set_color_mode(self, mode):
         """
