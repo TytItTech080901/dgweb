@@ -24,6 +24,12 @@ ENABLE_CHATBOT = True  # 是否启用语音助手
 ENABLE_WELCOME_MESSAGE = True  # 是否启用欢迎消息
 AUTO_START_CHATBOT_LOOP = True  # 是否自动启动语音助手对话循环
 
+#尽量不要使用QWEN3以后版本模型：
+# CHATBOT_MODULE = "qwen-plus-2025-04-28" # 千问plus 4.28的快照目前仍有问题
+#QWEN3版本以前的模型：
+# CHATBOT_MODULE = "qwen-plus-2025-01-25" # 千问plus 1.25的快照 目前没有问题（测试较少）
+CHATBOT_MODULE = "qwen-turbo-2025-02-11" # 千问turbo 2.11的快照 前没有问题（测试较少）
+
 # 开放端口配置
 # 使用0.0.0.0表示监听所有可用网络接口，允许任何IP地址连接
 OPEN_HOST = '0.0.0.0'

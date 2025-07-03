@@ -688,6 +688,56 @@ def create_lamp_control_blueprint(serial_handler=None):
                 'success': False,
                 'message': f'服务器错误: {str(e)}'
             }), 500
+        
+    @lamp_control.route('/api/lamp/settings', methods=['POST'])
+    def set_lamp_settings():
+        """设置台灯多个参数API (与preset相同的功能)"""
+        try:
+            data = request.get_json()
+            if not data:
+                return jsonify({
+                    'success': False,
+                    'message': '缺少配置参数'
+                }), 400
+            
+            results = []
+            
+            # 批量设置多个参数
+            if 'power' in data:
+                success = handler.set_power(bool(data['power']))
+                results.append(('power', success))
+            
+            if 'brightness' in data:
+                brightness = max(0, min(100, int(data['brightness'])))
+                success = handler.set_brightness(brightness)
+                results.append(('brightness', success))
+            
+            if 'color_temp' in data:
+                color_temp = max(2700, min(6500, int(data['color_temp'])))
+                success = handler.set_color_temperature(color_temp)
+                results.append(('color_temp', success))
+            
+            if 'scene' in data:
+                valid_scenes = ['normal', 'reading', 'relax', 'work']
+                if data['scene'] in valid_scenes:
+                    success = handler.set_scene_mode(data['scene'])
+                    results.append(('scene', success))
+            
+            # 检查是否所有操作都成功
+            all_success = all(result[1] for result in results)
+            
+            return jsonify({
+                'success': all_success,
+                'data': handler.get_lamp_status(),
+                'message': '设置应用完成' if all_success else '部分设置应用失败',
+                'details': {name: success for name, success in results}
+            })
+        
+        except Exception as e:
+            return jsonify({
+                'success': False,
+                'message': f'服务器错误: {str(e)}'
+            }), 500
     
     return lamp_control
 

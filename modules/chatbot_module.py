@@ -18,7 +18,7 @@ import json
 
 # 在文件开头添加串口模块导入
 from serial_handler import SerialHandler
-from config import SERIAL_BAUDRATE
+from config import SERIAL_BAUDRATE, CHATBOT_MODULE
 
 
 # 修改后的Agent类定义 (直接将声明代码复制过来)
@@ -26,7 +26,7 @@ class Agent:
     asr_model = "gummy-chat-v1"  # asr模型名称
     tts_model = "cosyvoice-v1"  # tts模型名称
     tts_voice = "longxiaochun"  # tts语音名称
-    assistant_model = "qwen-turbo-2025-04-28"  # 大模型名称
+    assistant_model = CHATBOT_MODULE  # 大模型名称
 
     assistant = None  # 大模型助手
     thread = None  # 线程
@@ -322,7 +322,7 @@ def light_on():
         success = chatbot.serial_handler.send_command(0x14, [0] * 8)
         if success:
             print("串口命令发送成功: 开灯")
-            return "已通过串口发送开灯命令"
+            return "success"
         else:
             print("串口命令发送失败: 开灯")
             return "串口命令发送失败，但已执行开灯操作"
@@ -339,7 +339,7 @@ def light_off():
         success = chatbot.serial_handler.send_command(0x15, [0] * 8)
         if success:
             print("串口命令发送成功: 关灯")
-            return "已通过串口发送关灯命令"
+            return "success"
         else:
             print("串口命令发送失败: 关灯")
             return "串口命令发送失败，但已执行开灯操作"
@@ -356,7 +356,7 @@ def light_brighter():
         success = chatbot.serial_handler.send_command(0x10, [0] * 8)
         if success:
             print("串口命令发送成功: 调高灯光亮度")
-            return "已通过串口发送调高灯光亮度命令"
+            return "success"
         else:
             print("串口命令发送失败: 调高灯光亮度")
             return "串口命令发送失败，但已执行调高灯光亮度操作"
@@ -373,7 +373,7 @@ def light_dimmer():
         success = chatbot.serial_handler.send_command(0x11, [0] * 8)
         if success:
             print("串口命令发送成功: 调低灯光亮度")
-            return "已通过串口发送调低灯光亮度命令"
+            return "success"
         else:
             print("串口命令发送失败: 调低灯光亮度")
             return "串口命令发送失败，但已执行调低灯光亮度操作"
@@ -389,7 +389,7 @@ def color_temperature_up():
         success = chatbot.serial_handler.send_command(0x12, [0] * 8)
         if success:
             print("串口命令发送成功: 提升光照色温")
-            return "已通过串口发送提升光照色温命令"
+            return "success"
         else:
             print("串口命令发送失败: 提升光照色温")
             return "串口命令发送失败，但已执行提升光照色温操作"
@@ -405,7 +405,7 @@ def color_temperature_down():
         success = chatbot.serial_handler.send_command(0x13, [0] * 8)
         if success:
             print("串口命令发送成功: 降低光照色温")
-            return "已通过串口发送降低光照色温命令"
+            return "success"
         else:
             print("串口命令发送失败: 降低光照色温")
             return "串口命令发送失败，但已执行降低光照色温操作"
@@ -422,7 +422,7 @@ def posture_reminder():
         success = chatbot.serial_handler.send_command(0x20, [0] * 8)
         if success:
             print("串口命令发送成功: 坐姿提醒")
-            return "已通过串口发送坐姿提醒命令"
+            return "success"
         else:
             print("串口命令发送失败: 坐姿提醒")
             return "串口命令发送失败，但已执行坐姿提醒操作"
@@ -439,7 +439,7 @@ def vision_reminder():
         success = chatbot.serial_handler.send_command(0x21, [0] * 8)
         if success:
             print("串口命令发送成功: 远眺提醒")
-            return "已通过串口发送远眺提醒命令"
+            return "success"
         else:
             print("串口命令发送失败: 远眺提醒")
             return "串口命令发送失败，但已执行远眺提醒操作"
@@ -462,6 +462,8 @@ tools_map = {
 
 def main():
     chatbot = ChatbotService()
+    _chatbot_instance = chatbot  # 将实例赋值给全局变量
+    print("==>语音助手服务开始启动<==")
     chatbot.initialize()
     
     # # 朗读开场白
@@ -469,7 +471,7 @@ def main():
     # time.sleep(2)
 
     # 随机生成的开场白
-    msg = "你好，请简要介绍一下自己的功能，不要举例。"
+    msg = "你好，请简要介绍一下自己的功能，控制在30字以内，不要举例。"
     chatbot.send_message(msg)
     time.sleep(2)
 

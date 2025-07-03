@@ -4,7 +4,7 @@
 import os
 import sys
 import atexit
-from flask import Flask
+from flask import Flask, request, jsonify
 import time
 
 # 导入配置
@@ -224,6 +224,46 @@ def create_app():
         detection_service_instance=detection_service,
         chatbot_service_instance=chatbot_service
     )
+
+    # 注册全局API错误处理器
+    @app.errorhandler(500)
+    def handle_500_error(e):
+        """返回JSON格式的500错误，而不是HTML错误页面"""
+        # 检查请求路径是否以/api开头
+        if request.path.startswith('/api'):
+            return jsonify({
+                'status': 'error',
+                'message': '服务器内部错误',
+                'error': str(e)
+            }), 500
+        # 非API请求返回默认HTML错误页
+        return "服务器内部错误: " + str(e), 500
+    
+    @app.errorhandler(404)
+    def handle_404_error(e):
+        """返回JSON格式的404错误，而不是HTML错误页面"""
+        # 检查请求路径是否以/api开头
+        if request.path.startswith('/api'):
+            return jsonify({
+                'status': 'error',
+                'message': '请求的资源不存在',
+                'error': str(e)
+            }), 404
+        # 非API请求返回默认HTML错误页
+        return "未找到请求的页面: " + str(e), 404
+    
+    @app.errorhandler(400)
+    def handle_400_error(e):
+        """返回JSON格式的400错误，而不是HTML错误页面"""
+        # 检查请求路径是否以/api开头
+        if request.path.startswith('/api'):
+            return jsonify({
+                'status': 'error',
+                'message': '请求参数错误',
+                'error': str(e)
+            }), 400
+        # 非API请求返回默认HTML错误页
+        return "请求参数错误: " + str(e), 400
 
     # 注册应用退出时的清理函数
     def cleanup():
