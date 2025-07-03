@@ -292,7 +292,7 @@ class SerialHandler:
         Args:
             datatype: 消息类型 (0xA0: 上位机->下位机, 0xB0: 下位机->上位机)
             command: 命令字
-            data_array: 数据域数组，最多8个uint32值
+            data_array: 数据域数组，最多7个uint32值 (数据域总共28字节)
         
         Returns:
             打包好的32字节数据帧
@@ -308,13 +308,13 @@ class SerialHandler:
         # 命令字
         frame[2] = command
         
-        # 数据域 (8个uint32值，每个4字节)
+        # 数据域 (7个uint32值，每个4字节，总共28字节)
         if data_array is None:
-            data_array = [0] * 8
+            data_array = [0] * 7
         
-        # 确保数据数组不超过8个元素
-        data_array = data_array[:8]
-        while len(data_array) < 8:
+        # 确保数据数组不超过7个元素
+        data_array = data_array[:7]
+        while len(data_array) < 7:
             data_array.append(0)
         
         # 打包数据域，使用小端字节序
@@ -348,31 +348,78 @@ class SerialHandler:
         Returns:
             解析后的数据字典，包含datatype, command, data数组
         """
-        if not isinstance(data, (bytes, bytearray)) or len(data) < 32:
+        # 检查数据类型和长度
+        if not isinstance(data, (bytes, bytearray)):
+            print(f"解析失败：数据类型不正确，类型为: {type(data)}")
             return None
             
+        # 检查数据长度
+        if len(data) < 32:
+            print(f"解析失败：数据长度不足，当前长度: {len(data)} 字节")
+            return None
+            
+        # 检查帧头帧尾
         if data[0] != ord('s') or data[31] != ord('e'):
-            return None  # 帧头或帧尾不匹配
+            print(f"解析失败：帧头帧尾标识不匹配, 帧头: 0x{data[0]:02X}, 帧尾: 0x{data[31]:02X}")
+            return None
             
         try:
             datatype = data[1]  # 消息类型
             command = data[2]   # 命令字
             
-            # 解析数据域 (8个uint32值)
+            # 检查消息类型是否有效
+            if datatype not in [0xA0, 0xB0]:
+                print(f"警告：消息类型不在预期范围内: 0x{datatype:02X}")
+            
+            # 解析数据域（根据下位机格式，4个uint32值）
+            # 1. isLight（是否开灯）: data[3-6]
+            # 2. isOpen（是否开机）: data[7-10]
+            # 3. tmpLight（亮度）: data[11-14]
+            # 4. tmpTemperature（色温）: data[15-18]
+            
             data_array = []
-            for i in range(8):
+            
+            # 解析4个uint32值
+            for i in range(4):
                 start_idx = 3 + i * 4
                 end_idx = start_idx + 4
-                uint32_value = struct.unpack('<I', data[start_idx:end_idx])[0]
-                data_array.append(uint32_value)
+                
+                # 确保索引不越界
+                if end_idx <= len(data):
+                    try:
+                        uint32_value = struct.unpack('<I', data[start_idx:end_idx])[0]
+                        data_array.append(uint32_value)
+                    except struct.error as e:
+                        print(f"解析数据域错误，索引[{start_idx}:{end_idx}]: {str(e)}")
+                        data_array.append(0)  # 使用默认值
+                else:
+                    print(f"数据长度不足，无法解析数据域[{i}]")
+                    data_array.append(0)  # 使用默认值
             
-            return {
+            # 为了保持向后兼容，将数组扩展到7个元素
+            while len(data_array) < 7:
+                data_array.append(0)
+            
+            result = {
                 'datatype': datatype,
                 'command': command,
                 'data': data_array
             }
+            
+            # 添加更详细的解析字段
+            if len(data_array) >= 4:
+                result['is_light'] = bool(data_array[0])  # 是否开灯
+                result['is_open'] = bool(data_array[1])   # 是否开机
+                result['brightness'] = data_array[2]      # 亮度
+                result['color_temp'] = data_array[3]      # 色温
+            
+            print(f"解析成功: {result}")
+            return result
+            
         except Exception as e:
             print(f"解析新协议帧数据出错: {str(e)}")
+            import traceback
+            traceback.print_exc()
             return None
     
     def send_command(self, command, data_array=None):
@@ -386,8 +433,15 @@ class SerialHandler:
         Returns:
             是否发送成功
         """
+        if not self.is_connected():
+            print("发送命令失败：串口未连接")
+            return False
+            
         try:
             print(f"准备发送命令: 0x{command:02X}, 数据: {data_array}")
+            
+            # 清空输出缓冲区，避免之前的数据干扰
+            self.serial.reset_output_buffer()
             
             # 打包新协议命令帧
             frame = self.pack_frame(
@@ -402,11 +456,18 @@ class SerialHandler:
             print(f"  帧头: 0x{frame[0]:02X} ({'s' if frame[0] == ord('s') else '无效'})")
             print(f"  数据类型: 0x{frame[1]:02X}")
             print(f"  命令字: 0x{frame[2]:02X}")
-            print(f"  数据域: {[frame[3+i*4:7+i*4].hex() for i in range(8)]}")
+            print(f"  数据域: {frame[3:31].hex()}")
             print(f"  帧尾: 0x{frame[31]:02X} ({'e' if frame[31] == ord('e') else '无效'})")
             
             # 发送命令帧
-            return self.send_data(frame)
+            success = self.send_data(frame)
+            
+            if success:
+                print("命令帧发送成功")
+            else:
+                print("命令帧发送失败")
+                
+            return success
                 
         except Exception as e:
             print(f"发送协议命令出错: {str(e)}")
@@ -414,20 +475,89 @@ class SerialHandler:
             traceback.print_exc()
             return False
     
-    def read_frame(self):
-        """读取一个新协议格式的数据帧并解析"""
+    def read_frame(self, timeout=1.0):
+        """
+        读取一个新协议格式的数据帧并解析
+        
+        Args:
+            timeout: 读取超时时间(秒)，默认1秒
+        
+        Returns:
+            解析后的数据字典，或None如果读取失败
+        """
         if not self.is_connected():
+            print("读取失败：串口未连接")
             return None
             
         try:
-            # 读取32字节的完整帧
-            raw_data = self.serial.read(32)
-            if len(raw_data) == 32:
-                return self.parse_frame(raw_data)
-            else:
+            # 保存原始超时设置
+            original_timeout = self.serial.timeout
+            self.serial.timeout = timeout
+            
+            # 尝试读取一个完整帧
+            start_time = time.time()
+            
+            # 首先确认帧头
+            header_found = False
+            raw_data = bytearray()
+            
+            # 在超时时间内搜索帧头
+            while time.time() - start_time < timeout:
+                if self.serial.in_waiting > 0:
+                    byte = self.serial.read(1)
+                    if byte == b's':  # 找到帧头
+                        raw_data = bytearray(byte)
+                        header_found = True
+                        break
+                time.sleep(0.01)  # 短暂休息，避免CPU占用过高
+            
+            # 如果没找到帧头，就返回None
+            if not header_found:
+                print("未能在串口数据中找到帧头标识's'")
+                self.serial.timeout = original_timeout
                 return None
+            
+            # 读取剩余的31个字节
+            remaining_data = self.serial.read(31)
+            raw_data.extend(remaining_data)
+            
+            # 检查是否读取了足够的数据
+            if len(raw_data) < 32:
+                print(f"读取到不完整的数据帧: {len(raw_data)} 字节")
+                print(f"不完整数据(hex): {raw_data.hex()}")
+                self.serial.timeout = original_timeout
+                return None
+                
+            # 检查帧尾
+            if raw_data[31] != ord('e'):
+                print(f"帧尾错误: 0x{raw_data[31]:02X}，应为0x65('e')")
+                self.serial.timeout = original_timeout
+                return None
+            
+            print(f"读取到完整的数据帧: 32 字节")
+            print(f"数据帧(hex): {raw_data.hex()}")
+            print(f"帧结构分析:")
+            print(f"  帧头: 0x{raw_data[0]:02X} ({'s' if raw_data[0] == ord('s') else '无效'})")
+            print(f"  数据类型: 0x{raw_data[1]:02X}")
+            print(f"  命令字: 0x{raw_data[2]:02X}")
+            print(f"  数据域: {raw_data[3:31].hex()}")
+            print(f"  帧尾: 0x{raw_data[31]:02X} ({'e' if raw_data[31] == ord('e') else '无效'})")
+            
+            # 恢复原始超时设置
+            self.serial.timeout = original_timeout
+            
+            # 解析帧数据
+            return self.parse_frame(raw_data)
+            
         except Exception as e:
             print(f"读取协议帧数据出错: {str(e)}")
+            import traceback
+            traceback.print_exc()
+            
+            # 恢复原始超时设置
+            if hasattr(self, 'serial') and self.serial:
+                self.serial.timeout = original_timeout
+                
             return None
         
     def request_data(self, command, data_array=None):
@@ -445,11 +575,28 @@ class SerialHandler:
             print("发送命令失败")
             return None
         
+        # 先清空接收缓冲区
+        self.serial.reset_input_buffer()
+        
         # 等待一段时间以接收响应
         time.sleep(0.1)
 
         # 尝试读取响应帧
-        return self.read_frame()
+        cnt = 0
+        data = self.read_frame()
+        # 检查data是否为None，并检查data中是否有datatype字段
+        while (data is None or data.get('datatype') != 0xB0) and cnt < 10:
+            print(f"未收到预期的响应帧，尝试重新读取... (尝试次数: {cnt})")
+            # 等待一段时间再读取
+            time.sleep(0.1)
+            data = self.read_frame()
+            cnt += 1
+        
+        if cnt >= 10:
+            print("错误：未收到预期的响应帧，可能是设备未响应或连接问题。")
+            return None
+            
+        return data
 
     def send_command_setting_light(self, brightness, color_temp):
         """
@@ -468,13 +615,11 @@ class SerialHandler:
         
         # 限制亮度和色温范围
         brightness = max(0, min(100, brightness))
-        color_temp = max(0, min(100, color_temp))
 
         #数据转换
         temp_brightness = brightness * 10  # 转换为0-1000的范围
-        temp_color_temp = 3500 + color_temp*25   # 转换为3500-6000K的范围
         
         # 打包数据
-        data_array = [temp_brightness, temp_color_temp] + [0] * 6
+        data_array = [temp_brightness, color_temp] + [0] * 6
 
         return self.send_command(0x16, data_array)

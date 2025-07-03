@@ -42,27 +42,33 @@ class LampControlHandler:
         """获取台灯当前状态"""
         try:
             if self.serial_handler:
-                data = self.serial_handler.request_data(0x40)
+                data = self.serial_handler.request_data(0x40,[1]*8)
                 if data is None:
                     self.logger.error("无法从台灯获取状态数据")
                     return None
                 else:
+                    if data['command'] == 0xBF:
+                        self.logger.error("台灯未开机，不响应命令")
+                        return None
                     if data['datatype'] != 0xB0:
                         self.logger.error(f"未知数据类型: {data['datatype']}")
                         return None
                     if data['command'] != 0x41:
                         self.logger.error(f"未知命令: {data['command']}")
                         return None
-                    # 解析数据
-                    if data["data"][0] == 0x00:
-                        self.lamp_status['power'] = False
-                    elif data["data"][0] == 0x01:
-                        self.lamp_status['power'] = True
-                    else:
-                        self.logger.error(f"未知电源状态: {data['data'][0]}")
-                        return None
-                    self.lamp_status['brightness'] = data["data"][2]  # 亮度
-                    self.lamp_status['color_temp'] = data["data"][3]  # 色温
+                    
+                    # 使用已解析的字段
+                    if 'is_light' in data:
+                        self.lamp_status['power'] = data['is_light']
+                    
+                    if 'brightness' in data:
+                        self.lamp_status['brightness'] = data['brightness']
+                    
+                    if 'color_temp' in data:
+                        self.lamp_status['color_temp'] = data['color_temp']
+                    
+                    self.logger.info(f"成功获取台灯状态: 电源={self.lamp_status['power']}, 亮度={self.lamp_status['brightness']}, 色温={self.lamp_status['color_temp']}")
+            
             self.lamp_status['last_update'] = datetime.now().isoformat()
             return self.lamp_status
         except Exception as e:
