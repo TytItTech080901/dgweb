@@ -332,7 +332,7 @@ def light_on():
             return "success"
         else:
             print("串口命令发送失败: 开灯")
-            return "串口命令发送失败，但已执行开灯操作"
+            return "串口命令发送失败，未执行开灯操作"
     except Exception as e:
         print(f"发送开灯命令时出错: {str(e)}")
         return "开灯命令执行出错，请检查串口连接"
@@ -349,7 +349,7 @@ def light_off():
             return "success"
         else:
             print("串口命令发送失败: 关灯")
-            return "串口命令发送失败，但已执行开灯操作"
+            return "串口命令发送失败，未执行开灯操作"
     except Exception as e:
         print(f"发送关灯命令时出错: {str(e)}")
         return "关灯命令执行出错，请检查串口连接"
@@ -366,7 +366,7 @@ def light_brighter():
             return "success"
         else:
             print("串口命令发送失败: 调高灯光亮度")
-            return "串口命令发送失败，但已执行调高灯光亮度操作"
+            return "串口命令发送失败，未执行调高灯光亮度操作"
     except Exception as e:
         print(f"发送调高亮度命令时出错: {str(e)}")
         return "调高亮度命令执行出错，请检查串口连接"
@@ -383,7 +383,7 @@ def light_dimmer():
             return "success"
         else:
             print("串口命令发送失败: 调低灯光亮度")
-            return "串口命令发送失败，但已执行调低灯光亮度操作"
+            return "串口命令发送失败，未执行调低灯光亮度操作"
     except Exception as e:
         print(f"发送调低亮度命令时出错: {str(e)}")
         return "调低亮度命令执行出错，请检查串口连接"
@@ -399,7 +399,7 @@ def color_temperature_up():
             return "success"
         else:
             print("串口命令发送失败: 提升光照色温")
-            return "串口命令发送失败，但已执行提升光照色温操作"
+            return "串口命令发送失败，未执行提升光照色温操作"
     except Exception as e:
         print(f"发送提升色温命令时出错: {str(e)}")
         return "提升色温命令执行出错，请检查串口连接"
@@ -415,7 +415,7 @@ def color_temperature_down():
             return "success"
         else:
             print("串口命令发送失败: 降低光照色温")
-            return "串口命令发送失败，但已执行降低光照色温操作"
+            return "串口命令发送失败，未执行降低光照色温操作"
     except Exception as e:
         print(f"发送降低色温命令时出错: {str(e)}")
         return "降低色温命令执行出错，请检查串口连接"
@@ -432,7 +432,7 @@ def posture_reminder():
             return "success"
         else:
             print("串口命令发送失败: 坐姿提醒")
-            return "串口命令发送失败，但已执行坐姿提醒操作"
+            return "串口命令发送失败，未执行坐姿提醒操作"
     except Exception as e:
         print(f"发送坐姿提醒命令时出错: {str(e)}")
         return "坐姿提醒命令执行出错，请检查串口连接"
@@ -449,7 +449,7 @@ def vision_reminder():
             return "success"
         else:
             print("串口命令发送失败: 远眺提醒")
-            return "串口命令发送失败，但已执行远眺提醒操作"
+            return "串口命令发送失败，未执行远眺提醒操作"
     except Exception as e:
         print(f"发送远眺提醒命令时出错: {str(e)}")
         return "远眺提醒命令执行出错，请检查串口连接"
@@ -496,6 +496,38 @@ def get_status():
         chatbot.logger.error(f"获取台灯状态失败: {e}")
         return None
 
+def arm_left():
+    """机械臂左转"""
+    print("==>机械臂左转<==")
+    chatbot = get_chatbot_instance()
+    try:
+        success = chatbot.serial_handler.send_command(0x32, [0] * 8)
+        if success:
+            print("串口命令发送成功: 机械臂左转")
+            return "success"
+        else:
+            print("串口命令发送失败: 机械臂左转")
+            return "串口命令发送失败，未执行机械臂左转操作"
+    except Exception as e:
+        print(f"发送机械臂左转命令时出错: {str(e)}")
+        return "机械臂左转命令执行出错，请检查串口连接"
+
+def arm_right():
+    """机械臂右转"""
+    print("==>机械臂右转<==")
+    chatbot = get_chatbot_instance()
+    try:
+        success = chatbot.serial_handler.send_command(0x33, [0] * 8)
+        if success:
+            print("串口命令发送成功: 机械臂右转")
+            return "success"
+        else:
+            print("串口命令发送失败: 机械臂右转")
+            return "串口命令发送失败，未执行机械臂右转操作"
+    except Exception as e:
+        print(f"发送机械臂右转命令时出错: {str(e)}")
+        return "机械臂右转命令执行出错，请检查串口连接"
+
 # 更新工具函数映射
 tools_map = {
     "light_on": light_on,
@@ -507,6 +539,8 @@ tools_map = {
     "posture_reminder": posture_reminder,
     "vision_reminder": vision_reminder,
     "get_status": get_status,
+    "arm_left": arm_left,
+    "arm_right": arm_right,
 }
 
 

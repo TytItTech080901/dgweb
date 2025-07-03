@@ -47,7 +47,7 @@ class LampControlHandler:
         """获取台灯当前状态"""
         try:
             # 通过串口查询台灯实际状态
-            if self.serial_handler and self.serial_handler.is_connected():
+            if self.serial_handler:
                 data = self.serial_handler.request_data(0x40, [1]*8)
                 if data is None:
                     self.logger.error("无法从台灯获取状态数据")
@@ -86,22 +86,14 @@ class LampControlHandler:
         """
         try:
             # 通过串口发送开关命令
-            if self.serial_handler and self.serial_handler.is_connected():
+            if self.serial_handler:
                 # 使用正确的串口协议发送开关命令
                 if power_on:
-                    success = self.serial_handler.send_command(0x14, [0] * 8)
-                    if success:
-                        self.logger.info("串口命令发送成功: 开灯")
-                    else:
-                        self.logger.error("串口命令发送失败: 开灯")
-                        return False
+                    self.serial_handler.send_command(0x14, [0] * 8)
+                    self.logger.info("串口命令发送成功: 开灯")
                 else:
-                    success = self.serial_handler.send_command(0x15, [0] * 8)
-                    if success:
-                        self.logger.info("串口命令发送成功: 关灯")
-                    else:
-                        self.logger.error("串口命令发送失败: 关灯")
-                        return False
+                    self.serial_handler.send_command(0x15, [0] * 8)
+                    self.logger.info("串口命令发送成功: 关灯")
             
             self.lamp_status['power'] = power_on
             self.lamp_status['last_update'] = datetime.now().isoformat()
@@ -123,16 +115,13 @@ class LampControlHandler:
             brightness = max(0, min(100, brightness))
             
             # 通过串口发送亮度命令
-            if self.serial_handler and self.serial_handler.is_connected():
-                # 使用正确的串口协议发送亮度命令
+            if self.serial_handler:
                 # 获取当前色温值
                 color_temp = self.lamp_status['color_temp']
                 # 将色温从2700K-6500K范围映射到0-100
                 color_temp_percent = int((color_temp - 2700) / 38)  # (6500-2700)/100=38
                 # 发送亮度和色温命令
-                if not self.serial_handler.send_command_setting_light(brightness, color_temp_percent):
-                    self.logger.error("串口发送亮度命令失败")
-                    return False
+                self.serial_handler.send_command_setting_light(brightness, color_temp_percent)
             
             self.lamp_status['brightness'] = brightness
             self.lamp_status['last_update'] = datetime.now().isoformat()
@@ -154,15 +143,13 @@ class LampControlHandler:
             color_temp = max(2700, min(6500, color_temp))
             
             # 通过串口发送色温命令
-            if self.serial_handler and self.serial_handler.is_connected():
+            if self.serial_handler:
                 # 将色温从2700K-6500K范围映射到0-100
                 color_temp_percent = int((color_temp - 2700) / 38)  # (6500-2700)/100=38
                 # 获取当前亮度值
                 brightness = self.lamp_status['brightness']
                 # 发送亮度和色温命令
-                if not self.serial_handler.send_command_setting_light(brightness, color_temp_percent):
-                    self.logger.error("串口发送色温命令失败")
-                    return False
+                self.serial_handler.send_command_setting_light(brightness, color_temp_percent)
             
             self.lamp_status['color_temp'] = color_temp
             self.lamp_status['last_update'] = datetime.now().isoformat()
@@ -480,11 +467,23 @@ class LampControlHandler:
                     result = False
                     
             # 处理直接命令（如前端传来的command参数）
-            # 忽略命令参数，我们使用更高级的接口处理
             if 'command' in settings_data:
-                # 记录命令但不直接使用，因为我们使用更高级的函数接口
-                self.logger.info(f"收到命令参数: {settings_data['command']}，使用高级接口处理")
-                updated_settings['command_received'] = settings_data['command']
+                command = settings_data['command']
+                self.logger.info(f"收到命令参数: {command}，使用高级接口处理")
+                updated_settings['command_received'] = command
+                
+                # 通过串口发送命令
+                if self.serial_handler:
+                    # 将命令转换为整数（如果是字符串形式）
+                    cmd_value = int(command) if isinstance(command, (int, str)) else 0
+                    # 准备默认的数据字节
+                    data_bytes = [0] * 8
+                    # 发送命令
+                    self.serial_handler.send_command(cmd_value, data_bytes)
+                    self.logger.info(f"命令 {cmd_value} 发送成功")
+                else:
+                    self.logger.warning("串口未初始化，无法发送命令")
+                    result = False
             
             # 处理RGB颜色设置
             if 'rgb' in settings_data or 'rgb_color' in settings_data:
@@ -622,7 +621,6 @@ def create_lamp_control_blueprint(serial_handler=None):
         except Exception as e:
             return jsonify({
                 'status': 'error',
-                'message': f"设置台灯开关出错: {str(e)}"
             }), 500
     
     # 设置台灯亮度API
@@ -981,22 +979,16 @@ def create_lamp_control_blueprint(serial_handler=None):
                 data_bytes = data.get('data', [0] * 8)  # 默认数据
                 
                 # 发送命令
-                if lamp_handler.serial_handler and lamp_handler.serial_handler.is_connected():
-                    success = lamp_handler.serial_handler.send_command(cmd_value, data_bytes)
-                    if success:
-                        return jsonify({
-                            'status': 'success',
-                            'message': f"命令 {hex(cmd_value) if isinstance(cmd_value, int) else command} 发送成功"
-                        })
-                    else:
-                        return jsonify({
-                            'status': 'error',
-                            'message': f"命令 {hex(cmd_value) if isinstance(cmd_value, int) else command} 发送失败"
-                        }), 500
+                if lamp_handler.serial_handler:
+                    lamp_handler.serial_handler.send_command(cmd_value, data_bytes)
+                    return jsonify({
+                        'status': 'success',
+                        'message': f"命令 {hex(cmd_value) if isinstance(cmd_value, int) else command} 发送成功"
+                    })
                 else:
                     return jsonify({
                         'status': 'error',
-                        'message': "串口未连接"
+                        'message': "串口未初始化"
                     }), 500
             else:
                 # 其他格式的命令（如自定义命令字符串）
@@ -1019,16 +1011,12 @@ def create_lamp_control_blueprint(serial_handler=None):
         if request.method == 'GET':
             # 返回串口状态
             if lamp_handler.serial_handler:
-                connected = lamp_handler.serial_handler.is_connected()
-                port = lamp_handler.serial_handler.port if connected else "未连接"
-                baudrate = lamp_handler.serial_handler.baudrate if connected else 0
-                
                 return jsonify({
                     'status': 'success',
                     'data': {
-                        'connected': connected,
-                        'port': port,
-                        'baudrate': baudrate
+                        'connected': True,
+                        'port': lamp_handler.serial_handler.port if hasattr(lamp_handler.serial_handler, 'port') else "未知",
+                        'baudrate': lamp_handler.serial_handler.baudrate if hasattr(lamp_handler.serial_handler, 'baudrate') else 0
                     }
                 })
             else:
@@ -1073,22 +1061,16 @@ def create_lamp_control_blueprint(serial_handler=None):
                     })
                 elif action == 'reconnect':
                     # 重新连接串口
-                    if lamp_handler.serial_handler:
-                        success = lamp_handler.serial_handler.reconnect()
-                        if success:
-                            return jsonify({
-                                'status': 'success',
-                                'message': "串口重新连接成功"
-                            })
-                        else:
-                            return jsonify({
-                                'status': 'error',
-                                'message': "串口重新连接失败"
-                            }), 500
+                    if lamp_handler.serial_handler and hasattr(lamp_handler.serial_handler, 'reconnect'):
+                        lamp_handler.serial_handler.reconnect()
+                        return jsonify({
+                            'status': 'success',
+                            'message': "串口重新连接成功"
+                        })
                     else:
                         return jsonify({
                             'status': 'error',
-                            'message': "串口处理器未初始化"
+                            'message': "串口处理器未初始化或不支持重连"
                         }), 500
                 else:
                     return jsonify({

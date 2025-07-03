@@ -82,5 +82,29 @@
                 "required": []
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "arm_left",
+            "description": "此函数用于将台灯机械臂向左转，当用户想要调整机械臂的光照位置，或是演示一下机械臂功能的时候好用",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "arm_right",
+            "description": "此函数用于将台灯机械臂向右转，当用户想要调整机械臂的光照位置，或是演示一下机械臂功能的时候好用",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
     }
 ]
