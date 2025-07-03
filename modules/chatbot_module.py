@@ -15,6 +15,7 @@ from dashscope.audio.asr import *
 from dashscope.audio.tts_v2 import *
 from http import HTTPStatus
 import json
+from datetime import datetime
 
 # 在文件开头添加串口模块导入
 from serial_handler import SerialHandler
@@ -268,6 +269,12 @@ class ChatbotService:
             os.path.join(base_path, "Snowboy/resources/models/computer.umdl"),
         ]
 
+        self.lamp_status = {}
+        self.lamp_status['power'] = True
+        self.lamp_status['brightness'] = 500
+        self.lamp_status['color_temp'] = 5300
+
+
     def initialize(self):
         """初始化语音助手"""
         print("语音助手初始化完成")
@@ -447,6 +454,48 @@ def vision_reminder():
         print(f"发送远眺提醒命令时出错: {str(e)}")
         return "远眺提醒命令执行出错，请检查串口连接"
 
+def get_status():
+    """获取台灯状态"""
+    print("==>获取台灯状态<==")
+    chatbot = get_chatbot_instance()
+    try:
+        if chatbot.serial_handler:
+            data = chatbot.serial_handler.request_data(0x40,[1]*8)
+            if data is None:
+                print("无法从台灯获取状态数据")
+                return None
+            else:
+                if data['command'] == 0xBF:
+                    print("台灯未开机，不响应命令")
+                    return None
+                if data['datatype'] != 0xB0:
+                    print(f"未知数据类型: {data['datatype']}")
+                    return None
+                if data['command'] != 0x41:
+                    print(f"未知命令: {data['command']}")
+                    return None
+                # 确保lamp_status字典初始化
+                if not hasattr(chatbot, 'lamp_status'):
+                    chatbot.lamp_status = {}
+                if 'is_light' in data:
+                    chatbot.lamp_status['power'] = data['is_light']
+
+                if 'brightness' in data:
+                    chatbot.lamp_status['brightness'] = data['brightness']
+                
+                if 'color_temp' in data:
+                    chatbot.lamp_status['color_temp'] = data['color_temp']
+
+                result = str(f"成功获取台灯状态: 电源={chatbot.lamp_status['power']}, 亮度={chatbot.lamp_status['brightness']}, 色温={chatbot.lamp_status['color_temp']}")
+
+                print(result)
+
+        chatbot.lamp_status['last_update'] = datetime.now().isoformat()
+        return result
+    except Exception as e:
+        chatbot.logger.error(f"获取台灯状态失败: {e}")
+        return None
+
 # 更新工具函数映射
 tools_map = {
     "light_on": light_on,
@@ -457,6 +506,7 @@ tools_map = {
     "color_temperature_down": color_temperature_down,
     "posture_reminder": posture_reminder,
     "vision_reminder": vision_reminder,
+    "get_status": get_status,
 }
 
 
@@ -471,7 +521,7 @@ def main():
     # time.sleep(2)
 
     # 随机生成的开场白
-    msg = "你好，请简要介绍一下自己的功能，控制在30字以内，不要举例。"
+    msg = "你好，请尽量简短地介绍一下自己的功能，控制在两句话以内，不要举例。"
     chatbot.send_message(msg)
     time.sleep(2)
 
