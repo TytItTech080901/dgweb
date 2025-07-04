@@ -22,7 +22,8 @@ from Audio.Snowboy import snowboydecoder
 from serial_handler import SerialHandler
 from config import (SERIAL_BAUDRATE, 
                     CHATBOT_MODULE,
-                    TIME_OUT)
+                    TIME_OUT,
+                    AUTO_RETURN)
 
 
 # 修改后的Agent类定义 (直接将声明代码复制过来)
@@ -324,7 +325,7 @@ class ChatbotService:
 
             sentence = self.my_agent.get_message()
 
-            if "休息" in sentence or "结束" in sentence or "退出" in sentence:
+            if ("休息" in sentence or "结束" in sentence or "退出" in sentence) and AUTO_RETURN:
                 print("==>检测到结束语，助手将进入休眠状态<==")
                 break
             print(f"==>识别结果：{sentence}<==")
@@ -361,6 +362,8 @@ def light_on():
     print("==>打开灯光<==")
     chatbot = get_chatbot_instance()
     try:
+        msg = "稍等我帮你开灯哦！"
+        chatbot.speak_text(msg)  # 朗读开灯提示
         # 使用serial_module中的send_command方法
         success = chatbot.serial_handler.send_command(0x14, [0] * 8)
         if success:
@@ -378,6 +381,8 @@ def light_off():
     print("==>关闭灯光<==")
     chatbot = get_chatbot_instance()
     try:
+        msg = "稍等我帮你关灯哦！"
+        chatbot.speak_text(msg)  # 朗读关灯提示
         # 使用serial_module中的send_command方法
         success = chatbot.serial_handler.send_command(0x15, [0] * 8)
         if success:
@@ -395,6 +400,8 @@ def light_brighter():
     print("==>调高灯光亮度<==")
     chatbot = get_chatbot_instance()
     try:
+        msg = "稍等我帮你调整一下哦！"
+        chatbot.speak_text(msg) 
         # 使用serial_module中的send_command方法
         success = chatbot.serial_handler.send_command(0x10, [0] * 8)
         if success:
@@ -412,6 +419,8 @@ def light_dimmer():
     print("==>调低灯光亮度<==")
     chatbot = get_chatbot_instance()
     try:
+        msg = "稍等我帮你调整一下哦！"
+        chatbot.speak_text(msg)
         # 使用serial_module中的send_command方法
         success = chatbot.serial_handler.send_command(0x11, [0] * 8)
         if success:
@@ -429,6 +438,8 @@ def color_temperature_up():
     print("==>提升光照色温<==")
     chatbot = get_chatbot_instance()
     try:
+        msg = "稍等我帮你调整一下哦！"
+        chatbot.speak_text(msg)
         success = chatbot.serial_handler.send_command(0x12, [0] * 8)
         if success:
             print("串口命令发送成功: 提升光照色温")
@@ -445,6 +456,8 @@ def color_temperature_down():
     print("==>降低光照色温<==")
     chatbot = get_chatbot_instance()
     try:
+        msg = "稍等我帮你调整一下哦！"
+        chatbot.speak_text(msg)
         success = chatbot.serial_handler.send_command(0x13, [0] * 8)
         if success:
             print("串口命令发送成功: 降低光照色温")
@@ -478,6 +491,8 @@ def reading_mode():
     print("==>进行阅读模式<==")
     chatbot = get_chatbot_instance()
     try:
+        msg = "稍等我帮你打开阅读模式哦！"
+        chatbot.speak_text(msg)
         # 使用serial_module中的send_command方法
         success = chatbot.serial_handler.send_command(0x50, [0] * 8)
         if success:
@@ -495,6 +510,8 @@ def learning_mode():
     print("==>进行学习模式<==")
     chatbot = get_chatbot_instance()
     try:
+        msg = "稍等我帮你打开学习模式哦！"
+        chatbot.speak_text(msg)
         # 使用serial_module中的send_command方法
         success = chatbot.serial_handler.send_command(0x51, [0] * 8)
         if success:
@@ -512,6 +529,8 @@ def vision_reminder():
     print("==>进行远眺提醒<==")
     chatbot = get_chatbot_instance()
     try:
+        msg = "不如稍微休息一下，远眺一下哦！"
+        chatbot.speak_text(msg)
         # 使用serial_module中的send_command方法
         success = chatbot.serial_handler.send_command(0x21, [0] * 8)
         if success:
@@ -529,6 +548,8 @@ def get_status():
     print("==>获取台灯状态<==")
     chatbot = get_chatbot_instance()
     try:
+        msg = "稍等我帮你看看哦！"
+        chatbot.speak_text(msg)  # 朗读获取状态提示
         if chatbot.serial_handler:
             data = chatbot.serial_handler.request_data(0x40,[1]*8)
             if data is None:
@@ -571,6 +592,8 @@ def arm_forward():
     print("==>机械臂向前移动<==")
     chatbot = get_chatbot_instance()
     try:
+        msg = "稍等我帮你调整一下哦！"
+        chatbot.speak_text(msg)
         success = chatbot.serial_handler.send_command(0x30, [0] * 8)
         if success:
             print("串口命令发送成功: 机械臂向前移动")
@@ -587,6 +610,8 @@ def arm_backward():
     print("==>机械臂向后移动<==")
     chatbot = get_chatbot_instance()
     try:
+        msg = "稍等我帮你调整一下哦！"
+        chatbot.speak_text(msg)
         success = chatbot.serial_handler.send_command(0x31, [0] * 8)
         if success:
             print("串口命令发送成功: 机械臂向后移动")
@@ -603,6 +628,8 @@ def arm_left():
     print("==>机械臂左转<==")
     chatbot = get_chatbot_instance()
     try:
+        msg = "稍等我帮你调整一下哦！"
+        chatbot.speak_text(msg)
         success = chatbot.serial_handler.send_command(0x32, [0] * 8)
         if success:
             print("串口命令发送成功: 机械臂左转")
@@ -619,6 +646,8 @@ def arm_right():
     print("==>机械臂右转<==")
     chatbot = get_chatbot_instance()
     try:
+        msg = "稍等我帮你调整一下哦！"
+        chatbot.speak_text(msg)
         success = chatbot.serial_handler.send_command(0x33, [0] * 8)
         if success:
             print("串口命令发送成功: 机械臂右转")

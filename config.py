@@ -30,6 +30,7 @@ AUTO_START_CHATBOT_LOOP = True  # 是否自动启动语音助手对话循环
 # CHATBOT_MODULE = "qwen-plus-2025-01-25" # 千问plus 1.25的快照 目前没有问题（测试较少）
 CHATBOT_MODULE = "qwen-turbo-2025-02-11" # 千问turbo 2.11的快照 前没有问题（测试较少）
 TIME_OUT =  180 # 语音助手对话超时时间，单位为秒
+AUTO_RETURN = False # 语音助手是否可以听到结束语后就退出
 
 # 开放端口配置
 # 使用0.0.0.0表示监听所有可用网络接口，允许任何IP地址连接

@@ -177,9 +177,9 @@ def create_app():
                 if ENABLE_WELCOME_MESSAGE:
                     try:
                         print("正在请求语音助手自我介绍...")
-                        msg = "你好，请简要介绍一下自己的功能，不要举例,不要使用\"嗨\",不要提到自己机械臂的功能。并且告诉用户，用“你好小灵”来唤醒你"
-                        response = chatbot_service.send_message(msg)
-                        print(f"语音助手自我介绍: {response}")
+                        # msg = "你好，请简要介绍一下自己的功能，不要举例,不要使用\"嗨\",不要提到自己机械臂的功能。并且告诉用户，用“你好小灵”来唤醒你"
+                        # response = chatbot_service.send_message(msg)
+                        chatbot_service.speak_text("你好！我是瞳灵智能台灯，我能开关灯光、调节亮度，让房间变亮或者变暗哦！还能控制机械臂把光照到你需要的地方呢！")
                     except Exception as e:
                         print(f"语音助手自我介绍时出错: {str(e)}")
             else:
@@ -222,6 +222,30 @@ def create_app():
         serial_handler_instance=serial_handler,
         chatbot_service_instance=chatbot_service
     )
+
+        # 如果启用了语音助手并设置为自动启动对话循环，则在单独的线程中启动
+    if chatbot_service and AUTO_START_CHATBOT_LOOP:
+        import threading
+
+        msg = "如果有任何需要，请用“你好小灵”来唤醒我!"
+        chatbot_service.speak_text(msg)
+
+        def chatbot_loop():
+            print("语音助手对话循环已启动，随时准备接收语音指令...")
+            try:
+                while True:
+                    try:
+                        chatbot_service.chat_loop()
+                    except Exception as e:
+                        print(f"语音助手对话循环出错: {str(e)}")
+                        time.sleep(2)  # 出错后等待2秒重试
+            except KeyboardInterrupt:
+                print("语音助手对话循环被手动终止")
+                
+        # 创建并启动语音助手线程
+        chatbot_thread = threading.Thread(target=chatbot_loop, daemon=True)
+        chatbot_thread.start()
+        print("语音助手线程已启动")
 
     # 注册全局API错误处理器
     @app.errorhandler(500)
@@ -286,33 +310,8 @@ def create_app():
         #     pass
     
     atexit.register(cleanup)
-    
-    # 如果启用了语音助手并设置为自动启动对话循环，则在单独的线程中启动
-    if chatbot_service and AUTO_START_CHATBOT_LOOP:
-        import threading
-
-        msg = "现在,你可以随时跟我说话哦!"
-        chatbot_service.speak_text(msg)
-
-        def chatbot_loop():
-            print("语音助手对话循环已启动，随时准备接收语音指令...")
-            try:
-                while True:
-                    try:
-                        chatbot_service.chat_loop()
-                    except Exception as e:
-                        print(f"语音助手对话循环出错: {str(e)}")
-                        time.sleep(2)  # 出错后等待2秒重试
-            except KeyboardInterrupt:
-                print("语音助手对话循环被手动终止")
-                
-        # 创建并启动语音助手线程
-        chatbot_thread = threading.Thread(target=chatbot_loop, daemon=True)
-        chatbot_thread.start()
-        print("语音助手线程已启动")
-    
+        
     return app
-
 if __name__ == '__main__':
     app = create_app()
     print(f"Starting server on {OPEN_HOST}:{OPEN_PORT}...")
