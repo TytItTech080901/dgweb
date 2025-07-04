@@ -70,5 +70,101 @@
                 "required": []
             }
         }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "get_status",
+            "description": "此函数在获取台灯状态，用户在提问现在诸如“灯光亮度”，“灯光色温”，“灯光状态”等涉及灯光状态的时候调用这个函数会很好。这个函数的ouput会有两种，第一种是返回None代表状态获取失败；第二种是回传一个字符串，格式为“成功获取台灯状态: 电源=一个布尔值代表的电源状态, 亮度=代表亮度的整数, 色温=代表色温的整数”，亮度（0-1000）和光照色温（3000-6500,单位K）,请根据回传的tool_output告诉用户台灯的状态",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+        {
+        "type": "function",
+        "function": {
+            "name": "arm_forward",
+            "description": "此函数用于将台灯机械臂向前移动，当用户想要调整机械臂的光照位置更前进，或是演示一下机械臂功能的时候好用",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+        {
+        "type": "function",
+        "function": {
+            "name": "arm_backward",
+            "description": "此函数用于将台灯机械臂向后移动，当用户想要调整机械臂的光照位置向后移动，或是演示一下机械臂功能的时候好用",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "arm_left",
+            "description": "此函数用于将台灯机械臂向右转，当用户想要调整机械臂的光照位置更右侧一些，或是演示一下机械臂功能的时候好用",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "arm_right",
+            "description": "此函数用于将台灯机械臂向左转，当用户想要调整机械臂的光照位置更左侧一些，或是演示一下机械臂功能的时候好用",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "reading_mode",
+            "description": "此函数用于将台灯设置为阅读模式，用户说要阅读模式、看书灯光、阅读时调用此函数",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "learning_mode",
+            "description": "此函数用于将台灯设置为学习模式，用户说要学习模式、学习灯光、学习、写作业时调用此函数",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+        {
+        "type": "function",
+        "function": {
+            "name": "vision_reminder",
+            "description": "此函数用于提醒孩子进行远眺，当孩子说到疲劳，眼睛累，或者引导他进行远眺的时候调用此函数",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
     }
 ]

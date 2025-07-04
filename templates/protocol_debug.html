@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>台灯协议调试</title>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@5.1.3/dist/css/bootstrap.min.css">
+    <style>
+        body {
+            padding: 20px;
+        }
+        .command-history {
+            height: 300px;
+            overflow-y: auto;
+            border: 1px solid #ccc;
+            padding: 10px;
+            margin-bottom: 20px;
+            background-color: #f8f9fa;
+        }
+        .command-input {
+            margin-bottom: 20px;
+        }
+        .success {
+            color: green;
+        }
+        .error {
+            color: red;
+        }
+        .info {
+            color: blue;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1 class="mb-4">台灯协议调试工具</h1>
+        
+        <div class="row mb-4">
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">串口状态</div>
+                    <div class="card-body">
+                        <div id="serial-status">正在获取串口状态...</div>
+                        <button id="refresh-status" class="btn btn-info mt-2">刷新状态</button>
+                        <button id="reconnect-serial" class="btn btn-warning mt-2">重新连接</button>
+                    </div>
+                </div>
+            </div>
+            <div class="col-md-6">
+                <div class="card">
+                    <div class="card-header">台灯状态</div>
+                    <div class="card-body">
+                        <div id="lamp-status">正在获取台灯状态...</div>
+                        <button id="query-status" class="btn btn-info mt-2">查询状态</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <div class="card mb-4">
+            <div class="card-header">命令历史</div>
+            <div class="card-body">
+                <div id="command-history" class="command-history"></div>
+            </div>
+        </div>
+        
+        <div class="card">
+            <div class="card-header">发送命令</div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <label for="command-type" class="form-label">命令类型</label>
+                    <select id="command-type" class="form-select">
+                        <option value="hex">十六进制命令</option>
+                        <option value="preset">预设命令</option>
+                    </select>
+                </div>
+                
+                <div id="hex-command-form">
+                    <div class="mb-3">
+                        <label for="hex-command" class="form-label">命令值 (十六进制)</label>
+                        <input type="text" id="hex-command" class="form-control" placeholder="例如: 0x14">
+                    </div>
+                    <div class="mb-3">
+                        <label for="data-bytes" class="form-label">数据字节 (逗号分隔的十进制值)</label>
+                        <input type="text" id="data-bytes" class="form-control" placeholder="例如: 0,0,0,0,0,0,0,0">
+                    </div>
+                </div>
+                
+                <div id="preset-command-form" style="display:none;">
+                    <div class="mb-3">
+                        <label for="preset-command" class="form-label">预设命令</label>
+                        <select id="preset-command" class="form-select">
+                            <option value="power_on">开灯 (0x14)</option>
+                            <option value="power_off">关灯 (0x15)</option>
+                            <option value="query_status">查询状态 (0x40)</option>
+                            <option value="set_brightness_50">设置亮度50% (0x16)</option>
+                            <option value="set_brightness_100">设置亮度100% (0x16)</option>
+                            <option value="set_color_temp_warm">设置暖色温 (0x16)</option>
+                            <option value="set_color_temp_cool">设置冷色温 (0x16)</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <button id="send-command" class="btn btn-primary">发送命令</button>
+            </div>
+        </div>
+    </div>
+    
+    <script>
+        // DOM元素
+        const serialStatusEl = document.getElementById('serial-status');
+        const lampStatusEl = document.getElementById('lamp-status');
+        const commandHistoryEl = document.getElementById('command-history');
+        const commandTypeEl = document.getElementById('command-type');
+        const hexCommandFormEl = document.getElementById('hex-command-form');
+        const presetCommandFormEl = document.getElementById('preset-command-form');
+        const hexCommandEl = document.getElementById('hex-command');
+        const dataBytesEl = document.getElementById('data-bytes');
+        const presetCommandEl = document.getElementById('preset-command');
+        const sendCommandBtn = document.getElementById('send-command');
+        const refreshStatusBtn = document.getElementById('refresh-status');
+        const reconnectSerialBtn = document.getElementById('reconnect-serial');
+        const queryStatusBtn = document.getElementById('query-status');
+        
+        // 命令历史记录
+        let commandHistory = [];
+        
+        // 页面加载时获取状态
+        window.onload = function() {
+            getSerialStatus();
+            getLampStatus();
+        };
+        
+        // 命令类型切换
+        commandTypeEl.addEventListener('change', function() {
+            if (this.value === 'hex') {
+                hexCommandFormEl.style.display = 'block';
+                presetCommandFormEl.style.display = 'none';
+            } else {
+                hexCommandFormEl.style.display = 'none';
+                presetCommandFormEl.style.display = 'block';
+            }
+        });
+        
+        // 刷新串口状态
+        refreshStatusBtn.addEventListener('click', getSerialStatus);
+        
+        // 重新连接串口
+        reconnectSerialBtn.addEventListener('click', reconnectSerial);
+        
+        // 查询台灯状态
+        queryStatusBtn.addEventListener('click', getLampStatus);
+        
+        // 发送命令
+        sendCommandBtn.addEventListener('click', sendCommand);
+        
+        // 获取串口状态
+        function getSerialStatus() {
+            fetch('/api/serial/debug')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const status = data.data;
+                        serialStatusEl.innerHTML = `
+                            <p><strong>连接状态:</strong> ${status.connected ? '<span class="text-success">已连接</span>' : '<span class="text-danger">未连接</span>'}</p>
+                            <p><strong>端口:</strong> ${status.port}</p>
+                            <p><strong>波特率:</strong> ${status.baudrate}</p>
+                        `;
+                        addHistoryItem('获取串口状态成功', 'info');
+                    } else {
+                        serialStatusEl.innerHTML = `<p class="text-danger">获取状态失败: ${data.message}</p>`;
+                        addHistoryItem(`获取串口状态失败: ${data.message}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    serialStatusEl.innerHTML = `<p class="text-danger">获取状态出错: ${error.message}</p>`;
+                    addHistoryItem(`获取串口状态出错: ${error.message}`, 'error');
+                });
+        }
+        
+        // 获取台灯状态
+        function getLampStatus() {
+            fetch('/api/lamp/status')
+                .then(response => response.json())
+                .then(data => {
+                    if (data.status === 'success') {
+                        const status = data.data;
+                        lampStatusEl.innerHTML = `
+                            <p><strong>电源:</strong> ${status.power ? '开启' : '关闭'}</p>
+                            <p><strong>亮度:</strong> ${status.brightness}%</p>
+                            <p><strong>色温:</strong> ${status.color_temp}K</p>
+                            <p><strong>颜色模式:</strong> ${status.color_mode}</p>
+                            <p><strong>场景模式:</strong> ${status.scene_mode}</p>
+                            <p><strong>自动模式:</strong> ${status.auto_mode ? '已启用' : '未启用'}</p>
+                            <p><strong>定时器:</strong> ${status.timer_enabled ? `${status.timer_duration}分钟` : '未启用'}</p>
+                            <p><strong>上次更新:</strong> ${new Date(status.last_update).toLocaleString()}</p>
+                        `;
+                        addHistoryItem('获取台灯状态成功', 'info');
+                    } else {
+                        lampStatusEl.innerHTML = `<p class="text-danger">获取状态失败: ${data.message}</p>`;
+                        addHistoryItem(`获取台灯状态失败: ${data.message}`, 'error');
+                    }
+                })
+                .catch(error => {
+                    lampStatusEl.innerHTML = `<p class="text-danger">获取状态出错: ${error.message}</p>`;
+                    addHistoryItem(`获取台灯状态出错: ${error.message}`, 'error');
+                });
+        }
+        
+        // 重新连接串口
+        function reconnectSerial() {
+            fetch('/api/serial/debug', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    action: 'reconnect'
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    addHistoryItem(`串口重新连接成功: ${data.message}`, 'success');
+                    getSerialStatus(); // 刷新状态
+                } else {
+                    addHistoryItem(`串口重新连接失败: ${data.message}`, 'error');
+                }
+            })
+            .catch(error => {
+                addHistoryItem(`串口重新连接出错: ${error.message}`, 'error');
+            });
+        }
+        
+        // 发送命令
+        function sendCommand() {
+            let command, dataBytes;
+            
+            if (commandTypeEl.value === 'hex') {
+                // 十六进制命令
+                command = hexCommandEl.value.trim();
+                
+                // 验证命令格式
+                if (!command || (!command.startsWith('0x') && isNaN(parseInt(command, 16)))) {
+                    addHistoryItem('无效的十六进制命令格式', 'error');
+                    return;
+                }
+                
+                // 解析数据字节
+                const dataBytesText = dataBytesEl.value.trim();
+                if (dataBytesText) {
+                    try {
+                        dataBytes = dataBytesText.split(',').map(b => parseInt(b.trim(), 10));
+                        // 确保有8个字节
+                        while (dataBytes.length < 8) {
+                            dataBytes.push(0);
+                        }
+                        // 限制为前8个字节
+                        dataBytes = dataBytes.slice(0, 8);
+                    } catch (e) {
+                        addHistoryItem('无效的数据字节格式', 'error');
+                        return;
+                    }
+                } else {
+                    dataBytes = [0, 0, 0, 0, 0, 0, 0, 0]; // 默认8个0
+                }
+            } else {
+                // 预设命令
+                const preset = presetCommandEl.value;
+                
+                switch (preset) {
+                    case 'power_on':
+                        command = '0x14';
+                        dataBytes = [0, 0, 0, 0, 0, 0, 0, 0];
+                        break;
+                    case 'power_off':
+                        command = '0x15';
+                        dataBytes = [0, 0, 0, 0, 0, 0, 0, 0];
+                        break;
+                    case 'query_status':
+                        command = '0x40';
+                        dataBytes = [1, 1, 1, 1, 1, 1, 1, 1];
+                        break;
+                    case 'set_brightness_50':
+                        command = '0x16';
+                        dataBytes = [50, 50, 0, 0, 0, 0, 0, 0];
+                        break;
+                    case 'set_brightness_100':
+                        command = '0x16';
+                        dataBytes = [100, 50, 0, 0, 0, 0, 0, 0];
+                        break;
+                    case 'set_color_temp_warm':
+                        command = '0x16';
+                        dataBytes = [50, 0, 0, 0, 0, 0, 0, 0];
+                        break;
+                    case 'set_color_temp_cool':
+                        command = '0x16';
+                        dataBytes = [50, 100, 0, 0, 0, 0, 0, 0];
+                        break;
+                    default:
+                        addHistoryItem('未知的预设命令', 'error');
+                        return;
+                }
+            }
+            
+            // 发送命令到服务器
+            fetch('/api/serial/command', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    command: command,
+                    data: dataBytes
+                })
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.status === 'success') {
+                    addHistoryItem(`命令 ${command} 发送成功: ${data.message}`, 'success');
+                    // 如果是查询状态命令，刷新台灯状态
+                    if (command === '0x40' || presetCommandEl.value === 'query_status') {
+                        setTimeout(getLampStatus, 500);
+                    }
+                } else {
+                    addHistoryItem(`命令 ${command} 发送失败: ${data.message}`, 'error');
+                }
+            })
+            .catch(error => {
+                addHistoryItem(`命令 ${command} 发送出错: ${error.message}`, 'error');
+            });
+        }
+        
+        // 添加历史记录项
+        function addHistoryItem(message, type) {
+            const timestamp = new Date().toLocaleTimeString();
+            const item = {
+                timestamp,
+                message,
+                type
+            };
+            
+            commandHistory.unshift(item);
+            // 限制历史记录数量
+            if (commandHistory.length > 100) {
+                commandHistory.pop();
+            }
+            
+            // 更新历史记录显示
+            updateHistoryDisplay();
+        }
+        
+        // 更新历史记录显示
+        function updateHistoryDisplay() {
+            commandHistoryEl.innerHTML = '';
+            
+            commandHistory.forEach(item => {
+                const div = document.createElement('div');
+                div.className = item.type;
+                div.textContent = `[${item.timestamp}] ${item.message}`;
+                commandHistoryEl.appendChild(div);
+            });
+        }
+    </script>
+</body>
+</html>

@@ -15,10 +15,14 @@ from dashscope.audio.asr import *
 from dashscope.audio.tts_v2 import *
 from http import HTTPStatus
 import json
+from datetime import datetime
+from Audio.Snowboy import snowboydecoder
 
 # 在文件开头添加串口模块导入
 from serial_handler import SerialHandler
-from config import SERIAL_BAUDRATE
+from config import (SERIAL_BAUDRATE, 
+                    CHATBOT_MODULE,
+                    TIME_OUT)
 
 
 # 修改后的Agent类定义 (直接将声明代码复制过来)
@@ -26,7 +30,7 @@ class Agent:
     asr_model = "gummy-chat-v1"  # asr模型名称
     tts_model = "cosyvoice-v1"  # tts模型名称
     tts_voice = "longxiaochun"  # tts语音名称
-    assistant_model = "qwen-turbo-2025-04-28"  # 大模型名称
+    assistant_model = CHATBOT_MODULE  # 大模型名称
 
     assistant = None  # 大模型助手
     thread = None  # 线程
@@ -225,16 +229,10 @@ class Agent:
             format=AudioFormat.PCM_22050HZ_MONO_16BIT,
             callback=tts_callback,
         )
-        
-        try:
-            # 执行语音合成
-            synthesizer.streaming_call(text)
-            synthesizer.streaming_complete()
-            return True
-        except Exception as e:
-            print(f"语音合成出错: {e}")
-            return False
 
+        synthesizer.streaming_call(text)
+        synthesizer.streaming_complete()
+    
 class ChatbotService:
     """语音助手服务，用于语音交互"""
 
@@ -277,6 +275,12 @@ class ChatbotService:
             os.path.join(base_path, "Snowboy/resources/models/computer.umdl"),
         ]
 
+        self.lamp_status = {}
+        self.lamp_status['power'] = True
+        self.lamp_status['brightness'] = 500
+        self.lamp_status['color_temp'] = 5300
+
+
     def initialize(self):
         """初始化语音助手"""
         print("语音助手初始化完成")
@@ -295,12 +299,41 @@ class ChatbotService:
         return response
 
     def chat_loop(self):
-        """执行一轮语音交互"""
-        sentence = self.my_agent.get_message()
-        print(f"==>识别结果：{sentence}<==")
-        response = self.my_agent.send_message(sentence)
-        return response
-        
+        """进入包含语音识别的交互"""
+
+        kws_models = ["Audio/Snowboy/resources/models/lampbot.pmdl"]
+
+        detector = snowboydecoder.HotwordDetector(kws_models, sensitivity=0.9)
+        print("正在监听唤醒词... 按 Ctrl+C 退出")
+        detector.start(sleep_time=0.03, stop_on_detect=True)
+        detector.terminate()
+        print("唤醒词被检测到，开始语音识别...")
+        msg = "你好，小灵"
+        self.send_message(msg) # 语音识别成功的交互
+
+        start_time = datetime.now()
+        timeout_seconds = TIME_OUT
+
+        for i in range(30): #允许最多30次对话，对话之后进入休眠
+            current_time = datetime.now()
+            elapsed_time = (current_time - start_time).total_seconds()
+            
+            if elapsed_time >= timeout_seconds:
+                print(f"==>对话超时({timeout_seconds}秒)，助手将进入休眠状态<==")
+                break
+
+            sentence = self.my_agent.get_message()
+
+            if "休息" in sentence or "结束" in sentence or "退出" in sentence:
+                print("==>检测到结束语，助手将进入休眠状态<==")
+                break
+            print(f"==>识别结果：{sentence}<==")
+            self.my_agent.send_message(sentence)
+
+        msg = "小灵先休息啦，有事情可以随时叫我哦！"
+        self.my_agent.speak_text(msg)
+        print("==>对话结束，助手进入休眠状态<==")
+
     def reset(self):
         """重置对话上下文"""
         self.my_agent.reset()
@@ -309,6 +342,7 @@ class ChatbotService:
     def speak_text(self, text):
         """朗读指定文本，无需进行对话"""
         return self.my_agent.speak_text(text)
+    
 
 
 # 全局变量用于存储聊天机器人实例
@@ -331,10 +365,10 @@ def light_on():
         success = chatbot.serial_handler.send_command(0x14, [0] * 8)
         if success:
             print("串口命令发送成功: 开灯")
-            return "已通过串口发送开灯命令"
+            return "success"
         else:
             print("串口命令发送失败: 开灯")
-            return "串口命令发送失败，但已执行开灯操作"
+            return "串口命令发送失败，未执行开灯操作"
     except Exception as e:
         print(f"发送开灯命令时出错: {str(e)}")
         return "开灯命令执行出错，请检查串口连接"
@@ -348,10 +382,10 @@ def light_off():
         success = chatbot.serial_handler.send_command(0x15, [0] * 8)
         if success:
             print("串口命令发送成功: 关灯")
-            return "已通过串口发送关灯命令"
+            return "success"
         else:
             print("串口命令发送失败: 关灯")
-            return "串口命令发送失败，但已执行开灯操作"
+            return "串口命令发送失败，未执行开灯操作"
     except Exception as e:
         print(f"发送关灯命令时出错: {str(e)}")
         return "关灯命令执行出错，请检查串口连接"
@@ -365,10 +399,10 @@ def light_brighter():
         success = chatbot.serial_handler.send_command(0x10, [0] * 8)
         if success:
             print("串口命令发送成功: 调高灯光亮度")
-            return "已通过串口发送调高灯光亮度命令"
+            return "success"
         else:
             print("串口命令发送失败: 调高灯光亮度")
-            return "串口命令发送失败，但已执行调高灯光亮度操作"
+            return "串口命令发送失败，未执行调高灯光亮度操作"
     except Exception as e:
         print(f"发送调高亮度命令时出错: {str(e)}")
         return "调高亮度命令执行出错，请检查串口连接"
@@ -382,10 +416,10 @@ def light_dimmer():
         success = chatbot.serial_handler.send_command(0x11, [0] * 8)
         if success:
             print("串口命令发送成功: 调低灯光亮度")
-            return "已通过串口发送调低灯光亮度命令"
+            return "success"
         else:
             print("串口命令发送失败: 调低灯光亮度")
-            return "串口命令发送失败，但已执行调低灯光亮度操作"
+            return "串口命令发送失败，未执行调低灯光亮度操作"
     except Exception as e:
         print(f"发送调低亮度命令时出错: {str(e)}")
         return "调低亮度命令执行出错，请检查串口连接"
@@ -398,10 +432,10 @@ def color_temperature_up():
         success = chatbot.serial_handler.send_command(0x12, [0] * 8)
         if success:
             print("串口命令发送成功: 提升光照色温")
-            return "已通过串口发送提升光照色温命令"
+            return "success"
         else:
             print("串口命令发送失败: 提升光照色温")
-            return "串口命令发送失败，但已执行提升光照色温操作"
+            return "串口命令发送失败，未执行提升光照色温操作"
     except Exception as e:
         print(f"发送提升色温命令时出错: {str(e)}")
         return "提升色温命令执行出错，请检查串口连接"
@@ -414,10 +448,10 @@ def color_temperature_down():
         success = chatbot.serial_handler.send_command(0x13, [0] * 8)
         if success:
             print("串口命令发送成功: 降低光照色温")
-            return "已通过串口发送降低光照色温命令"
+            return "success"
         else:
             print("串口命令发送失败: 降低光照色温")
-            return "串口命令发送失败，但已执行降低光照色温操作"
+            return "串口命令发送失败，未执行降低光照色温操作"
     except Exception as e:
         print(f"发送降低色温命令时出错: {str(e)}")
         return "降低色温命令执行出错，请检查串口连接"
@@ -431,13 +465,47 @@ def posture_reminder():
         success = chatbot.serial_handler.send_command(0x20, [0] * 8)
         if success:
             print("串口命令发送成功: 坐姿提醒")
-            return "已通过串口发送坐姿提醒命令"
+            return "success"
         else:
             print("串口命令发送失败: 坐姿提醒")
-            return "串口命令发送失败，但已执行坐姿提醒操作"
+            return "串口命令发送失败，未执行坐姿提醒操作"
     except Exception as e:
         print(f"发送坐姿提醒命令时出错: {str(e)}")
         return "坐姿提醒命令执行出错，请检查串口连接"
+
+def reading_mode():
+    """进行阅读模式"""
+    print("==>进行阅读模式<==")
+    chatbot = get_chatbot_instance()
+    try:
+        # 使用serial_module中的send_command方法
+        success = chatbot.serial_handler.send_command(0x50, [0] * 8)
+        if success:
+            print("串口命令发送成功: 阅读模式")
+            return "success"
+        else:
+            print("串口命令发送失败: 阅读模式")
+            return "串口命令发送失败，未执行阅读模式操作"
+    except Exception as e:
+        print(f"发送阅读模式命令时出错: {str(e)}")
+        return "阅读模式命令执行出错，请检查串口连接"
+
+def learning_mode():
+    """进行学习模式"""
+    print("==>进行学习模式<==")
+    chatbot = get_chatbot_instance()
+    try:
+        # 使用serial_module中的send_command方法
+        success = chatbot.serial_handler.send_command(0x51, [0] * 8)
+        if success:
+            print("串口命令发送成功: 进行学习模式")
+            return "success"
+        else:
+            print("串口命令发送失败: 进行学习模式")
+            return "串口命令发送失败，未执行进行学习模式操作"
+    except Exception as e:
+        print(f"发送进行学习模式命令时出错: {str(e)}")
+        return "进行学习模式命令执行出错，请检查串口连接"
     
 def vision_reminder():
     """进行远眺提醒"""
@@ -448,13 +516,119 @@ def vision_reminder():
         success = chatbot.serial_handler.send_command(0x21, [0] * 8)
         if success:
             print("串口命令发送成功: 远眺提醒")
-            return "已通过串口发送远眺提醒命令"
+            return "success"
         else:
             print("串口命令发送失败: 远眺提醒")
-            return "串口命令发送失败，但已执行远眺提醒操作"
+            return "串口命令发送失败，未执行远眺提醒操作"
     except Exception as e:
         print(f"发送远眺提醒命令时出错: {str(e)}")
         return "远眺提醒命令执行出错，请检查串口连接"
+
+def get_status():
+    """获取台灯状态"""
+    print("==>获取台灯状态<==")
+    chatbot = get_chatbot_instance()
+    try:
+        if chatbot.serial_handler:
+            data = chatbot.serial_handler.request_data(0x40,[1]*8)
+            if data is None:
+                print("无法从台灯获取状态数据")
+                return None
+            else:
+                if data['command'] == 0xBF:
+                    print("台灯未开机，不响应命令")
+                    return None
+                if data['datatype'] != 0xB0:
+                    print(f"未知数据类型: {data['datatype']}")
+                    return None
+                if data['command'] != 0x41:
+                    print(f"未知命令: {data['command']}")
+                    return None
+                # 确保lamp_status字典初始化
+                if not hasattr(chatbot, 'lamp_status'):
+                    chatbot.lamp_status = {}
+                if 'is_light' in data:
+                    chatbot.lamp_status['power'] = data['is_light']
+
+                if 'brightness' in data:
+                    chatbot.lamp_status['brightness'] = data['brightness']
+                
+                if 'color_temp' in data:
+                    chatbot.lamp_status['color_temp'] = data['color_temp']
+
+                result = str(f"成功获取台灯状态: 电源={chatbot.lamp_status['power']}, 亮度={chatbot.lamp_status['brightness']}, 色温={chatbot.lamp_status['color_temp']}")
+
+                print(result)
+
+        chatbot.lamp_status['last_update'] = datetime.now().isoformat()
+        return result
+    except Exception as e:
+        chatbot.logger.error(f"获取台灯状态失败: {e}")
+        return None
+
+def arm_forward():
+    """机械臂向前移动"""
+    print("==>机械臂向前移动<==")
+    chatbot = get_chatbot_instance()
+    try:
+        success = chatbot.serial_handler.send_command(0x30, [0] * 8)
+        if success:
+            print("串口命令发送成功: 机械臂向前移动")
+            return "success"
+        else:
+            print("串口命令发送失败: 机械臂向前移动")
+            return "串口命令发送失败，未执行机械臂向前移动操作"
+    except Exception as e:
+        print(f"发送机械臂向前移动命令时出错: {str(e)}")
+        return "机械臂向前移动命令执行出错，请检查串口连接"
+
+def arm_backward():
+    """机械臂向后移动"""
+    print("==>机械臂向后移动<==")
+    chatbot = get_chatbot_instance()
+    try:
+        success = chatbot.serial_handler.send_command(0x31, [0] * 8)
+        if success:
+            print("串口命令发送成功: 机械臂向后移动")
+            return "success"
+        else:
+            print("串口命令发送失败: 机械臂向后移动")
+            return "串口命令发送失败，未执行机械臂向后移动操作"
+    except Exception as e:
+        print(f"发送机械臂向后移动命令时出错: {str(e)}")
+        return "机械臂向后移动命令执行出错，请检查串口连接"
+
+def arm_left():
+    """机械臂左转"""
+    print("==>机械臂左转<==")
+    chatbot = get_chatbot_instance()
+    try:
+        success = chatbot.serial_handler.send_command(0x32, [0] * 8)
+        if success:
+            print("串口命令发送成功: 机械臂左转")
+            return "success"
+        else:
+            print("串口命令发送失败: 机械臂左转")
+            return "串口命令发送失败，未执行机械臂左转操作"
+    except Exception as e:
+        print(f"发送机械臂左转命令时出错: {str(e)}")
+        return "机械臂左转命令执行出错，请检查串口连接"
+
+def arm_right():
+    """机械臂右转"""
+    print("==>机械臂右转<==")
+    chatbot = get_chatbot_instance()
+    try:
+        success = chatbot.serial_handler.send_command(0x33, [0] * 8)
+        if success:
+            print("串口命令发送成功: 机械臂右转")
+            return "success"
+        else:
+            print("串口命令发送失败: 机械臂右转")
+            return "串口命令发送失败，未执行机械臂右转操作"
+    except Exception as e:
+        print(f"发送机械臂右转命令时出错: {str(e)}")
+        return "机械臂右转命令执行出错，请检查串口连接"
 
 # 更新工具函数映射
 tools_map = {
@@ -466,21 +640,30 @@ tools_map = {
     "color_temperature_down": color_temperature_down,
     "posture_reminder": posture_reminder,
     "vision_reminder": vision_reminder,
+    "get_status": get_status,
+    "arm_forward": arm_forward,
+    "arm_backward": arm_backward,
+    "arm_left": arm_left,
+    "arm_right": arm_right,
+    "reading_mode": reading_mode,
+    "learning_mode": learning_mode,  
 }
 
 
 def main():
     chatbot = ChatbotService()
+    _chatbot_instance = chatbot  # 将实例赋值给全局变量
+    print("==>语音助手服务开始启动<==")
     chatbot.initialize()
     
     # # 朗读开场白
-    # chatbot.speak_text("小可爱，你好！我是瞳灵智能台灯，我能开关灯光、调节亮度，让房间变亮或者变暗哦！还能控制机械臂把光照到你需要的地方呢，有什么需要就告诉我吧！")
-    # time.sleep(2)
+    chatbot.speak_text("小可爱，你好！我是瞳灵智能台灯，我能开关灯光、调节亮度，让房间变亮或者变暗哦！还能控制机械臂把光照到你需要的地方呢，有什么需要就告诉我吧！")
+    time.sleep(2)
 
     # 随机生成的开场白
-    msg = "你好，请简要介绍一下自己的功能，不要举例。"
-    chatbot.send_message(msg)
-    time.sleep(2)
+    # msg = "你好，请尽量简短地介绍一下自己的功能，控制在两句话以内，不要举例。"
+    # chatbot.send_message(msg)
+    # time.sleep(2)
 
     # 进入正常对话循环
     while True:

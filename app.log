@@ -1,0 +1,336 @@
+[ WARN:0@10.425] global cap_v4l.cpp:913 open VIDEOIO(V4L2:/dev/video2): can't open camera by index
+[ WARN:0@10.425] global cap.cpp:478 open VIDEOIO(V4L2): backend is generally available but can't be used to capture by index
+[ WARN:0@10.426] global cap_v4l.cpp:913 open VIDEOIO(V4L2:/dev/video3): can't open camera by index
+[ WARN:0@10.426] global cap.cpp:478 open VIDEOIO(V4L2): backend is generally available but can't be used to capture by index
+[ WARN:0@10.426] global cap_v4l.cpp:913 open VIDEOIO(V4L2:/dev/video4): can't open camera by index
+[ WARN:0@10.426] global cap.cpp:478 open VIDEOIO(V4L2): backend is generally available but can't be used to capture by index
+[ WARN:0@10.426] global cap_v4l.cpp:913 open VIDEOIO(V4L2:/dev/video5): can't open camera by index
+[ WARN:0@10.426] global cap.cpp:478 open VIDEOIO(V4L2): backend is generally available but can't be used to capture by index
+[ WARN:0@10.426] global cap_v4l.cpp:913 open VIDEOIO(V4L2:/dev/video6): can't open camera by index
+[ WARN:0@10.426] global cap.cpp:478 open VIDEOIO(V4L2): backend is generally available but can't be used to capture by index
+[ WARN:0@10.426] global cap_v4l.cpp:913 open VIDEOIO(V4L2:/dev/video7): can't open camera by index
+[ WARN:0@10.426] global cap.cpp:478 open VIDEOIO(V4L2): backend is generally available but can't be used to capture by index
+[ WARN:0@10.426] global cap_v4l.cpp:913 open VIDEOIO(V4L2:/dev/video8): can't open camera by index
+[ WARN:0@10.426] global cap.cpp:478 open VIDEOIO(V4L2): backend is generally available but can't be used to capture by index
+[ WARN:0@10.426] global cap_v4l.cpp:913 open VIDEOIO(V4L2:/dev/video9): can't open camera by index
+[ WARN:0@10.426] global cap.cpp:478 open VIDEOIO(V4L2): backend is generally available but can't be used to capture by index
+Error in cpuinfo: prctl(PR_SVE_GET_VL) failed
+INFO: Created TensorFlow Lite XNNPACK delegate for CPU.
+WARNING: All log messages before absl::InitializeLog() is called are written to STDERR
+W0000 00:00:1751653690.395924    3337 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1751653690.444563    3337 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1751653690.503504    3327 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1751653690.549353    3327 inference_feedback_manager.cc:114] Feedback manager requires a model with a single signature inference. Disabling support for feedback tensors.
+W0000 00:00:1751653690.588990    3332 landmark_projection_calculator.cc:186] Using NORM_RECT without IMAGE_DIMENSIONS is only supported for the square ROI. Provide IMAGE_DIMENSIONS or use PROJECTION_MATRIX.
+
+========== 开始初始化应用 ==========
+路由蓝图注册完成
+台灯控制蓝图注册完成
+数据库表初始化成功
+数据库初始化完成
+正在初始化视频流处理器...
+DEBUG: 初始化VideoStreamHandler，宽度=640，高度=360
+DEBUG: 创建默认帧大小 (480, 640, 3)
+DEBUG: 流分辨率设置为 640x360，分辨率索引=2
+DEBUG: VideoStreamHandler初始化完成
+视频流处理器初始化成功
+正在初始化姿势分析器...
+姿势分析器初始化成功
+正在启动姿势分析系统...
+摄像头索引 0 打开成功但无法读取帧
+摄像头索引 1 可用，分辨率: 640x480
+找到 1 个可用摄像头: [1]
+尝试初始化摄像头索引 1...
+找到可用摄像头：索引 1
+摄像头原始属性: 640.0x480.0@30.0fps
+MJPG 格式下测得帧率: 17.4 FPS
+YUYV 格式下测得帧率: 17.5 FPS
+RGB3 格式下测得帧率: 18.6 FPS
+选择最佳格式: RGB3 帧率: 18.6 FPS
+尝试设置分辨率 640x480, 实际: 640.0x480.0
+分辨率 640x480 下测得帧率: 17.5 FPS
+选择分辨率 640x480 帧率足够
+摄像头最终配置: 640.0x480.0@30.0fps, 格式: YUYV
+测量的实际摄像头帧率: 17.1 FPS
+正在初始化姿势分析和情绪分析组件...
+姿势分析系统启动成功
+姿势分析系统自动启动成功
+可用串口设备:
+  - /dev/ttyACM0: Lampbot Virtual ComPort [USB VID:PID=0483:5740 SER=2057384E4D4B LOCATION=5-1:1.0]
+尝试连接VCP设备: /dev/ttyACM0
+串口设备 /dev/ttyACM0 当前权限: 0o660
+串口设备 /dev/ttyACM0 已有足够权限: 0o660
+找到VCP设备: /dev/ttyACM0
+串口设备 /dev/ttyACM0 当前权限: 0o660
+串口设备 /dev/ttyACM0 已有足够权限: 0o660
+帧率过低 (0.0 FPS)，降低处理分辨率至 320x240
+保存坐姿图像成功，ID: 1859, 路径: /static/posture_images/posture_20250705_022810_75776ad4.jpg
+时间段 2025-07-05 02:00 的图片数量(4)未超过保留限制(20)，无需清理
+日期 2025-07-05 的图片数量(15)未超过保留限制(240)，无需清理
+记录Good坐姿图像成功，ID: 1859
+时间段 2025-07-05 02:00 的图片数量(4)未超过保留限制(20)，无需清理
+日期 2025-07-05 的图片数量(15)未超过保留限制(240)，无需清理
+成功连接到串口: /dev/ttyACM0
+串口配置: 波特率=115200, 数据位=8, 校验位=N, 停止位=1
+流控制: XON/XOFF=False, RTS/CTS=False, DTR/DSR=False
+已清空串口输入输出缓冲区
+启动串口 /dev/ttyACM0 连接监控，间隔 3 秒...
+串口通信处理器初始化成功: /dev/ttyACM0
+串口通信系统初始化成功
+更新台灯控制蓝图串口处理器失败: View function mapping is overwriting an existing endpoint function: lamp.lamp_control_page
+
+==================================================
+正在初始化语音助手服务...
+可用串口设备:
+  - /dev/ttyACM0: Lampbot Virtual ComPort [USB VID:PID=0483:5740 SER=2057384E4D4B LOCATION=5-1:1.0]
+尝试连接VCP设备: /dev/ttyACM0
+串口设备 /dev/ttyACM0 当前权限: 0o660
+串口设备 /dev/ttyACM0 已有足够权限: 0o660
+找到VCP设备: /dev/ttyACM0
+串口设备 /dev/ttyACM0 当前权限: 0o660
+串口设备 /dev/ttyACM0 已有足够权限: 0o660
+成功连接到串口: /dev/ttyACM0
+串口配置: 波特率=115200, 数据位=8, 校验位=N, 停止位=1
+流控制: XON/XOFF=False, RTS/CTS=False, DTR/DSR=False
+已清空串口输入输出缓冲区
+启动串口 /dev/ttyACM0 连接监控，间隔 3 秒...
+串口通信初始化: 成功
+助手创建 成功。
+线程创建 成功。
+语音助手初始化完成
+语音助手服务初始化成功
+正在请求语音助手自我介绍...
+消息创建 成功。
+你好ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.front.0:CARD=0'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM front
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.rear
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.center_lfe
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.side
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround51.0:CARD=0'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM surround21
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround51.0:CARD=0'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM surround21
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround40.0:CARD=0'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM surround40
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround51.0:CARD=0'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM surround41
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround51.0:CARD=0'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM surround50
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround51.0:CARD=0'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM surround51
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround71.0:CARD=0'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM surround71
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.iec958.0:CARD=0,AES0=4,AES1=130,AES2=0,AES3=2'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM iec958
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.iec958.0:CARD=0,AES0=4,AES1=130,AES2=0,AES3=2'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM spdif
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.iec958.0:CARD=0,AES0=4,AES1=130,AES2=0,AES3=2'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM spdif
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.hdmi.0:CARD=0,AES0=4,AES1=130,AES2=0,AES3=2'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM hdmi
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.hdmi.0:CARD=0,AES0=4,AES1=130,AES2=0,AES3=2'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM hdmi
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.modem
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.modem
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.phoneline
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.phoneline
+ALSA lib pcm_oss.c:397:(_snd_pcm_oss_open) Cannot open device /dev/dsp
+ALSA lib pcm_oss.c:397:(_snd_pcm_oss_open) Cannot open device /dev/dsp
+ALSA lib confmisc.c:160:(snd_config_get_card) Invalid field card
+ALSA lib pcm_usb_stream.c:482:(_snd_pcm_usb_stream_open) Invalid card 'card'
+ALSA lib confmisc.c:160:(snd_config_get_card) Invalid field card
+ALSA lib pcm_usb_stream.c:482:(_snd_pcm_usb_stream_open) Invalid card 'card'
+！我是瞳灵台灯智能体，我可以控制台灯的灯光亮度和色温，有阅读模式和学习模式，还能提醒你保护视力哦。当你想叫我帮忙时，只要说“你好小灵”就可以了。ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.front.0:CARD=0'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM front
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.rear
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.center_lfe
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.side
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround51.0:CARD=0'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM surround21
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround51.0:CARD=0'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM surround21
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround40.0:CARD=0'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM surround40
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround51.0:CARD=0'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM surround41
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround51.0:CARD=0'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM surround50
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround51.0:CARD=0'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM surround51
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.surround71.0:CARD=0'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM surround71
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.iec958.0:CARD=0,AES0=4,AES1=130,AES2=0,AES3=2'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM iec958
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.iec958.0:CARD=0,AES0=4,AES1=130,AES2=0,AES3=2'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM spdif
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.iec958.0:CARD=0,AES0=4,AES1=130,AES2=0,AES3=2'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM spdif
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.hdmi.0:CARD=0,AES0=4,AES1=130,AES2=0,AES3=2'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM hdmi
+ALSA lib confmisc.c:1377:(snd_func_refer) Unable to find definition 'cards.0.pcm.hdmi.0:CARD=0,AES0=4,AES1=130,AES2=0,AES3=2'
+ALSA lib conf.c:5205:(_snd_config_evaluate) function snd_func_refer returned error: No such file or directory
+ALSA lib conf.c:5728:(snd_config_expand) Evaluate error: No such file or directory
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM hdmi
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.modem
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.modem
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.phoneline
+ALSA lib pcm.c:2722:(snd_pcm_open_noupdate) Unknown PCM cards.pcm.phoneline
+ALSA lib pcm_oss.c:397:(_snd_pcm_oss_open) Cannot open device /dev/dsp
+ALSA lib pcm_oss.c:397:(_snd_pcm_oss_open) Cannot open device /dev/dsp
+ALSA lib confmisc.c:160:(snd_config_get_card) Invalid field card
+ALSA lib pcm_usb_stream.c:482:(_snd_pcm_usb_stream_open) Invalid card 'card'
+ALSA lib confmisc.c:160:(snd_config_get_card) Invalid field card
+ALSA lib pcm_usb_stream.c:482:(_snd_pcm_usb_stream_open) Invalid card 'card'
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+ALSA lib pcm.c:8772:(snd_pcm_recover) underrun occurred
+记录坐姿时间成功，ID: 23389, 类型: excellent, 持续: 5.674219秒
+状态变化记录坐姿：excellent -> good，持续时间：5.7秒
+消息检索 成功。
+==>助手响应：你好！我是瞳灵台灯智能体，我可以控制台灯的灯光亮度和色温，有阅读模式和学习模式，还能提醒你保护视力哦。当你想叫我帮忙时，只要说“你好小灵”就可以了。<==
+语音助手自我介绍: 你好！我是瞳灵台灯智能体，我可以控制台灯的灯光亮度和色温，有阅读模式和学习模式，还能提醒你保护视力哦。当你想叫我帮忙时，只要说“你好小灵”就可以了。
+语音助手对话循环已启动，随时准备接收语音指令...
+语音助手线程已启动
+Starting server on 0.0.0.0:5100...
+正在监听唤醒词... 按 Ctrl+C 退出
+ * Serving Flask app 'app'
+ * Debug mode: on
+INFO:werkzeug:[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5100
+ * Running on http://10.2.20.42:5100
+INFO:werkzeug:[33mPress CTRL+C to quit[0m
