@@ -177,7 +177,7 @@ def create_app():
                 if ENABLE_WELCOME_MESSAGE:
                     try:
                         print("正在请求语音助手自我介绍...")
-                        msg = "你好，请简要介绍一下自己的功能，不要举例,不要使用\"嗨\",不要提到自己机械臂的功能。"
+                        msg = "你好，请简要介绍一下自己的功能，不要举例,不要使用\"嗨\",不要提到自己机械臂的功能。并且告诉用户，用“你好小灵”来唤醒你"
                         response = chatbot_service.send_message(msg)
                         print(f"语音助手自我介绍: {response}")
                         time.sleep(2)

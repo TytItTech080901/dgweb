@@ -198,31 +198,34 @@ class Agent:
 
 
 def main():
-    with open("config.json", "r", encoding="utf-8") as config_file:
+    with open("Audio/config.json", "r", encoding="utf-8") as config_file:
         config = json.load(config_file)
     instructions = config["instructions"]
     dashscope.api_key = config["api_key"]
 
     my_agent = Agent(
         instructions=instructions,
-        tools_json_path="tools.json",
+        tools_json_path="Audio/tools.json",
     )
 
     # 关键词模型路径
     kws_models = [
-        "Snowboy/resources/models/snowboy.umdl",
-        "Snowboy/resources/models/computer.umdl",
+        "Audio/Snowboy/resources/models/snowboy.umdl",
+        "Audio/Snowboy/resources/models/computer.umdl",
+        "Audio/Snowboy/resources/models/lampbot.pmdl",
     ]
 
     while True:
-        # detector = snowboydecoder.HotwordDetector(kws_models, sensitivity=0.9)
-        # print("正在监听唤醒词... 按 Ctrl+C 退出")
-        # detector.start(sleep_time=0.03, stop_on_detect=True)
-        # detector.terminate()
-        # print("唤醒词被检测到，开始语音识别...")
-        setence = my_agent.get_message()
-        print(f"==>识别结果：{setence}<==")
-        my_agent.send_message(setence)
+        detector = snowboydecoder.HotwordDetector(kws_models, sensitivity=0.9)
+        print("正在监听唤醒词... 按 Ctrl+C 退出")
+        detector.start(sleep_time=0.03, stop_on_detect=True)
+        detector.terminate()
+        print("唤醒词被检测到，开始语音识别...")
+        
+        for i in range(3): #允许三次对话
+            setence = my_agent.get_message()
+            print(f"==>识别结果：{setence}<==")
+            my_agent.send_message(setence)
 
 
 if __name__ == "__main__":

@@ -16,6 +16,7 @@ from dashscope.audio.tts_v2 import *
 from http import HTTPStatus
 import json
 from datetime import datetime
+from Audio.Snowboy import snowboydecoder
 
 # 在文件开头添加串口模块导入
 from serial_handler import SerialHandler
@@ -293,12 +294,31 @@ class ChatbotService:
         return response
 
     def chat_loop(self):
-        """执行一轮语音交互"""
-        sentence = self.my_agent.get_message()
-        print(f"==>识别结果：{sentence}<==")
-        response = self.my_agent.send_message(sentence)
-        return response
-        
+        """进入包含语音识别的交互"""
+
+        kws_models = ["Audio/Snowboy/resources/models/lampbot.pmdl"]
+
+        detector = snowboydecoder.HotwordDetector(kws_models, sensitivity=0.9)
+        print("正在监听唤醒词... 按 Ctrl+C 退出")
+        detector.start(sleep_time=0.03, stop_on_detect=True)
+        detector.terminate()
+        print("唤醒词被检测到，开始语音识别...")
+        msg = "你好，小灵"
+        self.send_message(msg) # 语音识别成功的交互
+
+        for i in range(5): #允许最多五次对话，对话之后进入休眠
+            sentence = self.my_agent.get_message()
+
+            if "休息" in sentence or "结束" in sentence or "退出" in sentence:
+                print("==>检测到结束语，助手将进入休眠状态<==")
+                break
+            print(f"==>识别结果：{sentence}<==")
+            self.my_agent.send_message(sentence)
+
+        msg = "小灵先休息吧"
+        self.my_agent.send_message(msg)
+        print("==>对话结束，助手进入休眠状态<==")
+
     def reset(self):
         """重置对话上下文"""
         self.my_agent.reset()
