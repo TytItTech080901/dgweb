@@ -113,55 +113,55 @@ def create_app():
     else:
         print("串口通信系统未启动，但姿势分析系统可以正常工作")
 
-    # 创建检测服务实例
-    try:
-        print("\n==================================================")
-        print("正在初始化检测服务...")
-        print("使用指定的摄像头索引3...")
+    # 创建检测服务实例 目前版本不初始化
+    # try:
+    #     print("\n==================================================")
+    #     print("正在初始化检测服务...")
+    #     print("使用指定的摄像头索引3...")
         
-        # 使用摄像头索引3
-        detection_service = DetectionService(
-            model_path="Yolo/best6_rknn_model",
-            camera_id=3,  # 直接使用摄像头3
-            show_img=False  # 生产环境不显示图像
-        )
+    #     # 使用摄像头索引3
+    #     detection_service = DetectionService(
+    #         model_path="Yolo/best6_rknn_model",
+    #         camera_id=3,  # 直接使用摄像头3
+    #         show_img=False  # 生产环境不显示图像
+    #     )
         
-        # 初始化检测服务
-        if detection_service.initialize():
-            detection_available = True
-            print("检测服务初始化成功")
+    #     # 初始化检测服务
+    #     if detection_service.initialize():
+    #         detection_available = True
+    #         print("检测服务初始化成功")
             
-            try:
-                print("正在启动检测服务...")
-                if detection_service.start():
-                    print("检测服务启动成功")
-                else:
-                    print("检测服务启动失败")
-                    detection_service = None
-                    detection_available = False
-            except Exception as e:
-                print(f"启动检测服务时出错: {str(e)}")
-                detection_service = None
-                detection_available = False
-        else:
-            print("检测服务初始化失败")
-            detection_service = None
-            detection_available = False
+    #         try:
+    #             print("正在启动检测服务...")
+    #             if detection_service.start():
+    #                 print("检测服务启动成功")
+    #             else:
+    #                 print("检测服务启动失败")
+    #                 detection_service = None
+    #                 detection_available = False
+    #         except Exception as e:
+    #             print(f"启动检测服务时出错: {str(e)}")
+    #             detection_service = None
+    #             detection_available = False
+    #     else:
+    #         print("检测服务初始化失败")
+    #         detection_service = None
+    #         detection_available = False
             
-    except Exception as e:
-        print(f"检测服务创建失败: {str(e)}")
-        detection_service = None
-        detection_available = False
+    # except Exception as e:
+    #     print(f"检测服务创建失败: {str(e)}")
+    #     detection_service = None
+    #     detection_available = False
 
 
     # 如果串口和检测服务都可用，设置串口处理器
-    if detection_available and serial_available:
-        try:
-            print("将串口处理器设置到检测服务...")
-            detection_service.set_serial_handler(serial_handler)
-            print("串口处理器设置成功，可以发送检测坐标")
-        except Exception as e:
-            print(f"设置串口处理器失败: {str(e)}")
+    # if detection_available and serial_available:
+    #     try:
+    #         print("将串口处理器设置到检测服务...")
+    #         detection_service.set_serial_handler(serial_handler)
+    #         print("串口处理器设置成功，可以发送检测坐标")
+    #     except Exception as e:
+    #         print(f"设置串口处理器失败: {str(e)}")
 
     # 初始化语音助手服务
     chatbot_service = None
@@ -180,7 +180,6 @@ def create_app():
                         msg = "你好，请简要介绍一下自己的功能，不要举例,不要使用\"嗨\",不要提到自己机械臂的功能。并且告诉用户，用“你好小灵”来唤醒你"
                         response = chatbot_service.send_message(msg)
                         print(f"语音助手自我介绍: {response}")
-                        time.sleep(2)
                     except Exception as e:
                         print(f"语音助手自我介绍时出错: {str(e)}")
             else:
@@ -192,28 +191,28 @@ def create_app():
             traceback.print_exc()
             chatbot_service = None
 
-    # 初始化家长监护定时处理器
-    try:
-        print("\n==================================================")
-        print("正在初始化家长监护定时处理器...")
-        from guardian_scheduler import init_guardian_scheduler
-        guardian_scheduler = init_guardian_scheduler()
-        print("家长监护定时处理器初始化成功")
+    # # 初始化家长监护定时处理器
+    # try:
+    #     print("\n==================================================")
+    #     print("正在初始化家长监护定时处理器...")
+    #     from guardian_scheduler import init_guardian_scheduler
+    #     guardian_scheduler = init_guardian_scheduler()
+    #     print("家长监护定时处理器初始化成功")
 
-        # 如果语音助手可用，将其设置到定时处理器
-        try:
-            if guardian_scheduler and chatbot_service:
-                guardian_scheduler.chatbot = chatbot_service
-                print("家长监护定时处理器已设置语音助手服务")
-        except Exception as e:
-            print(f"设置家长监护定时处理器的语音助手服务失败: {str(e)}")
-            guardian_scheduler.chatbot = None
+    #     # 如果语音助手可用，将其设置到定时处理器
+    #     try:
+    #         if guardian_scheduler and chatbot_service:
+    #             guardian_scheduler.chatbot = chatbot_service
+    #             print("家长监护定时处理器已设置语音助手服务")
+    #     except Exception as e:
+    #         print(f"设置家长监护定时处理器的语音助手服务失败: {str(e)}")
+    #         guardian_scheduler.chatbot = None
 
-    except Exception as e:
-        print(f"家长监护定时处理器初始化失败: {str(e)}")
-        import traceback
-        traceback.print_exc()
-        guardian_scheduler = None
+    # except Exception as e:
+    #     print(f"家长监护定时处理器初始化失败: {str(e)}")
+    #     import traceback
+    #     traceback.print_exc()
+    #     guardian_scheduler = None
     
 
     # 设置路由模块依赖的服务
@@ -221,7 +220,6 @@ def create_app():
         posture_monitor_instance=posture_monitor,
         video_stream_instance=video_stream_handler,
         serial_handler_instance=serial_handler,
-        detection_service_instance=detection_service,
         chatbot_service_instance=chatbot_service
     )
 
@@ -272,8 +270,8 @@ def create_app():
             posture_monitor.stop()
         if serial_handler and serial_available:
             serial_handler.cleanup()
-        if detection_service and detection_available:
-            detection_service.stop()
+        # if detection_service and detection_available:
+        #     detection_service.stop()
         if chatbot_service:
             print("正在关闭语音助手服务...")
             try:
@@ -281,11 +279,11 @@ def create_app():
             except:
                 pass
         # 关闭家长监护定时处理器
-        try:
-            from guardian_scheduler import shutdown_guardian_scheduler
-            shutdown_guardian_scheduler()
-        except:
-            pass
+        # try:
+        #     from guardian_scheduler import shutdown_guardian_scheduler
+        #     shutdown_guardian_scheduler()
+        # except:
+        #     pass
     
     atexit.register(cleanup)
     

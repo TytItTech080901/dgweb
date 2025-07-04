@@ -10,14 +10,20 @@ import threading
 import queue
 from collections import deque
 from config import DB_CONFIG
+from config import (
+    EXCELENT_POSTURE_THRESHOLD,
+    GOOD_POSTURE_THRESHOLD,
+    FAIR_POSTURE_THRESHOLD,
+    BAD_POSTURE_THRESHOLD,
+)
 
 # 尝试导入posture_analysis模块
 try:
     # 确保能找到posture_analysis包
-    parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    sys.path.append(os.path.dirname(parent_dir))
+    # parent_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    # sys.path.append(os.path.dirname(parent_dir))
     
-    from posture_analysis.realtime_posture_analysis import (
+    from modules.realtime_posture_analysis import (
         PostureMonitor, EmotionAnalyzer, EmotionState,
         EMOTION_SMOOTHING_WINDOW, MOUTH_OPEN_RATIO_THRESHOLD,
         EYE_OPEN_RATIO_THRESHOLD, BROW_DOWN_THRESHOLD,
@@ -214,10 +220,10 @@ class WebPostureMonitor:
         
         # 坐姿类型划分阈值（四档）
         self.posture_thresholds = {
-            'excellent': 40.0,  # 0-40度：优秀坐姿
-            'good': 50.0,       # 40-50度：良好坐姿
-            'fair': 60.0,       # 50-60度：一般坐姿
-            'poor': 70.0        # 60-70度：不良坐姿，60度以上：极差坐姿
+            'excellent': EXCELENT_POSTURE_THRESHOLD,  # 0-40度：优秀坐姿
+            'good': GOOD_POSTURE_THRESHOLD,       # 40-50度：良好坐姿
+            'fair': FAIR_POSTURE_THRESHOLD,       # 50-60度：一般坐姿
+            'poor': BAD_POSTURE_THRESHOLD        # 60-70度：不良坐姿，60度以上：极差坐姿
         }
         
         # 坐姿时间记录

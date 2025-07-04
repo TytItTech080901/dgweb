@@ -20,7 +20,9 @@ from Audio.Snowboy import snowboydecoder
 
 # 在文件开头添加串口模块导入
 from serial_handler import SerialHandler
-from config import SERIAL_BAUDRATE, CHATBOT_MODULE
+from config import (SERIAL_BAUDRATE, 
+                    CHATBOT_MODULE,
+                    TIME_OUT)
 
 
 # 修改后的Agent类定义 (直接将声明代码复制过来)
@@ -227,6 +229,9 @@ class Agent:
             format=AudioFormat.PCM_22050HZ_MONO_16BIT,
             callback=tts_callback,
         )
+
+        synthesizer.streaming_call(text)
+        synthesizer.streaming_complete()
     
 class ChatbotService:
     """语音助手服务，用于语音交互"""
@@ -306,7 +311,17 @@ class ChatbotService:
         msg = "你好，小灵"
         self.send_message(msg) # 语音识别成功的交互
 
-        for i in range(5): #允许最多五次对话，对话之后进入休眠
+        start_time = datetime.now()
+        timeout_seconds = TIME_OUT
+
+        for i in range(30): #允许最多30次对话，对话之后进入休眠
+            current_time = datetime.now()
+            elapsed_time = (current_time - start_time).total_seconds()
+            
+            if elapsed_time >= timeout_seconds:
+                print(f"==>对话超时({timeout_seconds}秒)，助手将进入休眠状态<==")
+                break
+
             sentence = self.my_agent.get_message()
 
             if "休息" in sentence or "结束" in sentence or "退出" in sentence:
@@ -315,8 +330,8 @@ class ChatbotService:
             print(f"==>识别结果：{sentence}<==")
             self.my_agent.send_message(sentence)
 
-        msg = "小灵先休息吧，只是结束对话，不更改灯光状态"
-        self.my_agent.send_message(msg)
+        msg = "小灵先休息啦，有事情可以随时叫我哦！"
+        self.my_agent.speak_text(msg)
         print("==>对话结束，助手进入休眠状态<==")
 
     def reset(self):
@@ -327,6 +342,7 @@ class ChatbotService:
     def speak_text(self, text):
         """朗读指定文本，无需进行对话"""
         return self.my_agent.speak_text(text)
+    
 
 
 # 全局变量用于存储聊天机器人实例
@@ -641,13 +657,13 @@ def main():
     chatbot.initialize()
     
     # # 朗读开场白
-    # chatbot.speak_text("小可爱，你好！我是瞳灵智能台灯，我能开关灯光、调节亮度，让房间变亮或者变暗哦！还能控制机械臂把光照到你需要的地方呢，有什么需要就告诉我吧！")
-    # time.sleep(2)
+    chatbot.speak_text("小可爱，你好！我是瞳灵智能台灯，我能开关灯光、调节亮度，让房间变亮或者变暗哦！还能控制机械臂把光照到你需要的地方呢，有什么需要就告诉我吧！")
+    time.sleep(2)
 
     # 随机生成的开场白
-    msg = "你好，请尽量简短地介绍一下自己的功能，控制在两句话以内，不要举例。"
-    chatbot.send_message(msg)
-    time.sleep(2)
+    # msg = "你好，请尽量简短地介绍一下自己的功能，控制在两句话以内，不要举例。"
+    # chatbot.send_message(msg)
+    # time.sleep(2)
 
     # 进入正常对话循环
     while True:

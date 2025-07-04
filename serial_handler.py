@@ -7,7 +7,7 @@ import subprocess
 import struct
 
 class SerialHandler:
-    def __init__(self, port=None, baudrate=115200, monitoring_interval=5, max_reconnect_attempts=3, reconnect_delay=2):
+    def __init__(self, port=None, baudrate=115200, monitoring_interval=3, max_reconnect_attempts=3, reconnect_delay=0.5):
         self.port = port
         self.baudrate = baudrate
         self.serial = None
@@ -184,22 +184,16 @@ class SerialHandler:
         """检查连接状态，如果断开则尝试重连"""
         if not self.is_connected():
             print(f"串口 {self.port} 连接丢失，尝试重连...")
-            if self._reconnect_attempts < self.max_reconnect_attempts:
-                self._reconnect_attempts += 1
-                print(f"重连尝试 {self._reconnect_attempts}/{self.max_reconnect_attempts}...")
-                # 尝试重新查找端口并连接
-                self.port = self.find_available_port()
-                if self.connect():
-                    print(f"串口 {self.port} 重连成功")
-                else:
-                    print(f"串口 {self.port} 重连失败")
-                    time.sleep(self.reconnect_delay) # 等待一段时间再试
+            # 不断尝试，直到重连成功
+
+            # 尝试重新查找端口并连接
+            self.port = self.find_available_port()
+            if self.connect():
+                print(f"串口 {self.port} 重连成功")
             else:
-                # 达到最大重连次数
-                print(f"错误：串口 {self.port} 多次重连失败，请检查设备连接或驱动程序。")
-                # 可以选择在这里停止监控或继续尝试，这里选择继续尝试，但只打印一次错误
-                if self._reconnect_attempts == self.max_reconnect_attempts:
-                     self._reconnect_attempts += 1 # 增加一次，避免重复打印错误
+                print(f"串口 {self.port} 重连失败")
+                time.sleep(self.reconnect_delay) # 等待一段时间再试
+
         else:
             # 如果连接正常，确保重置尝试次数
             if self._reconnect_attempts > 0:
