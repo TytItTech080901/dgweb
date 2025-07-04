@@ -83,11 +83,35 @@
             }
         }
     },
+        {
+        "type": "function",
+        "function": {
+            "name": "arm_forward",
+            "description": "此函数用于将台灯机械臂向前移动，当用户想要调整机械臂的光照位置更前进，或是演示一下机械臂功能的时候好用",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+        {
+        "type": "function",
+        "function": {
+            "name": "arm_backward",
+            "description": "此函数用于将台灯机械臂向后移动，当用户想要调整机械臂的光照位置向后移动，或是演示一下机械臂功能的时候好用",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
     {
         "type": "function",
         "function": {
             "name": "arm_left",
-            "description": "此函数用于将台灯机械臂向左转，当用户想要调整机械臂的光照位置，或是演示一下机械臂功能的时候好用",
+            "description": "此函数用于将台灯机械臂向右转，当用户想要调整机械臂的光照位置更右侧一些，或是演示一下机械臂功能的时候好用",
             "parameters": {
                 "type": "object",
                 "properties": {},
@@ -99,7 +123,43 @@
         "type": "function",
         "function": {
             "name": "arm_right",
-            "description": "此函数用于将台灯机械臂向右转，当用户想要调整机械臂的光照位置，或是演示一下机械臂功能的时候好用",
+            "description": "此函数用于将台灯机械臂向左转，当用户想要调整机械臂的光照位置更左侧一些，或是演示一下机械臂功能的时候好用",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "reading_mode",
+            "description": "此函数用于将台灯设置为阅读模式，用户说要阅读模式、看书灯光、阅读时调用此函数",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+    {
+        "type": "function",
+        "function": {
+            "name": "learning_mode",
+            "description": "此函数用于将台灯设置为学习模式，用户说要学习模式、学习灯光、学习、写作业时调用此函数",
+            "parameters": {
+                "type": "object",
+                "properties": {},
+                "required": []
+            }
+        }
+    },
+        {
+        "type": "function",
+        "function": {
+            "name": "vision_reminder",
+            "description": "此函数用于提醒孩子进行远眺，当孩子说到疲劳，眼睛累，或者引导他进行远眺的时候调用此函数",
             "parameters": {
                 "type": "object",
                 "properties": {},

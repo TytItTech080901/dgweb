@@ -315,7 +315,7 @@ class ChatbotService:
             print(f"==>识别结果：{sentence}<==")
             self.my_agent.send_message(sentence)
 
-        msg = "小灵先休息吧"
+        msg = "小灵先休息吧，只是结束对话，不更改灯光状态"
         self.my_agent.send_message(msg)
         print("==>对话结束，助手进入休眠状态<==")
 
@@ -456,6 +456,40 @@ def posture_reminder():
     except Exception as e:
         print(f"发送坐姿提醒命令时出错: {str(e)}")
         return "坐姿提醒命令执行出错，请检查串口连接"
+
+def reading_mode():
+    """进行阅读模式"""
+    print("==>进行阅读模式<==")
+    chatbot = get_chatbot_instance()
+    try:
+        # 使用serial_module中的send_command方法
+        success = chatbot.serial_handler.send_command(0x50, [0] * 8)
+        if success:
+            print("串口命令发送成功: 阅读模式")
+            return "success"
+        else:
+            print("串口命令发送失败: 阅读模式")
+            return "串口命令发送失败，未执行阅读模式操作"
+    except Exception as e:
+        print(f"发送阅读模式命令时出错: {str(e)}")
+        return "阅读模式命令执行出错，请检查串口连接"
+
+def learning_mode():
+    """进行学习模式"""
+    print("==>进行学习模式<==")
+    chatbot = get_chatbot_instance()
+    try:
+        # 使用serial_module中的send_command方法
+        success = chatbot.serial_handler.send_command(0x51, [0] * 8)
+        if success:
+            print("串口命令发送成功: 进行学习模式")
+            return "success"
+        else:
+            print("串口命令发送失败: 进行学习模式")
+            return "串口命令发送失败，未执行进行学习模式操作"
+    except Exception as e:
+        print(f"发送进行学习模式命令时出错: {str(e)}")
+        return "进行学习模式命令执行出错，请检查串口连接"
     
 def vision_reminder():
     """进行远眺提醒"""
@@ -516,6 +550,38 @@ def get_status():
         chatbot.logger.error(f"获取台灯状态失败: {e}")
         return None
 
+def arm_forward():
+    """机械臂向前移动"""
+    print("==>机械臂向前移动<==")
+    chatbot = get_chatbot_instance()
+    try:
+        success = chatbot.serial_handler.send_command(0x30, [0] * 8)
+        if success:
+            print("串口命令发送成功: 机械臂向前移动")
+            return "success"
+        else:
+            print("串口命令发送失败: 机械臂向前移动")
+            return "串口命令发送失败，未执行机械臂向前移动操作"
+    except Exception as e:
+        print(f"发送机械臂向前移动命令时出错: {str(e)}")
+        return "机械臂向前移动命令执行出错，请检查串口连接"
+
+def arm_backward():
+    """机械臂向后移动"""
+    print("==>机械臂向后移动<==")
+    chatbot = get_chatbot_instance()
+    try:
+        success = chatbot.serial_handler.send_command(0x31, [0] * 8)
+        if success:
+            print("串口命令发送成功: 机械臂向后移动")
+            return "success"
+        else:
+            print("串口命令发送失败: 机械臂向后移动")
+            return "串口命令发送失败，未执行机械臂向后移动操作"
+    except Exception as e:
+        print(f"发送机械臂向后移动命令时出错: {str(e)}")
+        return "机械臂向后移动命令执行出错，请检查串口连接"
+
 def arm_left():
     """机械臂左转"""
     print("==>机械臂左转<==")
@@ -559,8 +625,12 @@ tools_map = {
     "posture_reminder": posture_reminder,
     "vision_reminder": vision_reminder,
     "get_status": get_status,
+    "arm_forward": arm_forward,
+    "arm_backward": arm_backward,
     "arm_left": arm_left,
     "arm_right": arm_right,
+    "reading_mode": reading_mode,
+    "learning_mode": learning_mode,  
 }
 
 
