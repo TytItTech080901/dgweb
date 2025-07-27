@@ -154,44 +154,6 @@
                         </div>
                     </div>
                 </div>
-                
-                <!-- 行为分析卡片 -->
-                <!-- <div class="mobile-card">
-                    <div class="mobile-card-header">
-                        <div class="mobile-card-title">行为分析</div>
-                    </div>
-                    <div class="mobile-card-content">
-                        <div class="behavior-stats">
-                            <div class="behavior-item">
-                                <div class="behavior-icon good">
-                                    <i class="bi bi-check-circle"></i>
-                                </div>
-                                <div class="behavior-info">
-                                    <div class="behavior-title">良好习惯</div>
-                                    <div class="behavior-desc">保持正确坐姿2小时</div>
-                                </div>
-                            </div>
-                            <div class="behavior-item warning">
-                                <div class="behavior-icon warn">
-                                    <i class="bi bi-exclamation-triangle"></i>
-                                </div>
-                                <div class="behavior-info">
-                                    <div class="behavior-title">需要注意</div>
-                                    <div class="behavior-desc">连续用眼45分钟</div>
-                                </div>
-                            </div>
-                            <div class="behavior-item bad">
-                                <div class="behavior-icon danger">
-                                    <i class="bi bi-x-circle"></i>
-                                </div>
-                                <div class="behavior-info">
-                                    <div class="behavior-title">不良习惯</div>
-                                    <div class="behavior-desc">驼背姿势持续15分钟</div>
-                                </div>
-                            </div>
-                        </div>
-                    </div>
-                </div> -->
             </div>
         </div>
         
@@ -231,197 +193,156 @@
                     </div>
                 </div>
 
-                <!-- 灯光控制卡片 -->
+                <!-- 灯光控制与护眼设置合并卡片 -->
                 <div class="mobile-card">
                     <div class="mobile-card-header">
-                        <div class="mobile-card-title">灯光控制</div>
+                        <div class="mobile-card-title">灯光与护眼</div>
                         <div class="control-icon">
-                            <i class="bi bi-toggles"></i>
+                            <i class="bi bi-lightbulb"></i>
                         </div>
                     </div>
                     <div class="mobile-card-content">
-                        <div class="light-controls">
-                            <!-- 电源开关 -->
-                            <div class="control-group">
-                                <label class="control-label">台灯电源</label>
-                                <div class="switch-container">
-                                    <label class="switch">
-                                        <input type="checkbox" id="power-switch" checked onchange="togglePower()">
-                                        <span class="slider round"></span>
-                                    </label>
-                                </div>
-                            </div>
+                        <!-- 切换按钮 -->
+                        <div class="light-eye-switcher">
+                            <button class="light-eye-btn active" onclick="switchLightEyeContent('light')">
+                                <i class="bi bi-toggles"></i>
+                                灯光控制
+                            </button>
+                            <button class="light-eye-btn" onclick="switchLightEyeContent('eye')">
+                                <i class="bi bi-eye"></i>
+                                护眼设置
+                            </button>
+                        </div>
 
-                            <!-- 灯光开关 -->
-                            <div class="control-group">
-                                <label class="control-label">灯光开关</label>
-                                <div class="switch-container">
-                                    <label class="switch">
-                                        <input type="checkbox" id="light-switch" checked onchange="toggleLight()">
-                                        <span class="slider round"></span>
-                                    </label>
+                        <!-- 灯光控制内容 -->
+                        <div class="light-eye-content" id="light-content">
+                            <div class="light-controls">
+                                <!-- 台灯电源和灯光开关横向排列 -->
+                                <div class="lamp-controls-row">
+                                    <button class="lamp-control-btn" id="power-btn" onclick="togglePower()">
+                                        <i class="bi bi-power"></i>
+                                        台灯电源
+                                    </button>
+                                    <button class="lamp-control-btn" id="light-btn" onclick="toggleLight()">
+                                        <i class="bi bi-lightbulb"></i>
+                                        灯光开关
+                                    </button>
                                 </div>
-                            </div>
 
-                            <!-- 亮度调节 -->
-                            <div class="control-group">
-                                <label class="control-label">
-                                    亮度调节
-                                    <span class="control-value" id="brightness-display">500</span>
-                                </label>
-                                <div class="slider-container">
-                                    <input type="range" id="brightness-slider" min="0" max="1000" value="500" 
-                                           class="range-slider brightness-slider" oninput="adjustBrightness(this.value)">
-                                    <div class="slider-marks">
-                                        <span>0</span>
-                                        <span>250</span>
-                                        <span>500</span>
-                                        <span>750</span>
-                                        <span>1000</span>
+                                <!-- 亮度调节 -->
+                                <div class="control-group">
+                                    <label class="control-label">
+                                        亮度调节
+                                        <span class="control-value" id="brightness-display">500</span>
+                                    </label>
+                                    <div class="slider-container">
+                                        <input type="range" id="brightness-slider" min="0" max="1000" value="500" 
+                                               class="range-slider brightness-slider" oninput="adjustBrightness(this.value)">
+                                        <div class="slider-marks">
+                                            <span>0</span>
+                                            <span>250</span>
+                                            <span>500</span>
+                                            <span>750</span>
+                                            <span>1000</span>
+                                        </div>
+                                    </div>
+                                    <div class="quick-buttons">
+                                        <button class="quick-btn" onclick="setBrightness(200)">护眼</button>
+                                        <button class="quick-btn" onclick="setBrightness(500)">标准</button>
+                                        <button class="quick-btn" onclick="setBrightness(800)">明亮</button>
                                     </div>
                                 </div>
-                                <div class="quick-buttons">
-                                    <button class="quick-btn" onclick="setBrightness(200)">护眼</button>
-                                    <button class="quick-btn" onclick="setBrightness(500)">标准</button>
-                                    <button class="quick-btn" onclick="setBrightness(800)">明亮</button>
-                                </div>
-                            </div>
 
-                            <!-- 色温调节 -->
-                            <div class="control-group">
-                                <label class="control-label">
-                                    色温调节
-                                    <span class="control-value" id="temperature-display">5300K</span>
-                                </label>
-                                <div class="slider-container">
-                                    <input type="range" id="temperature-slider" min="3000" max="6500" value="5300" 
-                                           class="range-slider temperature-slider" oninput="adjustTemperature(this.value)">
-                                    <div class="slider-marks">
-                                        <span>3000K<br><small>暖光</small></span>
-                                        <span>4000K</span>
-                                        <span>5000K</span>
-                                        <span>6000K</span>
-                                        <span>6500K<br><small>冷光</small></span>
+                                <!-- 色温调节 -->
+                                <div class="control-group">
+                                    <label class="control-label">
+                                        色温调节
+                                        <span class="control-value" id="temperature-display">5300K</span>
+                                    </label>
+                                    <div class="slider-container">
+                                        <input type="range" id="temperature-slider" min="3000" max="6500" value="5300" 
+                                               class="range-slider temperature-slider" oninput="adjustTemperature(this.value)">
+                                        <div class="slider-marks">
+                                            <span>3000K<br><small>暖光</small></span>
+                                            <span>4000K</span>
+                                            <span>5000K</span>
+                                            <span>6000K</span>
+                                            <span>6500K<br><small>冷光</small></span>
+                                        </div>
+                                    </div>
+                                    <div class="quick-buttons">
+                                        <button class="quick-btn" onclick="setTemperature(3000)">暖光</button>
+                                        <button class="quick-btn" onclick="setTemperature(4000)">自然</button>
+                                        <button class="quick-btn" onclick="setTemperature(5300)">标准</button>
+                                        <button class="quick-btn" onclick="setTemperature(6500)">冷光</button>
                                     </div>
                                 </div>
-                                <div class="quick-buttons">
-                                    <button class="quick-btn" onclick="setTemperature(3000)">暖光</button>
-                                    <button class="quick-btn" onclick="setTemperature(4000)">自然</button>
-                                    <button class="quick-btn" onclick="setTemperature(5300)">标准</button>
-                                    <button class="quick-btn" onclick="setTemperature(6500)">冷光</button>
-                                </div>
-                            </div>
 
-                            <!-- 应用设置按钮 -->
-                            <div class="control-group">
-                                <button class="mobile-btn primary apply-btn" onclick="applyLightSettings()">
-                                    <i class="bi bi-stars"></i>
-                                    应用设置到台灯
-                                </button>
+                                <!-- 应用设置按钮 -->
+                                <div class="control-group">
+                                    <button class="mobile-btn primary apply-btn" onclick="applyLightSettings()">
+                                        <i class="bi bi-stars"></i>
+                                        应用设置到台灯
+                                    </button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                </div>
-                
-                <!-- 护眼设置卡片 -->
-                <div class="mobile-card">
-                    <div class="mobile-card-header">
-                        <div class="mobile-card-title">护眼提醒设置</div>
-                        <div class="control-icon">
-                            <i class="bi bi-eye"></i>
-                        </div>
-                    </div>
-                    <div class="mobile-card-content">
-                        <div class="eye-care-settings">
-                            <!-- 远眺休息设置 -->
-                            <div class="setting-group">
-                                <h4 class="setting-title">远眺休息间隔</h4>
-                                <p class="setting-desc">设置孩子远眺休息的时间间隔</p>
-                                <div class="setting-control">
-                                    <div class="input-group">
-                                        <input type="number" id="rest-interval" min="10" max="120" value="20" class="setting-input">
-                                        <span class="input-unit">分钟</span>
-                                    </div>
-                                    <div class="preset-buttons">
-                                        <button class="preset-btn" onclick="setRestInterval(15)">15分钟</button>
-                                        <button class="preset-btn active" onclick="setRestInterval(20)">20分钟</button>
-                                        <button class="preset-btn" onclick="setRestInterval(30)">30分钟</button>
+
+                        <!-- 护眼设置内容 -->
+                        <div class="light-eye-content" id="eye-content" style="display: none;">
+                            <div class="eye-care-settings">
+                                <!-- 远眺休息设置 -->
+                                <div class="setting-group">
+                                    <h4 class="setting-title">远眺休息间隔</h4>
+                                    <p class="setting-desc">设置孩子远眺休息的时间间隔</p>
+                                    <div class="setting-control">
+                                        <div class="input-group">
+                                            <input type="number" id="rest-interval" min="10" max="120" value="20" class="setting-input">
+                                            <span class="input-unit">分钟</span>
+                                        </div>
+                                        <div class="preset-buttons">
+                                            <button class="preset-btn" onclick="setRestInterval(15)">15分钟</button>
+                                            <button class="preset-btn active" onclick="setRestInterval(20)">20分钟</button>
+                                            <button class="preset-btn" onclick="setRestInterval(30)">30分钟</button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <!-- 长时间用眼提醒 -->
-                            <div class="setting-group">
-                                <h4 class="setting-title">长时间用眼提醒</h4>
-                                <p class="setting-desc">连续用眼超过设定时间时自动提醒</p>
-                                <div class="setting-control">
-                                    <div class="input-group">
-                                        <input type="number" id="continuous-time" min="30" max="180" value="45" class="setting-input">
-                                        <span class="input-unit">分钟</span>
-                                    </div>
-                                    <div class="preset-buttons">
-                                        <button class="preset-btn" onclick="setContinuousTime(30)">30分钟</button>
-                                        <button class="preset-btn active" onclick="setContinuousTime(45)">45分钟</button>
-                                        <button class="preset-btn" onclick="setContinuousTime(60)">60分钟</button>
+                                <!-- 长时间用眼提醒 -->
+                                <div class="setting-group">
+                                    <h4 class="setting-title">长时间用眼提醒</h4>
+                                    <p class="setting-desc">连续用眼超过设定时间时自动提醒</p>
+                                    <div class="setting-control">
+                                        <div class="input-group">
+                                            <input type="number" id="continuous-time" min="30" max="180" value="45" class="setting-input">
+                                            <span class="input-unit">分钟</span>
+                                        </div>
+                                        <div class="preset-buttons">
+                                            <button class="preset-btn" onclick="setContinuousTime(30)">30分钟</button>
+                                            <button class="preset-btn active" onclick="setContinuousTime(45)">45分钟</button>
+                                            <button class="preset-btn" onclick="setContinuousTime(60)">60分钟</button>
+                                        </div>
                                     </div>
                                 </div>
-                            </div>
 
-                            <!-- 护眼模式开关 -->
-                            <div class="setting-group">
-                                <h4 class="setting-title">护眼模式</h4>
-                                <p class="setting-desc">自动调节灯光到护眼状态</p>
-                                <div class="setting-control">
-                                    <div class="switch-container">
-                                        <label class="switch">
-                                            <input type="checkbox" id="eye-care-mode" onchange="toggleEyeCareMode()">
-                                            <span class="slider round"></span>
-                                        </label>
-                                        <span class="switch-text" id="eye-care-mode-text">已关闭</span>
+                                <!-- 护眼模式开关 -->
+                                <div class="setting-group">
+                                    <h4 class="setting-title">护眼模式</h4>
+                                    <p class="setting-desc">自动调节灯光到护眼状态</p>
+                                    <div class="setting-control">
+                                        <div class="switch-container">
+                                            <label class="switch">
+                                                <input type="checkbox" id="eye-care-mode" onchange="toggleEyeCareMode()">
+                                                <span class="slider round"></span>
+                                            </label>
+                                            <span class="switch-text" id="eye-care-mode-text">已关闭</span>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-                
-                <!-- 设备信息卡片 -->
-                <!-- <div class="mobile-card">
-                    <div class="mobile-card-header">
-                        <div class="mobile-card-title">设备信息</div>
-                        <div class="control-icon">
-                            <i class="bi bi-info-circle"></i>
-                        </div>
-                    </div>
-                    <div class="mobile-card-content">
-                        <div class="device-info">
-                            <div class="info-item">
-                                <span class="info-label">设备型号</span>
-                                <span class="info-value">曈灵智能台灯 v2.0</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">连接状态</span>
-                                <span class="info-value status-online">在线</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">固件版本</span>
-                                <span class="info-value">v1.2.3</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">信号强度</span>
-                                <span class="info-value">强 (-45dBm)</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">使用时长</span>
-                                <span class="info-value" id="usage-time">4.5小时</span>
-                            </div>
-                            <div class="info-item">
-                                <span class="info-label">最后同步</span>
-                                <span class="info-value" id="last-sync">刚刚</span>
-                            </div>
-                        </div>
-                    </div>
-                </div> -->
             </div>
         </div>
         
@@ -1673,1150 +1594,8 @@
     
     <script src="{{ url_for('static', filename='js/mobile.js') }}"></script>
     
-    <!-- 移动端专用脚本 -->
-    <script>
-        document.addEventListener('DOMContentLoaded', function() {
-            // 初始化移动端应用
-            initMobileApp();
-            
-            // 工具项点击事件
-            document.querySelectorAll('.tool-item').forEach(item => {
-                item.addEventListener('click', function() {
-                    const tool = this.getAttribute('data-tool');
-                    showToolDetail(tool);
-                });
-            });
-            
-            // 导航点击事件
-            document.querySelectorAll('.nav-item').forEach(item => {
-                item.addEventListener('click', function(e) {
-                    e.preventDefault();
-                    const page = this.getAttribute('data-page');
-                    showPage(page);
-                    
-                    // 更新导航状态
-                    document.querySelectorAll('.nav-item').forEach(nav => nav.classList.remove('active'));
-                    this.classList.add('active');
-                });
-            });
-            
-            // 亮度滑块事件
-            const brightnessSlider = document.getElementById('brightnessSlider');
-            const brightnessValue = document.getElementById('brightnessValue');
-            if (brightnessSlider && brightnessValue) {
-                brightnessSlider.addEventListener('input', function() {
-                    brightnessValue.textContent = this.value;
-                });
-            }
-            
-            // 定时开关切换
-            document.querySelectorAll('.timer-toggle').forEach(toggle => {
-                toggle.addEventListener('click', function() {
-                    this.classList.toggle('active');
-                    const icon = this.querySelector('i');
-                    if (this.classList.contains('active')) {
-                        icon.className = 'bi bi-toggle-on';
-                    } else {
-                        icon.className = 'bi bi-toggle-off';
-                    }
-                });
-            });
-            
-            // 设置开关切换
-            document.querySelectorAll('.setting-toggle').forEach(toggle => {
-                toggle.addEventListener('click', function() {
-                    this.classList.toggle('active');
-                    const icon = this.querySelector('i');
-                    if (this.classList.contains('active')) {
-                        icon.className = 'bi bi-toggle-on';
-                    } else {
-                        icon.className = 'bi bi-toggle-off';
-                    }
-                });
-            });
-        });
-        
-        function initMobileApp() {
-            // 显示首页
-            showPage('home');
-            
-            // 模拟数据更新
-            updateMockData();
-            
-            // 定期更新状态
-            setInterval(updateMockData, 5000);
-        }
-        
-        function showPage(pageId) {
-            // 隐藏所有页面
-            document.querySelectorAll('.mobile-page').forEach(page => {
-                page.style.display = 'none';
-            });
-            
-            // 显示目标页面
-            const targetPage = document.getElementById(pageId);
-            if (targetPage) {
-                targetPage.style.display = 'block';
-            }
-        }
-        
-        function showToolDetail(tool) {
-            const toolDetailPage = document.getElementById('tool-detail');
-            const toolTitle = document.getElementById('toolTitle');
-            
-            // 隐藏所有工具内容
-            document.querySelectorAll('.tool-content').forEach(content => {
-                content.style.display = 'none';
-            });
-            
-            // 显示对应的工具内容
-            let title = '';
-            switch(tool) {
-                case 'posture':
-                    title = '坐姿检测';
-                    document.getElementById('posture-content').style.display = 'block';
-                    break;
-                case 'eye':
-                    title = '用眼情况';
-                    document.getElementById('eye-content').style.display = 'block';
-                    break;
-                case 'emotion':
-                    title = '情绪反馈';
-                    document.getElementById('emotion-content').style.display = 'block';
-                    break;
-            }
-            
-            toolTitle.textContent = title;
-            showPage('tool-detail');
-        }
-        
-        function updateMockData() {
-            // 模拟更新数据
-            const studyTime = document.getElementById('studyTime');
-            const postureScore = document.getElementById('postureScore');
-            const eyeRest = document.getElementById('eyeRest');
-            
-            if (studyTime) {
-                const hours = (Math.random() * 8 + 1).toFixed(1);
-                studyTime.textContent = hours + 'h';
-            }
-            
-            if (postureScore) {
-                const score = Math.floor(Math.random() * 20 + 70);
-                postureScore.textContent = score + '%';
-            }
-            
-            if (eyeRest) {
-                const rest = Math.floor(Math.random() * 10 + 8);
-                eyeRest.textContent = rest;
-            }
-        }            // 图表切换函数（全局函数）
-            window.switchChart = function(index) {
-                if (typeof window.switchChartImpl === 'function') {
-                    window.switchChartImpl(index);
-                }
-            };
-            
-            // 时间范围切换事件（全局函数，可以被HTML onclick调用）
-        window.changeTimeRange = function(range) {
-            console.log('切换时间范围:', range);
-            
-            // 更新按钮状态
-            const buttons = document.querySelectorAll('.time-range-btn');
-            buttons.forEach(btn => {
-                btn.classList.remove('active');
-                if (btn.getAttribute('data-range') === range) {
-                    btn.classList.add('active');
-                }
-            });
-            
-            // 重新加载数据和图表
-            if (typeof loadPostureData === 'function') {
-                loadPostureData(range);
-            }
-            if (typeof updateChartsByTimeRange === 'function') {
-                updateChartsByTimeRange(range);
-            }
-            if (typeof updatePostureStats === 'function') {
-                updatePostureStats(range);
-            }
-            if (typeof loadPostureImages === 'function') {
-                loadPostureImages(range);
-            }
-        };
-        
-        // 加载更多图像（全局函数）
-        window.loadMorePostureImages = function() {
-            console.log('加载更多坐姿图像');
-            // 这里可以实现分页加载逻辑
-            window.location.href = '/posture-records';
-        };
-        
-        // 导出坐姿图像（全局函数）
-        window.exportPostureImages = function() {
-            console.log('导出坐姿图像记录');
-            // 这里可以实现导出功能
-            alert('导出功能开发中...');
-        };
-        
-        // 显示图像详情（全局函数）
-        window.showImageDetail = function(src, time) {
-            // 创建模态框显示图像详情
-            const modal = document.createElement('div');
-            modal.className = 'image-modal';
-            modal.innerHTML = `
-                <div class="modal-content" style="background: white; border-radius: 12px; max-width: 90%; max-height: 80%; overflow: hidden;">
-                    <div class="modal-header" style="padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
-                        <span class="modal-title" style="font-weight: 600;">坐姿记录 - ${time}</span>
-                        <button class="modal-close" onclick="this.parentElement.parentElement.parentElement.remove()" style="background: none; border: none; font-size: 24px; cursor: pointer;">
-                            <i class="bi bi-x"></i>
-                        </button>
-                    </div>
-                    <div class="modal-body" style="padding: 15px; text-align: center;">
-                        <img src="${src}" alt="坐姿记录" style="max-width: 100%; height: auto; border-radius: 8px;">
-                    </div>
-                </div>
-            `;
-            
-            modal.style.cssText = `
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 100%;
-                background: rgba(0, 0, 0, 0.8);
-                display: flex;
-                align-items: center;
-                justify-content: center;
-                z-index: 1000;
-            `;
-            
-            document.body.appendChild(modal);
-            
-            // 点击背景关闭
-            modal.addEventListener('click', function(e) {
-                if (e.target === modal) {
-                    document.body.removeChild(modal);
-                }
-            });
-        };
-    </script>
+
     
-    <script src="{{ url_for('static', filename='js/mobile.js') }}"></script>
-    
-    <!-- 直接图表初始化脚本 -->
-    <script>
-        // 页面加载完成后直接初始化图表
-        document.addEventListener('DOMContentLoaded', function() {
-            // 延时确保所有元素都已加载
-            setTimeout(function() {
-                console.log('开始直接初始化移动端图表...');
-                
-                // 直接初始化坐姿饼图
-                const pieCtx = document.getElementById('posturePieChart');
-                if (pieCtx) {
-                    console.log('找到坐姿饼图容器，开始初始化...');
-                    // 强制设置容器可见性
-                    const pieContainer = pieCtx.closest('.chart-container');
-                    const postureContent = document.getElementById('posture-content');
-                    const toolDetail = document.getElementById('tool-detail');
-                    
-                    // 临时显示容器层次
-                    const originalStates = {
-                        toolDetail: toolDetail.style.display,
-                        postureContent: postureContent.style.display,
-                        pieContainer: pieContainer.style.display
-                    };
-                    
-                    toolDetail.style.display = 'block';
-                    postureContent.style.display = 'block';
-                    pieContainer.style.display = 'block';
-                    
-                    // 强制触发重排
-                    pieCtx.offsetHeight;
-                    
-                    try {
-                        window.posturePieChart = new Chart(pieCtx, {
-                            type: 'doughnut',
-                            data: {
-                                labels: ['良好坐姿', '轻度不良坐姿', '不良坐姿'],
-                                datasets: [{
-                                    data: [50, 30, 20],
-                                    backgroundColor: ['#34a853', '#fbbc05', '#ea4335'],
-                                    borderWidth: 0
-                                }]
-                            },
-                            options: {
-                                responsive: true,
-                                maintainAspectRatio: false,
-                                plugins: {
-                                    legend: {
-                                        position: 'bottom',
-                                        labels: {
-                                            usePointStyle: true,
-                                            padding: 15,
-                                            font: { size: 12 }
-                                        }
-                                    }
-                                }
-                            }
-                        });
-                        console.log('坐姿饼图初始化成功！');
-                    } catch (error) {
-                        console.error('坐姿饼图初始化失败:', error);
-                    }
-                    
-                    // 恢复原始状态
-                    toolDetail.style.display = originalStates.toolDetail;
-                    postureContent.style.display = originalStates.postureContent;
-                    pieContainer.style.display = originalStates.pieContainer;
-                }
-                
-                // 直接初始化热力图
-                const heatmapElement = document.getElementById('eyeHeatmapChart');
-                if (heatmapElement && typeof echarts !== 'undefined') {
-                    console.log('找到热力图容器，开始初始化...');
-                    
-                    // 强制设置容器可见性
-                    const heatmapContainer = heatmapElement.closest('.heatmap-container');
-                    const eyeContent = document.getElementById('eye-content');
-                    const toolDetail = document.getElementById('tool-detail');
-                    
-                    // 临时显示容器层次
-                    const originalStates = {
-                        toolDetail: toolDetail.style.display,
-                        eyeContent: eyeContent.style.display,
-                        heatmapContainer: heatmapContainer.style.display
-                    };
-                    
-                    toolDetail.style.display = 'block';
-                    eyeContent.style.display = 'block';
-                    heatmapContainer.style.display = 'block';
-                    
-                    // 强制触发重排
-                    heatmapElement.offsetHeight;
-                    
-                    try {
-                        const heatmapChart = echarts.init(heatmapElement);
-                        window.eyeHeatmapChart = heatmapChart;
-                        
-                        // 生成数据
-                        const hours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
-                        const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-                        const data = [];
-                        
-                        for (let i = 0; i < days.length; i++) {
-                            for (let j = 0; j < hours.length; j++) {
-                                let value;
-                                if (j >= 8 && j <= 11) {
-                                    value = Math.floor(Math.random() * 2) + 1;
-                                } else if (j >= 14 && j <= 17) {
-                                    value = Math.floor(Math.random() * 2) + 1;
-                                } else if (j >= 19 && j <= 21) {
-                                    value = Math.floor(Math.random() * 2) + 1;
-                                } else {
-                                    value = Math.floor(Math.random() * 1);
-                                }
-                                data.push([j, i, value]);
-                            }
-                        }
-                        
-                        heatmapChart.setOption({
-                            tooltip: {
-                                position: 'top',
-                                formatter: function (params) {
-                                    return days[params.data[1]] + ' ' + hours[params.data[0]] + '<br/>用眼强度: ' + params.data[2];
-                                }
-                            },
-                            grid: {
-                                height: '70%',
-                                top: '10%',
-                                left: '10%',
-                                right: '10%'
-                            },
-                            xAxis: {
-                                type: 'category',
-                                data: hours,
-                                splitArea: { show: true },
-                                axisLabel: { rotate: 45, fontSize: 10 }
-                            },
-                            yAxis: {
-                                type: 'category',
-                                data: days,
-                                splitArea: { show: true },
-                                axisLabel: { fontSize: 10 }
-                            },
-                            visualMap: {
-                                min: 0,
-                                max: 2,
-                                calculable: true,
-                                orient: 'horizontal',
-                                left: 'center',
-                                bottom: '0',
-                                inRange: {
-                                    color: ['#e0f7fa', '#ffecb3', '#ff8a65']
-                                },
-                                textStyle: { fontSize: 10 }
-                            },
-                            series: [{
-                                name: '用眼强度',
-                                type: 'heatmap',
-                                data: data,
-                                label: { show: false },
-                                emphasis: {
-                                    itemStyle: {
-                                        shadowBlur: 10,
-                                        shadowColor: 'rgba(0, 0, 0, 0.5)'
-                                    }
-                                }
-                            }]
-                        });
-                        
-                        console.log('用眼热力图初始化成功！');
-                    } catch (error) {
-                        console.error('热力图初始化失败:', error);
-                    }
-                    
-                    // 恢复原始状态
-                    toolDetail.style.display = originalStates.toolDetail;
-                    eyeContent.style.display = originalStates.eyeContent;
-                    heatmapContainer.style.display = originalStates.heatmapContainer;
-                }
-                
-                // 直接初始化情绪图表
-                initEmotionChartsDirectly();
-                
-            }, 1000); // 减少延时到1秒
-        });
-        
-        // 直接初始化情绪图表函数
-        function initEmotionChartsDirectly() {
-            console.log('开始初始化情绪图表...');
-            
-            // 初始化情绪雷达图
-            const radarCtx = document.getElementById('emotionRadarChart');
-            if (radarCtx && typeof echarts !== 'undefined') {
-                const emotionContent = document.getElementById('emotion-content');
-                const toolDetail = document.getElementById('tool-detail');
-                const radarContainer = radarCtx.closest('.chart-container');
-                
-                // 临时显示容器
-                const originalStates = {
-                    toolDetail: toolDetail.style.display,
-                    emotionContent: emotionContent.style.display,
-                    radarContainer: radarContainer.style.display
-                };
-                
-                toolDetail.style.display = 'block';
-                emotionContent.style.display = 'block';
-                radarContainer.style.display = 'block';
-                
-                radarCtx.offsetHeight;
-                
-                try {
-                    const radarChart = echarts.init(radarCtx);
-                    window.emotionRadarChart = radarChart;
-                    
-                    radarChart.setOption({
-                        backgroundColor: 'transparent',
-                        title: {
-                            text: '今日情绪多维分析',
-                            subtext: '各项情绪指标评分(1-5分)',
-                            left: 'center',
-                            top: 15,
-                            textStyle: {
-                                color: '#333',
-                                fontSize: 16,
-                                fontWeight: 'bold',
-                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                            },
-                            subtextStyle: {
-                                color: '#666',
-                                fontSize: 12,
-                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                            }
-                        },
-                        tooltip: {
-                            trigger: 'item',
-                            formatter: function(params) {
-                                const emotionNames = ['高兴', '悲伤', '愤怒', '惊讶', '平静'];
-                                const emotions = ['😊', '😢', '😠', '😲', '😌'];
-                                let result = `<div style="padding: 8px;"><b>${params.name}</b><br/>`;
-                                params.value.forEach((val, index) => {
-                                    result += `${emotions[index]} ${emotionNames[index]}: <b>${val}</b>/5<br/>`;
-                                });
-                                result += '</div>';
-                                return result;
-                            }
-                        },
-                        legend: {
-                            data: ['今日情绪', '昨日对比'],
-                            bottom: 10,
-                            textStyle: {
-                                color: '#666',
-                                fontSize: 12,
-                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                            }
-                        },
-                        radar: {
-                            indicator: [
-                                { name: '高兴', max: 5, color: '#30d887' },
-                                { name: '悲伤', max: 5, color: '#ff708d' },
-                                { name: '愤怒', max: 5, color: '#ffb822' },
-                                { name: '惊讶', max: 5, color: '#5b8cff' },
-                                { name: '平静', max: 5, color: '#36c2ff' },
-                            ],
-                            center: ['50%', '55%'],
-                            radius: '65%',
-                            splitNumber: 5,
-                            name: {
-                                textStyle: {
-                                    color: '#333',
-                                    fontSize: 14,
-                                    fontWeight: 'bold',
-                                    fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                                }
-                            },
-                            splitLine: {
-                                lineStyle: {
-                                    color: 'rgba(66, 133, 244, 0.3)',
-                                    width: 2,
-                                    type: 'solid'
-                                }
-                            },
-                            splitArea: {
-                                show: true,
-                                areaStyle: {
-                                    color: ['rgba(66, 133, 244, 0.08)', 'rgba(66, 133, 244, 0.04)']
-                                }
-                            },
-                            axisLine: {
-                                lineStyle: {
-                                    color: 'rgba(66, 133, 244, 0.5)',
-                                    width: 3,
-                                    type: 'solid'
-                                }
-                            }
-                        },
-                        series: [
-                            {
-                                name: '情绪雷达图',
-                                type: 'radar',
-                                data: [
-                                    {
-                                        value: [4.2, 1.8, 0.5, 2.8, 4.5],
-                                        name: '今日情绪',
-                                        areaStyle: {
-                                            color: 'rgba(52, 168, 83, 0.3)'
-                                        },
-                                        lineStyle: {
-                                            width: 4,
-                                            color: '#30d887',
-                                            type: 'solid'
-                                        },
-                                        symbolSize: 10,
-                                        itemStyle: {
-                                            color: '#30d887',
-                                            shadowBlur: 5,
-                                            shadowColor: 'rgba(52, 168, 83, 0.5)'
-                                        }
-                                    },
-                                    {
-                                        value: [3.5, 2.5, 1.2, 2.0, 3.8],
-                                        name: '昨日对比',
-                                        areaStyle: {
-                                            color: 'rgba(91, 140, 255, 0.2)'
-                                        },
-                                        lineStyle: {
-                                            width: 3,
-                                            color: '#5b8cff',
-                                            type: 'dashed'
-                                        },
-                                        symbolSize: 8,
-                                        itemStyle: {
-                                            color: '#5b8cff'
-                                        }
-                                    }
-                                ]
-                            }
-                        ],
-                        animation: true,
-                        animationDuration: 1500,
-                        animationEasing: 'elasticOut'
-                    });
-                    
-                    // 强制重绘
-                    setTimeout(() => {
-                        radarChart.resize();
-                    }, 100);
-                    
-                    console.log('情绪雷达图初始化成功');
-                } catch (error) {
-                    console.error('情绪雷达图初始化失败:', error);
-                }
-                
-                // 恢复原始状态
-                toolDetail.style.display = originalStates.toolDetail;
-                emotionContent.style.display = originalStates.emotionContent;
-                radarContainer.style.display = originalStates.radarContainer;
-            }
-            
-            // 初始化情绪趋势图
-            const trendCtx = document.getElementById('emotionTrendChart');
-            if (trendCtx && typeof Chart !== 'undefined') {
-                try {
-                    window.emotionTrendChart = new Chart(trendCtx, {
-                        type: 'line',
-                        data: {
-                            labels: ['7:00', '8:00', '9:00', '10:00', '11:00', '12:00', '13:00', '14:00', '15:00', '16:00', '17:00', '18:00'],
-                            datasets: [{
-                                label: '情绪值',
-                                data: [1.5, 2.2, 1.8, 0.5, -0.3, 1.2, 2.8, 1.9, 0.8, -0.5, 1.6, 2.1],
-                                borderColor: '#30d887',
-                                backgroundColor: 'transparent',
-                                tension: 0.4,
-                                fill: false,
-                                pointBackgroundColor: '#fff',
-                                pointBorderColor: '#30d887',
-                                pointBorderWidth: 3,
-                                pointRadius: 5,
-                                pointHoverRadius: 7,
-                                pointHoverBackgroundColor: '#fff',
-                                pointHoverBorderColor: '#30d887',
-                                pointHoverBorderWidth: 4
-                            }, {
-                                label: '平均情绪',
-                                data: [1.2, 1.8, 1.5, 0.8, 0.2, 1.0, 2.3, 1.6, 1.1, 0.1, 1.3, 1.8],
-                                borderColor: '#5b8cff',
-                                backgroundColor: 'transparent',
-                                tension: 0.4,
-                                fill: false,
-                                borderDash: [8, 4],
-                                pointBackgroundColor: '#fff',
-                                pointBorderColor: '#5b8cff',
-                                pointBorderWidth: 3,
-                                pointRadius: 4,
-                                pointHoverRadius: 6,
-                                pointHoverBackgroundColor: '#fff',
-                                pointHoverBorderColor: '#5b8cff',
-                                pointHoverBorderWidth: 4
-                            }]
-                        },
-                        options: {
-                            responsive: true,
-                            maintainAspectRatio: false,
-                            plugins: {
-                                title: {
-                                    display: true,
-                                    text: '全天情绪波动趋势',
-                                    font: { size: 16, weight: 'bold' },
-                                    color: '#333',
-                                    padding: 20
-                                },
-                                subtitle: {
-                                    display: true,
-                                    text: '情绪值(-3到3分)',
-                                    font: { size: 12 },
-                                    color: '#666'
-                                },
-                                legend: {
-                                    position: 'bottom',
-                                    labels: {
-                                        font: { size: 12 },
-                                        color: '#666',
-                                        usePointStyle: true,
-                                        pointStyle: 'line',
-                                        boxWidth: 30,
-                                        boxHeight: 3
-                                    }
-                                },
-                                tooltip: {
-                                    callbacks: {
-                                        label: function(context) {
-                                            const value = context.parsed.y;
-                                            const emotionLevel = value > 1 ? '😊 很开心' : 
-                                                               value > 0 ? '🙂 开心' :
-                                                               value === 0 ? '😐 平静' :
-                                                               value > -1 ? '😔 有点不开心' : '😢 不开心';
-                                            return `${context.dataset.label}: ${value} (${emotionLevel})`;
-                                        }
-                                    }
-                                }
-                            },
-                            elements: {
-                                line: {
-                                    borderWidth: 3
-                                },
-                                point: {
-                                    borderWidth: 2,
-                                    hoverBorderWidth: 3
-                                }
-                            },
-                            scales: {
-                                x: {
-                                    grid: {
-                                        color: 'rgba(0, 0, 0, 0.05)',
-                                        lineWidth: 1
-                                    },
-                                    ticks: {
-                                        color: '#666',
-                                        font: { size: 11 }
-                                    }
-                                },
-                                y: {
-                                    min: -3,
-                                    max: 3,
-                                    grid: {
-                                        color: 'rgba(0, 0, 0, 0.05)',
-                                        lineWidth: 1
-                                    },
-                                    ticks: {
-                                        color: '#666',
-                                        font: { size: 11 },
-                                        callback: function(value) {
-                                            const labels = {
-                                                3: '非常开心 😊',
-                                                2: '开心 🙂',
-                                                1: '愉快 😌',
-                                                0: '平静 😐',
-                                                '-1': '有点沮丧 😔',
-                                                '-2': '不开心 😢',
-                                                '-3': '很难过 😭'
-                                            };
-                                            return labels[value] || value;
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    });
-                    console.log('情绪趋势图初始化成功');
-                } catch (error) {
-                    console.error('情绪趋势图初始化失败:', error);
-                }
-            }
-            
-            // 初始化情绪分布图
-            const distributionCtx = document.getElementById('emotionDistributionChart');
-            if (distributionCtx && typeof echarts !== 'undefined') {
-                const emotionContent = document.getElementById('emotion-content');
-                const toolDetail = document.getElementById('tool-detail');
-                const distributionContainer = distributionCtx.closest('.chart-container');
-                
-                // 临时显示容器
-                const originalStates = {
-                    toolDetail: toolDetail.style.display,
-                    emotionContent: emotionContent.style.display,
-                    distributionContainer: distributionContainer.style.display
-                };
-                
-                toolDetail.style.display = 'block';
-                emotionContent.style.display = 'block';
-                distributionContainer.style.display = 'block';
-                
-                distributionCtx.offsetHeight;
-                
-                try {
-                    const distributionChart = echarts.init(distributionCtx);
-                    window.emotionDistributionChart = distributionChart;
-                    
-                    distributionChart.setOption({
-                        backgroundColor: 'transparent',
-                        title: {
-                            text: '情绪时段分布',
-                            subtext: '不同时段主导情绪分析',
-                            left: 'center',
-                            top: 10,
-                            textStyle: {
-                                color: '#333',
-                                fontSize: 16,
-                                fontWeight: 'bold',
-                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                            },
-                            subtextStyle: {
-                                color: '#666',
-                                fontSize: 12,
-                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                            }
-                        },
-                        tooltip: {
-                            trigger: 'axis',
-                            axisPointer: {
-                                type: 'shadow'
-                            },
-                            formatter: function(params) {
-                                let result = `<div style="padding: 8px;"><b>${params[0].axisValue}</b><br/>`;
-                                let total = 0;
-                                params.forEach(param => {
-                                    total += param.value;
-                                });
-                                params.forEach(param => {
-                                    const percentage = ((param.value / total) * 100).toFixed(1);
-                                    const emotions = {'高兴': '😊', '悲伤': '😢', '愤怒': '😠', '惊讶': '😲', '平静': '😌'};
-                                    result += `${emotions[param.seriesName] || ''} ${param.seriesName}: <b>${param.value}</b>次 (${percentage}%)<br/>`;
-                                });
-                                result += `<br/>总计: <b>${total}</b>次情绪识别</div>`;
-                                return result;
-                            }
-                        },
-                        legend: {
-                            data: ['高兴', '悲伤', '愤怒', '惊讶', '平静'],
-                            bottom: 5,
-                            textStyle: {
-                                color: '#666',
-                                fontSize: 10
-                            }
-                        },
-                        grid: {
-                            left: '3%',
-                            right: '4%',
-                            bottom: '25%',
-                            top: '25%',
-                            containLabel: true
-                        },
-                        xAxis: {
-                            type: 'category',
-                            data: ['早晨\n(6-9点)', '上午\n(9-12点)', '中午\n(12-14点)', '下午\n(14-18点)', '晚上\n(18-22点)'],
-                            axisLine: {
-                                lineStyle: {
-                                    color: '#ddd'
-                                }
-                            },
-                            axisLabel: {
-                                color: '#666',
-                                fontSize: 9
-                            }
-                        },
-                        yAxis: {
-                            type: 'value',
-                            name: '次数',
-                            nameTextStyle: {
-                                color: '#666',
-                                fontSize: 10
-                            },
-                            axisLine: {
-                                show: false
-                            },
-                            axisTick: {
-                                show: false
-                            },
-                            axisLabel: {
-                                color: '#666',
-                                fontSize: 9
-                            },
-                            splitLine: {
-                                lineStyle: {
-                                    color: 'rgba(0, 0, 0, 0.05)',
-                                    type: 'dashed'
-                                }
-                            }
-                        },
-                        series: [
-                            {
-                                name: '高兴',
-                                type: 'bar',
-                                stack: '情绪',
-                                data: [8, 12, 6, 5, 9],
-                                itemStyle: {
-                                    color: '#30d887'
-                                }
-                            },
-                            {
-                                name: '平静',
-                                type: 'bar',
-                                stack: '情绪',
-                                data: [4, 8, 10, 12, 6],
-                                itemStyle: {
-                                    color: '#36c2ff'
-                                }
-                            },
-                            {
-                                name: '惊讶',
-                                type: 'bar',
-                                stack: '情绪',
-                                data: [2, 3, 1, 4, 2],
-                                itemStyle: {
-                                    color: '#5b8cff'
-                                }
-                            },
-                            {
-                                name: '愤怒',
-                                type: 'bar',
-                                stack: '情绪',
-                                data: [1, 0, 2, 3, 1],
-                                itemStyle: {
-                                    color: '#ffb822'
-                                }
-                            },
-                            {
-                                name: '悲伤',
-                                type: 'bar',
-                                stack: '情绪',
-                                data: [1, 0, 1, 6, 2],
-                                itemStyle: {
-                                    color: '#ff708d'
-                                }
-                            }
-                        ],
-                        animation: true,
-                        animationDuration: 1800,
-                        animationEasing: 'cubicOut'
-                    });
-                    
-                    // 强制重绘
-                    setTimeout(() => {
-                        distributionChart.resize();
-                    }, 100);
-                    
-                    console.log('情绪分布图初始化成功');
-                } catch (error) {
-                    console.error('情绪分布图初始化失败:', error);
-                }
-                
-                // 恢复原始状态
-                toolDetail.style.display = originalStates.toolDetail;
-                emotionContent.style.display = originalStates.emotionContent;
-                distributionContainer.style.display = originalStates.distributionContainer;
-            }
-            
-            // 初始化情绪热力图
-            const heatmapCtx = document.getElementById('emotionHeatmapChart');
-            if (heatmapCtx && typeof echarts !== 'undefined') {
-                const emotionContent = document.getElementById('emotion-content');
-                const toolDetail = document.getElementById('tool-detail');
-                const heatmapContainer = heatmapCtx.closest('.chart-container');
-                
-                // 临时显示容器
-                const originalStates = {
-                    toolDetail: toolDetail.style.display,
-                    emotionContent: emotionContent.style.display,
-                    heatmapContainer: heatmapContainer.style.display
-                };
-                
-                toolDetail.style.display = 'block';
-                emotionContent.style.display = 'block';
-                heatmapContainer.style.display = 'block';
-                
-                heatmapCtx.offsetHeight;
-                
-                try {
-                    const heatmapChart = echarts.init(heatmapCtx);
-                    window.emotionHeatmapChart = heatmapChart;
-                    
-                    // 生成热力图数据 - 与电脑端一致的周情绪数据
-                    const heatmapData = [];
-                    const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-                    const timeSlots = ['早晨', '上午', '中午', '下午', '晚上'];
-                    
-                    // 模拟一周的情绪数据，带有一些规律性
-                    const emotionPatterns = [
-                        [1.2, 1.8, 0.5, 1.5, 1.0], // 周一
-                        [1.5, 2.0, 1.0, 1.2, 0.8], // 周二  
-                        [1.0, 1.5, -0.5, 0.5, 1.2], // 周三
-                        [0.8, 1.2, 0.2, -1.2, -0.8], // 周四
-                        [0.5, 0.8, -1.5, -2.0, -0.5], // 周五（下午情绪低落）
-                        [2.0, 2.2, 1.8, 1.5, 1.8], // 周六（情绪良好）
-                        [1.8, 1.5, 1.2, 1.0, 0.8]  // 周日
-                    ];
-                    
-                    emotionPatterns.forEach((dayData, dayIndex) => {
-                        dayData.forEach((value, timeIndex) => {
-                            heatmapData.push([dayIndex, timeIndex, value]);
-                        });
-                    });
-                    
-                    heatmapChart.setOption({
-                        backgroundColor: 'transparent',
-                        title: {
-                            text: '周情绪热力图',
-                            subtext: '情绪值(-2到2分)，颜色越深情绪越积极',
-                            left: 'center',
-                            top: 10,
-                            textStyle: {
-                                color: '#333',
-                                fontSize: 16,
-                                fontWeight: 'bold',
-                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                            },
-                            subtextStyle: {
-                                color: '#666',
-                                fontSize: 12,
-                                fontFamily: '-apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif'
-                            }
-                        },
-                        tooltip: {
-                            position: 'top',
-                            formatter: function (params) {
-                                const day = days[params.data[0]];
-                                const time = timeSlots[params.data[1]];
-                                const value = params.data[2];
-                                const emotionDesc = value > 1.5 ? '😊 非常开心' :
-                                                  value > 0.5 ? '🙂 开心' :
-                                                  value > -0.5 ? '😐 平静' :
-                                                  value > -1.5 ? '😔 有点沮丧' : '😢 沮丧';
-                                return `<div style="padding: 8px;">
-                                            <b>${day} ${time}</b><br/>
-                                            情绪值: <b>${value}</b><br/>
-                                            状态: ${emotionDesc}
-                                        </div>`;
-                            }
-                        },
-                        grid: {
-                            top: '30%',
-                            left: '15%',
-                            right: '10%',
-                            bottom: '30%',
-                            containLabel: true
-                        },
-                        xAxis: {
-                            type: 'category',
-                            data: days,
-                            splitArea: {
-                                show: true,
-                                areaStyle: {
-                                    color: ['rgba(250,250,250,0.3)', 'rgba(245,245,245,0.3)']
-                                }
-                            },
-                            axisLine: {
-                                lineStyle: {
-                                    color: '#ddd'
-                                }
-                            },
-                            axisLabel: {
-                                color: '#666',
-                                fontSize: 10,
-                                fontWeight: 'bold'
-                            }
-                        },
-                        yAxis: {
-                            type: 'category',
-                            data: timeSlots,
-                            splitArea: {
-                                show: true,
-                                areaStyle: {
-                                    color: ['rgba(250,250,250,0.3)', 'rgba(245,245,245,0.3)']
-                                }
-                            },
-                            axisLine: {
-                                lineStyle: {
-                                    color: '#ddd'
-                                }
-                            },
-                            axisLabel: {
-                                color: '#666',
-                                fontSize: 10,
-                                fontWeight: 'bold'
-                            }
-                        },
-                        visualMap: {
-                            min: -2,
-                            max: 2,
-                            calculable: true,
-                            orient: 'horizontal',
-                            left: 'center',
-                            bottom: '8%',
-                            inRange: {
-                                color: ['#ff4757', '#ff708d', '#ffa726', '#fff176', '#81c784', '#30d887']
-                            },
-                            text: ['积极 😊', '消极 😢'],
-                            textStyle: {
-                                color: '#666',
-                                fontSize: 10
-                            },
-                            itemWidth: 12,
-                            itemHeight: 80
-                        },
-                        series: [{
-                            name: '情绪值',
-                            type: 'heatmap',
-                            data: heatmapData,
-                            label: {
-                                show: true,
-                                color: '#fff',
-                                fontSize: 9,
-                                fontWeight: 'bold',
-                                formatter: function(params) {
-                                    return params.data[2].toFixed(1);
-                                }
-                            },
-                            emphasis: {
-                                itemStyle: {
-                                    shadowBlur: 10,
-                                    shadowColor: 'rgba(0, 0, 0, 0.5)',
-                                    borderColor: '#fff',
-                                    borderWidth: 1
-                                }
-                            },
-                            progressive: 1000,
-                            animation: true,
-                            animationDuration: 1000
-                        }]
-                    });
-                    
-                    // 强制重绘
-                    setTimeout(() => {
-                        heatmapChart.resize();
-                    }, 100);
-                    
-                    console.log('情绪热力图初始化成功');
-                } catch (error) {
-                    console.error('情绪热力图初始化失败:', error);
-                }
-                
-                // 恢复原始状态
-                toolDetail.style.display = originalStates.toolDetail;
-                emotionContent.style.display = originalStates.emotionContent;
-                heatmapContainer.style.display = originalStates.heatmapContainer;
-            }
-            
-            // 绑定视图切换事件
-            const viewSelect = document.getElementById('emotionViewSelect');
-            if (viewSelect) {
-                viewSelect.addEventListener('change', function() {
-                    const viewType = this.value;
-                    
-                    // 隐藏所有视图
-                    const allViews = document.querySelectorAll('.emotion-chart-view');
-                    allViews.forEach(view => view.classList.remove('active'));
-                    
-                    // 显示选定的视图
-                    const targetView = document.getElementById(`emotion-${viewType}-view`);
-                    if (targetView) {
-                        targetView.classList.add('active');
-                        
-                        // 触发图表重绘
-                        setTimeout(() => {
-                            switch(viewType) {
-                                case 'radar':
-                                    if (window.emotionRadarChart) {
-                                        window.emotionRadarChart.resize();
-                                        console.log('雷达图已重绘');
-                                    }
-                                    break;
-                                case 'trend':
-                                    if (window.emotionTrendChart) {
-                                        window.emotionTrendChart.resize();
-                                        console.log('趋势图已重绘');
-                                    }
-                                    break;
-                                case 'distribution':
-                                    if (window.emotionDistributionChart) {
-                                        window.emotionDistributionChart.resize();
-                                        console.log('分布图已重绘');
-                                    }
-                                    break;
-                                case 'heatmap':
-                                    if (window.emotionHeatmapChart) {
-                                        window.emotionHeatmapChart.resize();
-                                        console.log('热力图已重绘');
-                                    }
-                                    break;
-                            }
-                        }, 100);
-                    }
-                });
-            }
-        }
-    </script>
+
 </body>
 </html>

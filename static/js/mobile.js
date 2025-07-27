@@ -33,15 +33,29 @@ function initMobileApp() {
     setInterval(function() {
         fetchAnalysisStatus();
         updateMockData();
-    }, 3000);
+    }, 5000);
     
-    // 初始化模拟数据
+    // 更新初始数据
     updateMockData();
     
     // 初始化首页图表
     setTimeout(() => {
         initCharts();
     }, 1000);
+    
+    // 确保 ECharts 库已加载
+    if (typeof echarts === 'undefined') {
+        console.warn('ECharts 库未加载，等待加载完成...');
+        setTimeout(() => {
+            if (typeof echarts !== 'undefined') {
+                console.log('ECharts 库已加载');
+            } else {
+                console.error('ECharts 库加载失败');
+            }
+        }, 2000);
+    } else {
+        console.log('ECharts 库已准备就绪');
+    }
 }
 
 // 设置导航切换
@@ -234,13 +248,9 @@ function showPage(pageId) {
         }
     });
     
-    // 控制header显示：只有工具详情页隐藏header
+    // 确保header始终显示，保留"曈灵智能台灯家长端"标题
     if (header) {
-        if (pageId === 'tool-detail') {
-            header.style.display = 'none';
-        } else {
-            header.style.display = 'block';
-        }
+        header.style.display = 'block';
     }
     
     // 页面切换后的特殊处理
@@ -264,8 +274,7 @@ function showPage(pageId) {
 function showToolDetail(tool) {
     const toolDetailPage = document.getElementById('tool-detail');
     const toolTitle = document.getElementById('toolTitle');
-    
-    // 隐藏所有工具内容
+
     document.querySelectorAll('.tool-content').forEach(content => {
         content.style.display = 'none';
     });
@@ -276,69 +285,125 @@ function showToolDetail(tool) {
         case 'posture':
             title = '坐姿检测';
             document.getElementById('posture-content').style.display = 'block';
-            // 图表已在HTML中直接初始化，只需要刷新显示
+            
+            // 延迟初始化，确保容器完全显示
             setTimeout(() => {
+                console.log('开始初始化坐姿检测图表...');
+                
                 // 重置图表切换状态
                 currentChartIndex = 0;
-                
-                // 初始化图表切换功能
-                setupChartSwiper();
                 
                 // 确保第一个幻灯片显示
                 const slides = document.querySelectorAll('.chart-slide');
                 const indicators = document.querySelectorAll('.indicator-dot');
                 slides.forEach((slide, index) => {
-                    slide.classList.toggle('active', index === 0);
+                    if (index === 0) {
+                        slide.classList.add('active');
+                        slide.style.display = 'block';
+                    } else {
+                        slide.classList.remove('active');
+                        slide.style.display = 'none';
+                    }
                 });
                 indicators.forEach((dot, index) => {
                     dot.classList.toggle('active', index === 0);
                 });
                 
-                // 刷新图表显示
-                if (window.posturePieChart) {
-                    console.log('刷新坐姿饼图显示...');
-                    window.posturePieChart.resize();
-                    window.posturePieChart.update();
-                }
+                // 再次延迟初始化饼图，确保容器布局完成
+                setTimeout(() => {
+                    initPosturePieChart();
+                    
+                    // 初始化图表切换功能
+                    setupChartSwiper();
+                    
+                    console.log('坐姿检测图表初始化完成');
+                }, 200);
                 
                 // 加载默认时间范围数据
                 loadPostureData('day');
                 loadPostureImages('day');
-            }, 100);
+            }, 150);
             break;
         case 'eye':
             title = '用眼情况';
             document.getElementById('eye-content').style.display = 'block';
-            // 图表已在HTML中直接初始化，只需要刷新显示
+            
+            // 延迟初始化，确保容器完全显示
             setTimeout(() => {
-                updateEyeMetrics();
+                console.log('开始初始化用眼情况模块...');
                 
-                // 刷新热力图显示
-                if (window.eyeHeatmapChart) {
-                    console.log('刷新用眼热力图显示...');
-                    window.eyeHeatmapChart.resize();
+                // 确保用眼内容容器可见
+                const eyeContent = document.getElementById('eye-content');
+                if (eyeContent) {
+                    eyeContent.style.display = 'block';
+                    eyeContent.style.visibility = 'visible';
                 }
-            }, 100);
+                
+                // 确保默认的用眼监控视图显示
+                const eyeSlides = document.querySelectorAll('.eye-slide');
+                const eyeIndicators = document.querySelectorAll('.indicator-btn');
+                eyeSlides.forEach((slide, index) => {
+                    if (index === 0) {
+                        slide.classList.add('active');
+                        slide.style.display = 'block';
+                    } else {
+                        slide.classList.remove('active');
+                        slide.style.display = 'none';
+                    }
+                });
+                eyeIndicators.forEach((indicator, index) => {
+                    indicator.classList.toggle('active', index === 0);
+                });
+                
+                // 延迟初始化热力图，确保容器布局完成
+                setTimeout(() => {
+                    // 强制显示热力图卡片
+                    const heatmapCard = document.querySelector('#eye-content .mobile-card:last-child');
+                    if (heatmapCard) {
+                        heatmapCard.style.display = 'block';
+                        heatmapCard.style.visibility = 'visible';
+                    }
+                    
+                    // 初始化用眼热力图
+                    initEyeHeatmapChart();
+                    
+                    // 更新用眼指标
+                    updateEyeMetrics();
+                    
+                    console.log('用眼情况模块初始化完成');
+                }, 200);
+            }, 150);
             break;
         case 'emotion':
             title = '情绪反馈';
             document.getElementById('emotion-content').style.display = 'block';
-            // 图表已在HTML中直接初始化，只需要刷新显示
             setTimeout(() => {
-                // 刷新当前活跃的情绪图表
-                const activeView = document.querySelector('.emotion-chart-view.active');
-                if (activeView) {
-                    const viewId = activeView.id;
-                    if (viewId.includes('radar') && window.emotionRadarChart) {
-                        window.emotionRadarChart.resize();
-                    } else if (viewId.includes('trend') && window.emotionTrendChart) {
-                        window.emotionTrendChart.resize();
-                    } else if (viewId.includes('distribution') && window.emotionDistributionChart) {
-                        window.emotionDistributionChart.resize();
-                    } else if (viewId.includes('heatmap') && window.emotionHeatmapChart) {
-                        window.emotionHeatmapChart.resize();
-                    }
+                // 初始化情绪图表
+                initEmotionCharts();
+                
+                // 确保默认视图显示
+                const defaultView = document.querySelector('.emotion-chart-view.active') || 
+                                  document.getElementById('emotion-radar-view');
+                if (defaultView) {
+                    defaultView.classList.add('active');
                 }
+                
+                // 刷新当前活跃的情绪图表
+                setTimeout(() => {
+                    const activeView = document.querySelector('.emotion-chart-view.active');
+                    if (activeView) {
+                        const viewId = activeView.id;
+                        if (viewId.includes('radar') && window.emotionRadarChart) {
+                            window.emotionRadarChart.resize();
+                        } else if (viewId.includes('trend') && window.emotionTrendChart) {
+                            window.emotionTrendChart.resize();
+                        } else if (viewId.includes('distribution') && window.emotionDistributionChart) {
+                            window.emotionDistributionChart.resize();
+                        } else if (viewId.includes('heatmap') && window.emotionHeatmapChart) {
+                            window.emotionHeatmapChart.resize();
+                        }
+                    }
+                }, 200);
             }, 100);
             break;
     }
@@ -720,9 +785,9 @@ function updatePostureStats(stats) {
     }
 }
 
-// 更新模拟数据
+// 更新概览数据
 function updateMockData() {
-    // 更新首页概览数据
+    // 模拟数据更新首页概览
     const studyTime = document.getElementById('studyTime');
     const postureScore = document.getElementById('postureScore');
     const eyeRest = document.getElementById('eyeRest');
@@ -743,12 +808,29 @@ function updateMockData() {
     }
 }
 
+// 更新概览统计数据
+function updateOverviewStats(stats) {
+    const studyTime = document.getElementById('studyTime');
+    const postureScore = document.getElementById('postureScore');
+    const eyeRest = document.getElementById('eyeRest');
+    
+    if (studyTime && stats.study_time) {
+        studyTime.textContent = stats.study_time;
+    }
+    
+    if (postureScore && stats.posture_score) {
+        postureScore.textContent = stats.posture_score;
+    }
+    
+    if (eyeRest && stats.eye_rest_count) {
+        eyeRest.textContent = stats.eye_rest_count;
+    }
+}
+
 // 初始化图表
 function initCharts() {
     initPostureChart();
-    initEmotionCharts();
-    // 注意：其他图表（posturePieChart, scoreTrendChart, heatmapChart）
-    // 将在显示坐姿检测工具时按需初始化
+    initEmotionCharts(); // 重新启用情绪图表初始化
 }
 
 // 初始化姿势检测图表
@@ -789,7 +871,7 @@ function initPostureChart() {
                 }
             }
         }
-    });
+        });
 }
 
 // 初始化情绪图表（多视图）
@@ -813,9 +895,14 @@ function initEmotionRadarChart() {
     const emotionCtx = document.getElementById('emotionRadarChart');
     if (!emotionCtx) return;
     
-    // 如果已经初始化过，先销毁
-    if (window.emotionRadarChart) {
-        window.emotionRadarChart.dispose();
+    // 如果已经初始化过，先销毁（ECharts使用dispose方法）
+    if (window.emotionRadarChart && typeof window.emotionRadarChart.dispose === 'function') {
+        try {
+            window.emotionRadarChart.dispose();
+        } catch (e) {
+            console.warn('销毁雷达图失败:', e);
+        }
+        window.emotionRadarChart = null;
     }
     
     const chart = echarts.init(emotionCtx);
@@ -870,9 +957,14 @@ function initEmotionTrendChart() {
     const ctx = document.getElementById('emotionTrendChart');
     if (!ctx) return;
     
-    // 如果已经初始化过，先销毁
-    if (window.emotionTrendChart) {
-        window.emotionTrendChart.destroy();
+    // 如果已经初始化过，先销毁（Chart.js使用destroy方法）
+    if (window.emotionTrendChart && typeof window.emotionTrendChart.destroy === 'function') {
+        try {
+            window.emotionTrendChart.destroy();
+        } catch (e) {
+            console.warn('销毁趋势图失败:', e);
+        }
+        window.emotionTrendChart = null;
     }
     
     const chart = new Chart(ctx, {
@@ -924,9 +1016,14 @@ function initEmotionDistributionChart() {
     const ctx = document.getElementById('emotionDistributionChart');
     if (!ctx) return;
     
-    // 如果已经初始化过，先销毁
-    if (window.emotionDistributionChart) {
-        window.emotionDistributionChart.destroy();
+    // 如果已经初始化过，先销毁（Chart.js使用destroy方法）
+    if (window.emotionDistributionChart && typeof window.emotionDistributionChart.destroy === 'function') {
+        try {
+            window.emotionDistributionChart.destroy();
+        } catch (e) {
+            console.warn('销毁分布图失败:', e);
+        }
+        window.emotionDistributionChart = null;
     }
     
     const chart = new Chart(ctx, {
@@ -964,9 +1061,14 @@ function initEmotionHeatmapChart() {
     const container = document.getElementById('emotionHeatmapChart');
     if (!container) return;
     
-    // 如果已经初始化过，先销毁
-    if (window.emotionHeatmapChart) {
-        window.emotionHeatmapChart.dispose();
+    // 如果已经初始化过，先销毁（ECharts使用dispose方法）
+    if (window.emotionHeatmapChart && typeof window.emotionHeatmapChart.dispose === 'function') {
+        try {
+            window.emotionHeatmapChart.dispose();
+        } catch (e) {
+            console.warn('销毁情绪热力图失败:', e);
+        }
+        window.emotionHeatmapChart = null;
     }
     
     const chart = echarts.init(container);
@@ -1083,65 +1185,105 @@ function switchEmotionView(viewType) {
 
 // 初始化坐姿时间占比饼图
 function initPosturePieChart() {
+    console.log('开始初始化坐姿饼图...');
+    
     const ctx = document.getElementById('posturePieChart');
     if (!ctx) {
-        console.warn('坐姿饼图容器元素未找到');
+        console.error('坐姿饼图容器元素未找到');
         return;
     }
     
+    // 确保容器元素可见
+    const chartContainer = ctx.closest('.chart-container');
+    const chartSlide = ctx.closest('.chart-slide');
+    
+    if (chartContainer) {
+        chartContainer.style.display = 'block';
+        chartContainer.style.visibility = 'visible';
+    }
+    
+    if (chartSlide && !chartSlide.classList.contains('active')) {
+        chartSlide.classList.add('active');
+        chartSlide.style.display = 'block';
+    }
+    
     console.log('坐姿饼图容器状态:', {
+        element: ctx,
         offsetWidth: ctx.offsetWidth,
         offsetHeight: ctx.offsetHeight,
         clientWidth: ctx.clientWidth,
-        clientHeight: ctx.clientHeight
+        clientHeight: ctx.clientHeight,
+        containerVisible: chartContainer ? chartContainer.style.display : 'unknown',
+        slideActive: chartSlide ? chartSlide.classList.contains('active') : 'unknown'
     });
     
     // 强制设置canvas尺寸
     ctx.style.width = '100%';
     ctx.style.height = '250px';
-    ctx.width = ctx.offsetWidth || 300;
-    ctx.height = 250;
     
     // 如果已经初始化过，先销毁
     if (window.posturePieChart) {
-        window.posturePieChart.destroy();
+        try {
+            window.posturePieChart.destroy();
+            console.log('已销毁旧的坐姿饼图实例');
+        } catch (e) {
+            console.warn('销毁坐姿饼图失败:', e);
+        }
     }
     
-    console.log('开始初始化坐姿饼图...');
-    window.posturePieChart = new Chart(ctx, {
-        type: 'doughnut',
-        data: {
-            labels: ['良好坐姿', '轻度不良坐姿', '不良坐姿'],
-            datasets: [{
-                data: [50, 30, 20],
-                backgroundColor: [
-                    '#34a853',   // 绿色 - 良好坐姿
-                    '#fbbc05',   // 黄色 - 轻度不良坐姿
-                    '#ea4335'    // 红色 - 不良坐姿
-                ],
-                borderWidth: 0
-            }]
-        },
-        options: {
-            responsive: true,
-            maintainAspectRatio: false,
-            plugins: {
-                legend: {
-                    position: 'bottom',
-                    labels: {
-                        usePointStyle: true,
-                        padding: 15,
-                        font: {
-                            size: 12
+    // 等待一帧后再初始化，确保DOM完全准备好
+    requestAnimationFrame(() => {
+        try {
+            console.log('正在创建坐姿饼图...');
+            window.posturePieChart = new Chart(ctx, {
+                type: 'doughnut',
+                data: {
+                    labels: ['良好坐姿', '轻度不良坐姿', '不良坐姿'],
+                    datasets: [{
+                        data: [50, 30, 20],
+                        backgroundColor: [
+                            '#34a853',   // 绿色 - 良好坐姿
+                            '#fbbc05',   // 黄色 - 轻度不良坐姿
+                            '#ea4335'    // 红色 - 不良坐姿
+                        ],
+                        borderWidth: 0
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: {
+                            position: 'bottom',
+                            labels: {
+                                usePointStyle: true,
+                                padding: 15,
+                                font: {
+                                    size: 12
+                                }
+                            }
                         }
                     }
                 }
+                });
+                
+                console.log('坐姿时间占比饼图初始化完成', window.posturePieChart);
+                
+                // 强制更新图表
+                setTimeout(() => {
+                    if (window.posturePieChart) {
+                        window.posturePieChart.resize();
+                        window.posturePieChart.update();
+                        console.log('坐姿饼图已更新');
+                    }
+                }, 100);
+                
+            } catch (error) {
+                console.error('坐姿饼图初始化失败:', error);
             }
-        }
-    });
-    
-    console.log('坐姿时间占比饼图初始化完成');
-}
+        });
+    }
+
 
 // 初始化坐姿评分趋势图
 function initScoreTrendChart() {
@@ -1196,9 +1338,9 @@ function initScoreTrendChart() {
                         }
                     }
                 }
-            },
-        }
-    });
+            }
+        },
+        });
 }
 
 // 初始化不良姿态时段分布热力图
@@ -1312,119 +1454,172 @@ function initHeatmapChart() {
 function initEyeHeatmapChart() {
     const chartElement = document.getElementById('eyeHeatmapChart');
     if (!chartElement) {
-        console.warn('热力图容器元素未找到');
+        console.warn('用眼热力图容器元素未找到');
         return;
     }
     
-    console.log('热力图容器状态:', {
-        offsetWidth: chartElement.offsetWidth,
-        offsetHeight: chartElement.offsetHeight,
-        clientWidth: chartElement.clientWidth,
-        clientHeight: chartElement.clientHeight
-    });
+    // 确保容器及其父容器都可见
+    const heatmapContainer = chartElement.closest('.heatmap-container');
+    const eyeCard = chartElement.closest('.mobile-card');
+    const eyeContent = chartElement.closest('#eye-content');
+    
+    if (eyeContent) {
+        eyeContent.style.display = 'block';
+        eyeContent.style.visibility = 'visible';
+    }
+    if (eyeCard) {
+        eyeCard.style.display = 'block';
+    }
+    if (heatmapContainer) {
+        heatmapContainer.style.display = 'block';
+        heatmapContainer.style.height = '300px';
+    }
     
     // 强制设置容器尺寸
     chartElement.style.width = '100%';
-    chartElement.style.height = '300px';
+    chartElement.style.height = '280px';
+    chartElement.style.display = 'block';
+    chartElement.style.visibility = 'visible';
     
-    // 如果已经初始化过，先销毁
-    if (window.eyeHeatmapChart) {
-        window.eyeHeatmapChart.dispose();
-    }
-    
-    console.log('开始初始化用眼时间热力图...');
-    
-    // 初始化ECharts实例
-    const heatmapChart = echarts.init(chartElement);
-    window.eyeHeatmapChart = heatmapChart;
-    
-    // 生成热力图数据 - 与网页端一致
-    const hours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
-    const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
-    const data = [];
-    
-    for (let i = 0; i < days.length; i++) {
-        for (let j = 0; j < hours.length; j++) {
-            // 模拟用眼强度数据，与网页端逻辑保持一致
-            let value;
-            if (j >= 8 && j <= 11) {
-                value = Math.floor(Math.random() * 2) + 1; // 上午学习时间
-            } else if (j >= 14 && j <= 17) {
-                value = Math.floor(Math.random() * 2) + 1; // 下午学习时间
-            } else if (j >= 19 && j <= 21) {
-                value = Math.floor(Math.random() * 2) + 1; // 晚上学习时间
-            } else {
-                value = Math.floor(Math.random() * 1); // 其他时间
-            }
-            data.push([j, i, value]); // x, y, value
+    // 等待容器布局完成
+    setTimeout(() => {
+        console.log('用眼热力图容器状态:', {
+            offsetWidth: chartElement.offsetWidth,
+            offsetHeight: chartElement.offsetHeight,
+            clientWidth: chartElement.clientWidth,
+            clientHeight: chartElement.clientHeight,
+            display: chartElement.style.display,
+            visibility: chartElement.style.visibility
+        });
+        
+        // 如果容器仍然没有尺寸，强制设置
+        if (chartElement.offsetWidth === 0 || chartElement.offsetHeight === 0) {
+            chartElement.style.width = '100%';
+            chartElement.style.height = '280px';
+            chartElement.style.minHeight = '280px';
+            chartElement.style.minWidth = '300px';
         }
-    }
-    
-    // 设置ECharts配置，与网页端保持一致
-    heatmapChart.setOption({
-        tooltip: {
-            position: 'top',
-            formatter: function (params) {
-                return days[params.data[1]] + ' ' + hours[params.data[0]] + '<br/>用眼强度: ' + params.data[2];
+        
+        // 如果已经初始化过，先销毁
+        if (window.eyeHeatmapChart && typeof window.eyeHeatmapChart.dispose === 'function') {
+            try {
+                window.eyeHeatmapChart.dispose();
+                console.log('已销毁旧的用眼热力图实例');
+            } catch (e) {
+                console.warn('销毁用眼热力图失败:', e);
             }
-        },
-        grid: {
-            height: '70%',
-            top: '10%',
-            left: '10%',
-            right: '10%'
-        },
-        xAxis: {
-            type: 'category',
-            data: hours,
-            splitArea: { show: true },
-            axisLabel: { 
-                rotate: 45,
-                fontSize: 10
+            window.eyeHeatmapChart = null;
+        }
+        
+        console.log('开始初始化用眼时间热力图...');
+        
+        try {
+            // 检查 ECharts 是否可用
+            if (typeof echarts === 'undefined') {
+                console.error('ECharts 库未加载，无法初始化用眼热力图');
+                return;
             }
-        },
-        yAxis: {
-            type: 'category',
-            data: days,
-            splitArea: { show: true },
-            axisLabel: {
-                fontSize: 10
-            }
-        },
-        visualMap: {
-            min: 0,
-            max: 2,
-            calculable: true,
-            orient: 'horizontal',
-            left: 'center',
-            bottom: '0',
-            inRange: {
-                color: ['#e0f7fa', '#ffecb3', '#ff8a65']
-            },
-            textStyle: {
-                fontSize: 10
-            }
-        },
-        series: [{
-            name: '用眼强度',
-            type: 'heatmap',
-            data: data,
-            label: {
-                show: false
-            },
-            emphasis: {
-                itemStyle: {
-                    shadowBlur: 10,
-                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+            
+            // 初始化ECharts实例
+            const heatmapChart = echarts.init(chartElement);
+            window.eyeHeatmapChart = heatmapChart;
+            
+            // 生成热力图数据 - 与网页端一致
+            const hours = Array.from({ length: 24 }, (_, i) => `${i}:00`);
+            const days = ['周一', '周二', '周三', '周四', '周五', '周六', '周日'];
+            const data = [];
+            
+            for (let i = 0; i < days.length; i++) {
+                for (let j = 0; j < hours.length; j++) {
+                    // 模拟用眼强度数据，与网页端逻辑保持一致
+                    let value;
+                    if (j >= 8 && j <= 11) {
+                        value = Math.floor(Math.random() * 2) + 1; // 上午学习时间
+                    } else if (j >= 14 && j <= 17) {
+                        value = Math.floor(Math.random() * 2) + 1; // 下午学习时间
+                    } else if (j >= 19 && j <= 21) {
+                        value = Math.floor(Math.random() * 2) + 1; // 晚上学习时间
+                    } else {
+                        value = Math.floor(Math.random() * 1); // 其他时间
+                    }
+                    data.push([j, i, value]); // x, y, value
                 }
             }
-        }]
-    });
-    
-    // 强制刷新图表尺寸
-    setTimeout(() => {
-        heatmapChart.resize();
-        console.log('热力图resize完成');
+            
+            // 设置ECharts配置，与网页端保持一致
+            heatmapChart.setOption({
+                tooltip: {
+                    position: 'top',
+                    formatter: function (params) {
+                        return days[params.data[1]] + ' ' + hours[params.data[0]] + '<br/>用眼强度: ' + params.data[2];
+                    }
+                },
+                grid: {
+                    height: '70%',
+                    top: '10%',
+                    left: '10%',
+                    right: '10%'
+                },
+                xAxis: {
+                    type: 'category',
+                    data: hours,
+                    splitArea: { show: true },
+                    axisLabel: { 
+                        rotate: 45,
+                        fontSize: 10
+                    }
+                },
+                yAxis: {
+                    type: 'category',
+                    data: days,
+                    splitArea: { show: true },
+                    axisLabel: {
+                        fontSize: 10
+                    }
+                },
+                visualMap: {
+                    min: 0,
+                    max: 2,
+                    calculable: true,
+                    orient: 'horizontal',
+                    left: 'center',
+                    bottom: '0',
+                    inRange: {
+                        color: ['#e0f7fa', '#ffecb3', '#ff8a65']
+                    },
+                    textStyle: {
+                        fontSize: 10
+                    }
+                },
+                series: [{
+                    name: '用眼强度',
+                    type: 'heatmap',
+                    data: data,
+                    label: {
+                        show: false
+                    },
+                    emphasis: {
+                        itemStyle: {
+                            shadowBlur: 10,
+                            shadowColor: 'rgba(0, 0, 0, 0.5)'
+                        }
+                    }
+                }]
+            });
+            
+            console.log('用眼时间热力图初始化完成');
+            
+            // 强制刷新图表尺寸
+            setTimeout(() => {
+                if (window.eyeHeatmapChart) {
+                    window.eyeHeatmapChart.resize();
+                    console.log('用眼热力图resize完成');
+                }
+            }, 100);
+            
+        } catch (error) {
+            console.error('用眼时间热力图初始化失败:', error);
+        }
     }, 100);
     
     // 响应式调整
@@ -1436,8 +1631,6 @@ function initEyeHeatmapChart() {
     
     window.removeEventListener('resize', resizeHandler);
     window.addEventListener('resize', resizeHandler);
-    
-    console.log('用眼时间热力图初始化完成');
 }
 
 // 更新用眼指标数据
@@ -1687,21 +1880,72 @@ function displayPostureImages(container, images) {
     container.innerHTML = imageGrid;
 }
 
-// 显示图像详情
-function showImageDetail(src, time) {
+// 全局函数 - 提供给HTML onclick事件调用
+
+// 图表切换函数（全局函数）
+window.switchChart = function(index) {
+    if (typeof window.switchChartImpl === 'function') {
+        window.switchChartImpl(index);
+    }
+};
+
+// 时间范围切换事件（全局函数，可以被HTML onclick调用）
+window.changeTimeRange = function(range) {
+    console.log('切换时间范围:', range);
+    
+    // 更新按钮状态
+    const buttons = document.querySelectorAll('.time-range-btn');
+    buttons.forEach(btn => {
+        btn.classList.remove('active');
+        if (btn.getAttribute('data-range') === range) {
+            btn.classList.add('active');
+        }
+    });
+    
+    // 重新加载数据和图表
+    if (typeof loadPostureData === 'function') {
+        loadPostureData(range);
+    }
+    if (typeof updateChartsByTimeRange === 'function') {
+        updateChartsByTimeRange(range);
+    }
+    if (typeof updatePostureStats === 'function') {
+        updatePostureStats(range);
+    }
+    if (typeof loadPostureImages === 'function') {
+        loadPostureImages(range);
+    }
+};
+
+// 加载更多图像（全局函数）
+window.loadMorePostureImages = function() {
+    console.log('加载更多坐姿图像');
+    // 这里可以实现分页加载逻辑
+    window.location.href = '/posture-records';
+};
+
+// 导出坐姿图像（全局函数）
+window.exportPostureImages = function() {
+    console.log('导出坐姿图像记录');
+    // 这里可以实现导出功能
+    alert('导出功能开发中...');
+};
+
+// 显示图像详情（全局函数）
+window.showImageDetail = function(src, time) {
     // 创建模态框显示图像详情
     const modal = document.createElement('div');
     modal.className = 'image-modal';
     modal.innerHTML = `
-        <div class="modal-content">
-            <div class="modal-header">
-                <span class="modal-title">坐姿记录 - ${time}</span>
-                <button class="modal-close" onclick="this.parentElement.parentElement.parentElement.remove()">
+        <div class="modal-content" style="background: white; border-radius: 12px; max-width: 90%; max-height: 80%; overflow: hidden;">
+            <div class="modal-header" style="padding: 15px; border-bottom: 1px solid #eee; display: flex; justify-content: space-between; align-items: center;">
+                <span class="modal-title" style="font-weight: 600;">坐姿记录 - ${time}</span>
+                <button class="modal-close" onclick="this.parentElement.parentElement.parentElement.remove()" style="background: none; border: none; font-size: 24px; cursor: pointer;">
                     <i class="bi bi-x"></i>
                 </button>
             </div>
-            <div class="modal-body">
-                <img src="${src}" alt="坐姿记录">
+            <div class="modal-body" style="padding: 15px; text-align: center;">
+                <img src="${src}" alt="坐姿记录" style="max-width: 100%; height: auto; border-radius: 8px;">
             </div>
         </div>
     `;
@@ -1727,407 +1971,7 @@ function showImageDetail(src, time) {
             document.body.removeChild(modal);
         }
     });
-}
-
-// 加载更多坐姿图像
-function loadMorePostureImages() {
-    console.log('加载更多坐姿图像');
-    // 这里可以实现分页加载逻辑
-    window.location.href = '/posture-records';
-}
-
-// 导出坐姿图像
-function exportPostureImages() {
-    console.log('导出坐姿图像记录');
-    // 这里可以实现导出功能
-    alert('导出功能开发中...');
-}
-
-// 图表切换相关变量
-const chartConfig = [
-    {
-        title: '坐姿时间占比',
-        icon: 'bi bi-pie-chart'
-    },
-    {
-        title: '不良姿态时段分布', 
-        icon: 'bi bi-clock'
-    },
-    {
-        title: '坐姿图像记录',
-        icon: 'bi bi-images'
-    }
-];
-
-// 切换图表函数
-function switchChart(index) {
-    if (index === currentChartIndex) return;
-    
-    const slides = document.querySelectorAll('.chart-slide');
-    const indicators = document.querySelectorAll('.indicator-dot');
-    const chartTitle = document.getElementById('chartTitle');
-    const chartIcon = document.getElementById('chartIcon');
-    
-    // 更新指示器
-    indicators.forEach((dot, i) => {
-        dot.classList.toggle('active', i === index);
-    });
-    
-    // 切换动画
-    const currentSlide = slides[currentChartIndex];
-    const nextSlide = slides[index];
-    
-    if (currentSlide && nextSlide) {
-        // 淡出当前幻灯片
-        currentSlide.style.opacity = '0';
-        currentSlide.style.transform = index > currentChartIndex ? 'translateX(-20px)' : 'translateX(20px)';
-        
-        setTimeout(() => {
-            currentSlide.classList.remove('active');
-            
-            // 淡入新幻灯片
-            nextSlide.classList.add('active');
-            nextSlide.style.opacity = '0';
-            nextSlide.style.transform = index > currentChartIndex ? 'translateX(20px)' : 'translateX(-20px)';
-            
-            setTimeout(() => {
-                nextSlide.style.opacity = '1';
-                nextSlide.style.transform = 'translateX(0)';
-            }, 50);
-        }, 200);
-    }
-    
-    // 更新标题和图标
-    if (chartTitle && chartIcon && chartConfig[index]) {
-        chartTitle.textContent = chartConfig[index].title;
-        chartIcon.innerHTML = `<i class="${chartConfig[index].icon}"></i>`;
-    }
-    
-    currentChartIndex = index;
-    
-    // 根据切换的图表重新初始化相应的组件
-    setTimeout(() => {
-        if (index === 0) {
-            // 坐姿时间占比图表 - 确保容器完全显示后再初始化
-            setTimeout(() => {
-                initPosturePieChart();
-            }, 100);
-        } else if (index === 1) {
-            // 不良姿态时段分布图表  
-            setTimeout(() => {
-                initHeatmapChart();
-            }, 100);
-        } else if (index === 2) {
-            // 坐姿图像记录
-            const activeRange = document.querySelector('.time-range-btn.active')?.getAttribute('data-range') || 'day';
-            loadPostureImages(activeRange);
-        }
-    }, 250);
-}
-
-// 将switchChart函数暴露到全局
-window.switchChart = switchChart;
-window.switchChartImpl = switchChart;
-
-// 添加触摸滑动支持
-function setupChartSwiper() {
-    const swiper = document.getElementById('chartSwiper');
-    if (!swiper) return;
-    
-    let startX = 0;
-    let startY = 0;
-    let isSwipping = false;
-    
-    swiper.addEventListener('touchstart', function(e) {
-        startX = e.touches[0].clientX;
-        startY = e.touches[0].clientY;
-        isSwipping = true;
-    });
-    
-    swiper.addEventListener('touchmove', function(e) {
-        if (!isSwipping) return;
-        
-        const currentX = e.touches[0].clientX;
-        const currentY = e.touches[0].clientY;
-        const diffX = startX - currentX;
-        const diffY = startY - currentY;
-        
-        // 如果垂直滑动幅度大于水平滑动，不处理
-        if (Math.abs(diffY) > Math.abs(diffX)) {
-            return;
-        }
-        
-        e.preventDefault();
-    });
-    
-    swiper.addEventListener('touchend', function(e) {
-        if (!isSwipping) return;
-        
-        const endX = e.changedTouches[0].clientX;
-        const diffX = startX - endX;
-        
-        // 滑动距离阈值
-        const threshold = 50;
-        
-        if (Math.abs(diffX) > threshold) {
-            if (diffX > 0) {
-                // 向左滑，显示下一个图表
-                const nextIndex = (currentChartIndex + 1) % chartConfig.length;
-                switchChart(nextIndex);
-            } else {
-                // 向右滑，显示上一个图表
-                const prevIndex = (currentChartIndex - 1 + chartConfig.length) % chartConfig.length;
-                switchChart(prevIndex);
-            }
-        }
-        
-        isSwipping = false;
-    });
-}
-
-// 灯光控制与护眼设置切换功能
-function switchLightEyeContent(type) {
-    const lightBtn = document.querySelector('.light-eye-btn[onclick="switchLightEyeContent(\'light\')"]');
-    const eyeBtn = document.querySelector('.light-eye-btn[onclick="switchLightEyeContent(\'eye\')"]');
-    const lightContent = document.getElementById('light-content');
-    const eyeContent = document.getElementById('eye-content');
-    
-    // 移除所有按钮的active状态
-    lightBtn.classList.remove('active');
-    eyeBtn.classList.remove('active');
-    
-    // 隐藏所有内容
-    lightContent.style.display = 'none';
-    eyeContent.style.display = 'none';
-    
-    if (type === 'light') {
-        lightBtn.classList.add('active');
-        lightContent.style.display = 'block';
-    } else if (type === 'eye') {
-        eyeBtn.classList.add('active');
-        eyeContent.style.display = 'block';
-    }
-}
-
-// 用眼情况切换功能
-let currentEyeView = 0;
-
-function switchEyeView(index) {
-    console.log('切换用眼视图到:', index);
-    currentEyeView = index;
-    
-    // 更新指示器状态
-    const indicators = document.querySelectorAll('.indicator-btn');
-    indicators.forEach((btn, i) => {
-        btn.classList.toggle('active', i === index);
-    });
-    
-    // 更新滑动视图
-    const slides = document.querySelectorAll('.eye-slide');
-    slides.forEach((slide, i) => {
-        slide.classList.toggle('active', i === index);
-        slide.style.display = i === index ? 'block' : 'none';
-    });
-    
-    // 更新卡片标题
-    const titleElement = document.getElementById('eyeCardTitle');
-    if (titleElement) {
-        titleElement.textContent = index === 0 ? '详细分析' : '健康建议';
-    }
-}
-
-// 修复护眼设置预设按钮功能
-function setRestInterval(minutes) {
-    const input = document.getElementById('rest-interval');
-    if (input) {
-        input.value = minutes;
-    }
-    
-    // 更新按钮状态
-    const parentGroup = input?.closest('.setting-group');
-    if (parentGroup) {
-        const buttons = parentGroup.querySelectorAll('.preset-btn');
-        buttons.forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.textContent.includes(minutes + '分钟')) {
-                btn.classList.add('active');
-            }
-        });
-    }
-    
-    console.log('设置远眺休息间隔:', minutes, '分钟');
-    showToast(`远眺休息间隔已设置为${minutes}分钟`);
-}
-
-function setContinuousTime(minutes) {
-    const input = document.getElementById('continuous-time');
-    if (input) {
-        input.value = minutes;
-    }
-    
-    // 更新按钮状态
-    const parentGroup = input?.closest('.setting-group');
-    if (parentGroup) {
-        const buttons = parentGroup.querySelectorAll('.preset-btn');
-        buttons.forEach(btn => {
-            btn.classList.remove('active');
-            if (btn.textContent.includes(minutes + '分钟')) {
-                btn.classList.add('active');
-            }
-        });
-    }
-    
-    console.log('设置连续用眼时间:', minutes, '分钟');
-    showToast(`连续用眼提醒已设置为${minutes}分钟`);
-}
-
-function toggleEyeCareMode() {
-    const checkbox = document.getElementById('eye-care-mode');
-    const text = document.getElementById('eye-care-mode-text');
-    
-    if (checkbox && text) {
-        text.textContent = checkbox.checked ? '已开启' : '已关闭';
-        console.log('护眼模式:', checkbox.checked ? '开启' : '关闭');
-        showToast('护眼模式' + (checkbox.checked ? '已开启' : '已关闭'));
-    }
-}
-
-// 修复台灯控制按钮功能
-function togglePower() {
-    const powerBtn = document.getElementById('power-btn');
-    if (powerBtn) {
-        powerBtn.classList.toggle('active');
-        const isActive = powerBtn.classList.contains('active');
-        console.log('台灯电源:', isActive ? '开启' : '关闭');
-        showToast('台灯电源' + (isActive ? '已开启' : '已关闭'));
-    }
-}
-
-function toggleLight() {
-    const lightBtn = document.getElementById('light-btn');
-    if (lightBtn) {
-        lightBtn.classList.toggle('active');
-        const isActive = lightBtn.classList.contains('active');
-        console.log('灯光开关:', isActive ? '开启' : '关闭');
-        showToast('灯光开关' + (isActive ? '已开启' : '已关闭'));
-    }
-}
-
-function adjustBrightness(value) {
-    const brightnessDisplay = document.getElementById('brightness-display');
-    const currentBrightness = document.getElementById('currentBrightness');
-    
-    if (brightnessDisplay) {
-        brightnessDisplay.textContent = value;
-    }
-    if (currentBrightness) {
-        currentBrightness.textContent = value;
-    }
-    
-    console.log('调节亮度:', value);
-}
-
-function adjustTemperature(value) {
-    const temperatureDisplay = document.getElementById('temperature-display');
-    const currentTemperature = document.getElementById('currentTemperature');
-    
-    const tempValue = value + 'K';
-    if (temperatureDisplay) {
-        temperatureDisplay.textContent = tempValue;
-    }
-    if (currentTemperature) {
-        currentTemperature.textContent = tempValue;
-    }
-    
-    console.log('调节色温:', tempValue);
-}
-
-function setBrightness(value) {
-    const brightnessSlider = document.getElementById('brightness-slider');
-    if (brightnessSlider) {
-        brightnessSlider.value = value;
-        adjustBrightness(value);
-    }
-}
-
-function setTemperature(value) {
-    const temperatureSlider = document.getElementById('temperature-slider');
-    if (temperatureSlider) {
-        temperatureSlider.value = value;
-        adjustTemperature(value);
-    }
-}
-
-function applyLightSettings() {
-    const brightness = document.getElementById('brightness-slider')?.value;
-    const temperature = document.getElementById('temperature-slider')?.value;
-    
-    console.log('应用灯光设置:', { brightness, temperature });
-    showToast('灯光设置已应用');
-}
-
-// 更新全局函数声明
-window.switchEyeView = switchEyeView;
-window.setRestInterval = setRestInterval;
-window.setContinuousTime = setContinuousTime;
-window.toggleEyeCareMode = toggleEyeCareMode;
-window.togglePower = togglePower;
-window.toggleLight = toggleLight;
-window.adjustBrightness = adjustBrightness;
-window.adjustTemperature = adjustTemperature;
-window.setBrightness = setBrightness;
-window.setTemperature = setTemperature;
-window.applyLightSettings = applyLightSettings;
-
-// 全局函数声明，供HTML onclick调用
-window.showPage = showPage;
-window.changeTimeRange = changeTimeRange;
-window.switchChart = switchChart;
-window.loadMorePostureImages = loadMorePostureImages;
-window.exportPostureImages = exportPostureImages;
-window.switchEyeView = switchEyeView;
-window.switchLightEyeContent = switchLightEyeContent;
-
-// 更新设备信息
-function updateDeviceInfo() {
-    // 更新使用时长
-    const usageTimeElement = document.getElementById('usage-time');
-    if (usageTimeElement) {
-        const hours = (Math.random() * 3 + 3).toFixed(1);
-        usageTimeElement.textContent = hours + '小时';
-    }
-    
-    // 更新最后同步时间
-    const lastSyncElement = document.getElementById('last-sync');
-    if (lastSyncElement) {
-        const now = new Date();
-        const timeStr = now.toLocaleTimeString('zh-CN', { 
-            hour: '2-digit', 
-            minute: '2-digit' 
-        });
-        lastSyncElement.textContent = timeStr;
-    }
-}
-
-// 在远程控制页面初始化时调用
-function initRemoteControlPage() {
-    console.log('初始化远程控制页面...');
-    
-    // 获取台灯状态
-    fetchLampStatus();
-    
-    // 更新设备信息
-    updateDeviceInfo();
-    
-    // 设置定时更新
-    setInterval(() => {
-        fetchLampStatus();
-        updateDeviceInfo();
-    }, 10000); // 每10秒更新一次
-}
-
-// 全局函数声明
-window.initRemoteControlPage = initRemoteControlPage;
+};
 
 // 控制台日志测试
 console.log('移动端脚本已加载');
@@ -2171,6 +2015,9 @@ function adjustBrightness(value) {
     if (currentBrightness) {
         currentBrightness.textContent = value;
     }
+    
+    // 实时发送亮度调节命令
+    sendLampCommand('brightness', value);
 }
 
 // 色温调节
@@ -2185,6 +2032,9 @@ function adjustTemperature(value) {
     if (currentTemperature) {
         currentTemperature.textContent = tempValue;
     }
+    
+    // 实时发送色温调节命令
+    sendLampCommand('temperature', value);
 }
 
 // 设置亮度快捷值
@@ -2501,24 +2351,152 @@ function updateLampStatusUI(data) {
 
 // 切换灯光控制和护眼设置内容
 function switchLightEyeContent(type) {
-    const lightBtn = document.querySelector('.light-eye-btn[onclick="switchLightEyeContent(\'light\')"]');
-    const eyeBtn = document.querySelector('.light-eye-btn[onclick="switchLightEyeContent(\'eye\')"]');
+    const lightBtn = document.querySelector('.light-eye-btn[onclick*="light"]');
+    const eyeBtn = document.querySelector('.light-eye-btn[onclick*="eye"]');
     const lightContent = document.getElementById('light-content');
     const eyeContent = document.getElementById('eye-content');
 
-    // 移除所有按钮的active状态
-    lightBtn.classList.remove('active');
-    eyeBtn.classList.remove('active');
-    
-    // 隐藏所有内容
-    lightContent.style.display = 'none';
-    eyeContent.style.display = 'none';
-    
     if (type === 'light') {
         lightBtn.classList.add('active');
+        eyeBtn.classList.remove('active');
         lightContent.style.display = 'block';
+        eyeContent.style.display = 'none';
     } else if (type === 'eye') {
+        lightBtn.classList.remove('active');
         eyeBtn.classList.add('active');
+        lightContent.style.display = 'none';
         eyeContent.style.display = 'block';
     }
 }
+
+// 图表切换实现函数
+function switchChartImpl(index) {
+    if (index === currentChartIndex) return;
+    
+    const slides = document.querySelectorAll('.chart-slide');
+    const indicators = document.querySelectorAll('.indicator-dot');
+    const chartTitle = document.getElementById('chartTitle');
+    const chartIcon = document.getElementById('chartIcon');
+    
+    // 更新指示器
+    indicators.forEach((dot, i) => {
+        dot.classList.toggle('active', i === index);
+    });
+    
+    // 切换动画
+    const currentSlide = slides[currentChartIndex];
+    const nextSlide = slides[index];
+    
+    if (currentSlide && nextSlide) {
+        // 淡出当前幻灯片
+        currentSlide.style.opacity = '0';
+        currentSlide.style.transform = index > currentChartIndex ? 'translateX(-20px)' : 'translateX(20px)';
+        
+        setTimeout(() => {
+            currentSlide.classList.remove('active');
+            
+            // 淡入新幻灯片
+            nextSlide.classList.add('active');
+            nextSlide.style.opacity = '0';
+            nextSlide.style.transform = index > currentChartIndex ? 'translateX(20px)' : 'translateX(-20px)';
+            
+            setTimeout(() => {
+                nextSlide.style.opacity = '1';
+                nextSlide.style.transform = 'translateX(0)';
+            }, 50);
+        }, 200);
+    }
+    
+    // 更新标题和图标
+    const chartConfig = [
+        {
+            title: '坐姿时间占比',
+            icon: 'bi bi-pie-chart'
+        },
+        {
+            title: '不良姿态时段分布', 
+            icon: 'bi bi-clock'
+        },
+        {
+            title: '坐姿图像记录',
+            icon: 'bi bi-images'
+        }
+    ];
+    
+    if (chartTitle && chartIcon && chartConfig[index]) {
+        chartTitle.textContent = chartConfig[index].title;
+        chartIcon.innerHTML = `<i class="${chartConfig[index].icon}"></i>`;
+    }
+    
+    currentChartIndex = index;
+    
+    // 根据切换的图表重新初始化相应的组件
+    setTimeout(() => {
+        if (index === 0) {
+            // 坐姿时间占比图表 - 确保容器完全显示后再初始化
+            setTimeout(() => {
+                initPosturePieChart();
+            }, 100);
+        } else if (index === 1) {
+            // 不良姿态时段分布图表
+            setTimeout(() => {
+                initHeatmapChart();
+            }, 100);
+        } else if (index === 2) {
+            // 坐姿图像记录 - 刷新图像显示
+            setTimeout(() => {
+                loadPostureImages('day');
+            }, 100);
+        }
+    }, 250);
+}
+
+// 将switchChartImpl函数暴露到全局
+window.switchChartImpl = switchChartImpl;
+
+// 全局图表切换函数，供 HTML onclick 调用
+function switchChart(index) {
+    console.log('切换到图表:', index);
+    if (typeof switchChartImpl === 'function') {
+        switchChartImpl(index);
+    } else {
+        console.error('switchChartImpl 函数未定义');
+    }
+}
+
+// 将 switchChart 函数暴露到全局
+window.switchChart = switchChart;
+
+// 用眼情况视图切换函数
+function switchEyeView(index) {
+    console.log('切换用眼视图:', index);
+    
+    const eyeSlides = document.querySelectorAll('.eye-slide');
+    const indicators = document.querySelectorAll('.indicator-btn');
+    
+    // 更新指示器状态
+    indicators.forEach((indicator, i) => {
+        indicator.classList.toggle('active', i === index);
+    });
+    
+    // 切换视图显示
+    eyeSlides.forEach((slide, i) => {
+        if (i === index) {
+            slide.classList.add('active');
+            slide.style.display = 'block';
+        } else {
+            slide.classList.remove('active');
+            slide.style.display = 'none';
+        }
+    });
+    
+    // 如果切换到用眼监控视图，更新指标数据
+    if (index === 0) {
+        updateEyeMetrics();
+    }
+}
+
+// 将用眼视图切换函数暴露到全局
+window.switchEyeView = switchEyeView;
+
+/* 下面是原有代码的结束标志，确保不被覆盖 */

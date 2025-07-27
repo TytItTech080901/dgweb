@@ -357,58 +357,6 @@ h1 {
     z-index: 2;
 }
 
-/* 行为分析样式 */
-.behavior-stats {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-}
-
-.behavior-item {
-    display: flex;
-    align-items: center;
-    padding: 12px;
-    background: #f8f9fa;
-    border-radius: 8px;
-}
-
-.behavior-icon {
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    margin-right: 12px;
-    font-size: 1.2rem;
-}
-
-.behavior-icon.good {
-    background: rgba(52, 168, 83, 0.2);
-    color: var(--secondary-color);
-}
-
-.behavior-icon.warn {
-    background: rgba(251, 188, 5, 0.2);
-    color: var(--warning-color);
-}
-
-.behavior-icon.danger {
-    background: rgba(234, 67, 53, 0.2);
-    color: var(--danger-color);
-}
-
-.behavior-title {
-    font-weight: 600;
-    margin-bottom: 2px;
-    font-size: 0.9rem;
-}
-
-.behavior-desc {
-    font-size: 0.8rem;
-    color: #666;
-}
-
 /* 设备信息样式 */
 .device-info, .system-info {
     display: flex;
@@ -437,66 +385,11 @@ h1 {
     color: var(--secondary-color);
 }
 
-/* 色温调节样式 */
-.color-temperature {
-    margin: 15px 0;
-}
-
-.temp-scale {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 8px;
-}
-
-.temp-marker {
-    font-size: 0.8rem;
-    color: #666;
-}
-
 /* 图表容器样式 */
 .mobile-chart-container, .chart-container {
     position: relative;
     height: 200px;
     margin: 15px 0;
-}
-
-/* 检测视图样式 */
-.detection-view {
-    position: relative;
-    background: #000;
-    border-radius: 8px;
-    overflow: hidden;
-}
-
-.detection-overlay {
-    position: absolute;
-    bottom: 0;
-    left: 0;
-    right: 0;
-    background: linear-gradient(transparent, rgba(0, 0, 0, 0.8));
-    padding: 15px;
-    color: white;
-}
-
-.current-posture {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-}
-
-.posture-status {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 4px;
-}
-
-.posture-status.good {
-    color: var(--secondary-color);
-}
-
-.confidence {
-    font-size: 0.9rem;
-    opacity: 0.9;
 }
 
 /* 姿势统计条形图 */
@@ -572,38 +465,6 @@ h1 {
 }
 
 .metric-label {
-    font-size: 0.8rem;
-    color: #666;
-}
-
-/* 休息计时器样式 */
-.rest-timer {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    margin: 20px 0;
-}
-
-.timer-circle {
-    position: relative;
-    margin-bottom: 15px;
-}
-
-.timer-text {
-    position: absolute;
-    top: 50%;
-    left: 50%;
-    transform: translate(-50%, -50%);
-    text-align: center;
-}
-
-.timer-value {
-    font-size: 1.2rem;
-    font-weight: bold;
-    color: var(--primary-color);
-}
-
-.timer-label {
     font-size: 0.8rem;
     color: #666;
 }
@@ -813,38 +674,93 @@ h1 {
 /* 图表容器样式增强 */
 .chart-container {
     position: relative;
-    height: 200px;
-    margin: 15px 0;
+    width: 100%;
+    height: 280px;
+    padding: 15px;
+    background: white;
+    border-radius: 8px;
+    margin-bottom: 15px;
+    display: block !important;
+    visibility: visible !important;
 }
 
-.chart-icon {
-    color: var(--primary-color);
-    font-size: 18px;
+.chart-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+    display: block !important;
+    max-width: none !important;
+    max-height: none !important;
+}
+
+/* 图表切换相关样式 */
+.chart-swiper {
+    overflow: hidden;
+    position: relative;
+    min-height: 300px;
+}
+
+.chart-slide {
+    display: none;
+    opacity: 0;
+    transition: opacity 0.3s ease, transform 0.3s ease;
+    width: 100%;
+}
+
+.chart-slide.active {
+    display: block !important;
+    opacity: 1;
+    transform: translateX(0);
+    position: relative;
+}
+
+.chart-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.indicator-dot {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: #ddd;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+}
+
+.indicator-dot.active {
+    background: var(--primary-color);
+}
+
+.indicator-dot:hover {
+    background: var(--primary-color);
 }
 
 /* 统计网格样式 */
 .stats-grid {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 15px;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
     margin-top: 15px;
-    padding-top: 15px;
-    border-top: 1px solid #eee;
 }
 
-.stat-item {
+.stats-grid .stat-item {
     text-align: center;
+    padding: 10px;
+    background: #f8f9fa;
+    border-radius: 8px;
 }
 
-.stat-value {
-    font-size: 18px;
-    font-weight: 600;
+.stats-grid .stat-value {
+    font-size: 1.2rem;
+    font-weight: bold;
     color: var(--primary-color);
     margin-bottom: 4px;
 }
 
-.stat-label {
-    font-size: 12px;
+.stats-grid .stat-label {
+    font-size: 0.85rem;
     color: #666;
 }
 
@@ -1735,6 +1651,168 @@ h1 {
     gap: 15px;
     margin-top: 15px;
 }
+/* 灯光和护眼设置切换块样式 */
+.light-eye-switcher {
+    display: flex;
+    background: #f0f7ff;
+    border-radius: 12px;
+    padding: 8px 4px;
+    margin-bottom: 24px;
+    border: 1.5px solid #bcdcff;
+    gap: 16px;
+    box-shadow: 0 2px 8px rgba(66,133,244,0.07);
+    justify-content: center;
+}
+.switch-btn {
+    flex: 1;
+    min-width: 90px;
+    padding: 12px 0;
+    text-align: center;
+    border-radius: 20px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    background: #eaf4ff;
+    border: 2px solid #bcdcff;
+    margin: 0 2px;
+}
+.switch-btn.active {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(66,133,244,0.13);
+}
+.switch-btn:hover:not(.active) {
+    background: #d2e6ff;
+    color: var(--primary-color);
+}
+
+/* 灯光开关按钮横向排列 */
+.switch-row {
+    display: flex;
+    flex-direction: row;
+    gap: 18px;
+    margin-bottom: 18px;
+    border-bottom: 1px solid #e3f2fd;
+    padding-bottom: 12px;
+    width: 100%;
+    justify-content: space-between;
+    align-items: stretch;
+}
+
+/* 灯光开关按钮样式（复用原有） */
+.light-btn {
+    flex: 1 1 0;
+    min-width: 0;
+    padding: 14px 0;
+    border-radius: 20px;
+    background: var(--primary-color);
+    color: #fff;
+    font-weight: 600;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+    font-size: 1.08rem;
+    box-shadow: 0 2px 8px rgba(66,133,244,0.10);
+    transition: all 0.2s ease;
+    outline: none;
+    margin: 0 2px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.light-btn:active {
+    transform: scale(0.97);
+    box-shadow: 0 1px 4px rgba(66,133,244,0.13);
+}
+/* 台灯电源和灯光开关按钮容器，保证同一行且自适应宽度 */
+.lamp-btn-group {
+    display: flex;
+    flex-direction: row;
+    gap: 18px;
+    width: 100%;
+    margin-bottom: 18px;
+    justify-content: space-between;
+    align-items: stretch;
+}
+
+/* 护眼提醒时间按钮组横向排列修复 */
+.remind-btn-group {
+    display: flex;
+    gap: 12px;
+    margin: 16px 0 18px 0;
+    flex-wrap: wrap;
+    justify-content: center;
+}
+.remind-btn {
+    flex: 1;
+    min-width: 80px;
+    padding: 10px 0;
+    border-radius: 20px;
+    background: #f0f7ff;
+    color: var(--primary-color);
+    border: 2px solid #bcdcff;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+    outline: none;
+}
+.remind-btn.active {
+    background: var(--primary-color);
+    color: #fff;
+    border-color: var(--primary-color);
+    box-shadow: 0 2px 8px rgba(66,133,244,0.13);
+}
+.remind-btn:active {
+    transform: scale(0.97);
+    box-shadow: 0 1px 4px rgba(66,133,244,0.13);
+}
+
+/* 兼容小屏横向滚动 */
+@media (max-width: 375px) {
+    .remind-btn-group {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 8px;
+    }
+    .remind-btn {
+        min-width: 60px;
+        font-size: 0.92rem;
+        padding: 8px 0;
+    }
+    
+    .preset-buttons {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 6px;
+    }
+    
+    .preset-btn {
+        min-width: 60px;
+        font-size: 0.8rem;
+    }
+    
+    .lamp-controls-row {
+        gap: 8px;
+    }
+    
+    .lamp-control-btn {
+        font-size: 0.8rem;
+        padding: 10px 12px;
+    }
+}
+/* 灯光/护眼内容卡片增强 */
+.light-eye-card {
+    background: #fff;
+    border-radius: 16px;
+    box-shadow: 0 2px 12px rgba(66,133,244,0.07);
+    padding: 18px 14px;
+    margin-bottom: 18px;
+}
 
 .status-item {
     display: flex;
@@ -1800,6 +1878,118 @@ h1 {
     font-weight: 500;
     color: var(--primary-color);
     font-size: 14px;
+}
+
+/* 灯光控制和护眼设置切换块样式 */
+.light-eye-switcher {
+    display: flex;
+    background: #f0f7ff;
+    border-radius: 12px;
+    padding: 6px;
+    margin-bottom: 20px;
+    border: 1px solid #e3f2fd;
+    gap: 8px;
+}
+
+.light-eye-btn {
+    flex: 1;
+    padding: 10px 16px;
+    text-align: center;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    background: transparent;
+    border: none;
+}
+
+.light-eye-btn.active {
+    background: var(--primary-color);
+    color: white;
+    box-shadow: 0 2px 4px rgba(66, 133, 244, 0.3);
+}
+
+.light-eye-btn:hover:not(.active) {
+    background: rgba(66, 133, 244, 0.1);
+}
+
+/* 灯光控制和护眼设置内容区域 */
+.light-eye-content {
+    display: none;
+}
+
+.light-eye-content.active {
+    display: block;
+}
+
+/* 台灯按钮组横向排列 */
+.lamp-controls-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.lamp-control-btn {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, #f8f9fa, #e9ecef);
+    color: var(--dark-gray);
+    font-weight: 600;
+    border: 1px solid #d1d5db;
+    cursor: pointer;
+    text-align: center;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.lamp-control-btn:active {
+    background: linear-gradient(135deg, #e9ecef, #dee2e6);
+    transform: translateY(1px);
+}
+
+.lamp-control-btn.on {
+    background: linear-gradient(135deg, var(--primary-color), #1976d2);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* 护眼设置按钮修复 */
+.preset-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.preset-btn {
+    flex: 1;
+    min-width: 70px;
+    padding: 8px 12px;
+    border-radius: 20px;
+    background: #f0f7ff;
+    color: var(--primary-color);
+    border: 2px solid #bcdcff;
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+    outline: none;
+    white-space: nowrap;
+}
+
+.preset-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.preset-btn:hover:not(.active) {
+    background: #d2e6ff;
 }
 
 /* 开关样式 */
@@ -2016,5 +2206,77 @@ input:checked + .slider:before {
 .setting-input {
     flex: 1;
     padding: 10px 12px;
-    border: 1px
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    font-size: 14px;
+}
+
+/* 工具详情页面样式 */
+.tool-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background: white;
+    color: var(--dark-gray);
+    border-bottom: 1px solid #eee;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.tool-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    flex: 1;
+    text-align: center;
+}
+
+.back-btn {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: 20px;
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: background-color 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+}
+
+.back-btn:hover {
+    background-color: rgba(66, 133, 244, 0.1);
+}
+
+.back-btn:active {
+    background-color: rgba(66, 133, 244, 0.2);
+}
+
+/* 工具内容区域 */
+.tool-content {
+    padding: 0;
+    margin: 0;
+}
+
+/* 确保时间范围选择器与头部不重叠 */
+.time-range-selector {
+    margin-top: 15px;
+    margin-bottom: 15px;
+}
+
+/* 修复移动端页面布局问题 */
+.mobile-page {
+    min-height: 100vh;
+    background-color: #f9f9f9;
+}
+
+#tool-detail {
+    padding-top: 0; /* 移除顶部padding，避免与header重叠 */
+}
+
+#tool-detail .mobile-dashboard {
+    padding-top: 0; /* 确保内容区域从工具头部下方开始 */
 }
