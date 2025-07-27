@@ -1,4 +1,8 @@
 // mobile.js - 移动端专用脚本文件
+
+// 全局变量声明
+let currentChartIndex = 0;
+
 document.addEventListener('DOMContentLoaded', function() {
     // 初始化移动端应用
     initMobileApp();
@@ -213,6 +217,43 @@ function setupControlEvents() {
     if (fullscreenBtn) {
         fullscreenBtn.addEventListener('click', function() {
             showToast('已进入全屏模式');
+        });
+    }
+    
+    // 监控视频加载状态处理
+    const guardianVideo = document.getElementById('guardianVideo');
+    if (guardianVideo) {
+        const videoContainer = guardianVideo.parentElement;
+        
+        // 视频开始加载
+        guardianVideo.addEventListener('loadstart', function() {
+            if (videoContainer) {
+                videoContainer.classList.add('loading');
+                videoContainer.classList.remove('error');
+            }
+        });
+        
+        // 视频加载完成
+        guardianVideo.addEventListener('load', function() {
+            if (videoContainer) {
+                videoContainer.classList.remove('loading');
+                videoContainer.classList.remove('error');
+            }
+        });
+        
+        // 视频加载错误
+        guardianVideo.addEventListener('error', function() {
+            if (videoContainer) {
+                videoContainer.classList.remove('loading');
+                videoContainer.classList.add('error');
+                
+                // 3秒后尝试重新加载
+                setTimeout(() => {
+                    if (this.src) {
+                        this.src = this.src.split('?')[0] + '?t=' + new Date().getTime();
+                    }
+                }, 3000);
+            }
         });
     }
 }
@@ -621,8 +662,35 @@ function updateLampStatus(data) {
 function refreshGuardianData() {
     // 刷新视频流
     const guardianVideo = document.getElementById('guardianVideo');
-    if (guardianVideo) {
-        guardianVideo.src = '/video_feed?t=' + new Date().getTime();
+    const videoContainer = guardianVideo?.parentElement;
+    
+    if (guardianVideo && videoContainer) {
+        // 显示加载状态
+        videoContainer.classList.add('loading');
+        videoContainer.classList.remove('error');
+        
+        // 创建新的图片元素来测试视频流
+        const testImg = new Image();
+        testImg.onload = function() {
+            // 视频流正常，更新src并移除加载状态
+            guardianVideo.src = '/video_feed?t=' + new Date().getTime();
+            setTimeout(() => {
+                videoContainer.classList.remove('loading');
+            }, 500);
+        };
+        
+        testImg.onerror = function() {
+            // 视频流错误，显示错误状态
+            videoContainer.classList.remove('loading');
+            videoContainer.classList.add('error');
+            
+            // 3秒后重试
+            setTimeout(() => {
+                refreshGuardianData();
+            }, 3000);
+        };
+        
+        testImg.src = '/video_feed?t=' + new Date().getTime();
     }
     
     // 可以在这里添加其他监护数据的刷新逻辑
@@ -727,7 +795,7 @@ function initPostureChart() {
                 }
             }
         }
-    });
+        });
 }
 
 // 初始化情绪图表（多视图）
@@ -851,7 +919,7 @@ function initEmotionTrendChart() {
                 }
             }
         }
-    });
+        });
     
     window.emotionTrendChart = chart;
     console.log('情绪趋势图初始化完成');
@@ -891,7 +959,7 @@ function initEmotionDistributionChart() {
                 }
             }
         }
-    });
+        });
     
     window.emotionDistributionChart = chart;
     console.log('情绪分布图初始化完成');
@@ -1078,6 +1146,7 @@ function initPosturePieChart() {
         }
     });
     
+    
     console.log('坐姿时间占比饼图初始化完成');
 }
 
@@ -1136,7 +1205,7 @@ function initScoreTrendChart() {
                 }
             }
         }
-    });
+        });
 }
 
 // 初始化不良姿态时段分布热力图
@@ -1243,7 +1312,7 @@ function initHeatmapChart() {
                 }
             }
         }
-    });
+        });
 }
 
 // 初始化用眼时间热力图（使用ECharts，与网页端保持一致）
@@ -1682,7 +1751,6 @@ function exportPostureImages() {
 }
 
 // 图表切换相关变量
-let currentChartIndex = 0;
 const chartConfig = [
     {
         title: '坐姿时间占比',

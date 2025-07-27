@@ -234,10 +234,16 @@ h1 {
     background: #000;
     border-radius: 8px;
     overflow: hidden;
+    width: 100%;
+    aspect-ratio: 16/9; /* 设置16:9的宽高比 */
+    min-height: 200px; /* 设置最小高度 */
+    max-height: 300px; /* 设置最大高度，避免在大屏设备上过高 */
 }
 
 .video-container img {
     width: 100%;
+    height: 100%;
+    object-fit: cover; /* 保持比例，裁剪多余部分 */
     display: block;
 }
 
@@ -248,6 +254,12 @@ h1 {
     transform: translateX(-50%);
     display: flex;
     gap: 10px;
+    opacity: 0.9;
+    transition: opacity 0.3s ease;
+}
+
+.video-container:hover .video-controls {
+    opacity: 1;
 }
 
 .video-btn {
@@ -262,6 +274,87 @@ h1 {
     align-items: center;
     justify-content: center;
     font-size: 1.1rem;
+    transition: background-color 0.2s ease;
+    backdrop-filter: blur(4px);
+}
+
+.video-btn:hover,
+.video-btn:active {
+    background: rgba(0, 0, 0, 0.8);
+    transform: scale(1.05);
+}
+
+/* 为移动设备优化视频控制按钮 */
+@media (max-width: 768px) {
+    .video-btn {
+        width: 44px;
+        height: 44px;
+        font-size: 1.2rem;
+    }
+    
+    .video-controls {
+        gap: 12px;
+        bottom: 12px;
+    }
+    
+    /* 移动端视频容器响应式调整 */
+    .video-container {
+        min-height: 180px;
+        max-height: 250px;
+    }
+}
+
+/* 监控视频加载状态样式 */
+.video-container::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    border: 3px solid #f3f3f3;
+    border-top: 3px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    z-index: 1;
+    opacity: 0;
+    transition: opacity 0.3s ease;
+}
+
+.video-container.loading::before {
+    opacity: 1;
+}
+
+.video-container.loading img {
+    opacity: 0.3;
+}
+
+@keyframes spin {
+    0% { transform: translate(-50%, -50%) rotate(0deg); }
+    100% { transform: translate(-50%, -50%) rotate(360deg); }
+}
+
+/* 视频流错误状态 */
+.video-container.error {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #666;
+    font-size: 0.9rem;
+}
+
+.video-container.error::after {
+    content: '视频连接中断，正在重连...';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background: rgba(0, 0, 0, 0.8);
+    color: white;
+    padding: 10px 15px;
+    border-radius: 4px;
+    z-index: 2;
 }
 
 /* 行为分析样式 */
