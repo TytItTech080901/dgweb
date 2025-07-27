@@ -156,7 +156,7 @@
                 </div>
                 
                 <!-- 行为分析卡片 -->
-                <div class="mobile-card">
+                <!-- <div class="mobile-card">
                     <div class="mobile-card-header">
                         <div class="mobile-card-title">行为分析</div>
                     </div>
@@ -191,135 +191,207 @@
                             </div>
                         </div>
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
         
         <!-- 远程控制页面 -->
         <div id="remote" class="mobile-page" style="display: none;">
             <div class="mobile-dashboard">
-                <!-- 台灯控制卡片 -->
+                <!-- 台灯状态卡片 -->
                 <div class="mobile-card">
                     <div class="mobile-card-header">
-                        <div class="mobile-card-title">台灯控制</div>
+                        <div class="mobile-card-title">台灯状态</div>
                         <div class="status-indicator">
                             <span class="status-dot"></span>
                             <span id="lampStatus" class="status-text">已开启</span>
                         </div>
                     </div>
                     <div class="mobile-card-content">
-                        <!-- 基本控制 -->
-                        <div class="control-section">
-                            <div class="section-title">基本控制</div>
-                            <div class="control-grid">
-                                <button class="control-btn" data-action="lamp_on">
+                        <div class="status-grid">
+                            <div class="status-item">
+                                <div class="status-icon">
                                     <i class="bi bi-lightbulb-fill"></i>
-                                    <span>开灯</span>
-                                </button>
-                                <button class="control-btn" data-action="lamp_off">
-                                    <i class="bi bi-lightbulb"></i>
-                                    <span>关灯</span>
-                                </button>
-                                <button class="control-btn" data-action="brightness_up">
-                                    <i class="bi bi-brightness-high"></i>
-                                    <span>调亮</span>
-                                </button>
-                                <button class="control-btn" data-action="brightness_down">
-                                    <i class="bi bi-brightness-low"></i>
-                                    <span>调暗</span>
-                                </button>
+                                </div>
+                                <div class="status-info">
+                                    <div class="status-value" id="currentBrightness">500</div>
+                                    <div class="status-label">当前亮度</div>
+                                </div>
                             </div>
-                        </div>
-                        
-                        <!-- 亮度调节 -->
-                        <div class="control-section">
-                            <div class="section-title">亮度调节</div>
-                            <div class="slider-container">
-                                <input type="range" id="brightnessSlider" min="0" max="100" value="80" class="slider">
-                                <div class="slider-value">
-                                    <span id="brightnessValue">80</span>%
+                            <div class="status-item">
+                                <div class="status-icon">
+                                    <i class="bi bi-thermometer-half"></i>
+                                </div>
+                                <div class="status-info">
+                                    <div class="status-value" id="currentTemperature">5300K</div>
+                                    <div class="status-label">当前色温</div>
                                 </div>
                             </div>
                         </div>
-                        
-                        <!-- 色温调节 -->
-                        <div class="control-section">
-                            <div class="section-title">色温调节</div>
-                            <div class="color-temperature">
-                                <div class="temp-scale">
-                                    <div class="temp-marker warm">暖光</div>
-                                    <div class="temp-marker neutral">自然光</div>
-                                    <div class="temp-marker cool">冷光</div>
-                                </div>
-                                <input type="range" id="temperatureSlider" min="0" max="100" value="50" class="slider">
-                            </div>
+                    </div>
+                </div>
+
+                <!-- 灯光控制卡片 -->
+                <div class="mobile-card">
+                    <div class="mobile-card-header">
+                        <div class="mobile-card-title">灯光控制</div>
+                        <div class="control-icon">
+                            <i class="bi bi-toggles"></i>
                         </div>
-                        
-                        <!-- 预设模式 -->
-                        <div class="control-section">
-                            <div class="section-title">灯光模式</div>
-                            <div class="mode-grid">
-                                <button class="mode-btn" data-mode="reading">
-                                    <i class="bi bi-book"></i>
-                                    <span>阅读</span>
-                                </button>
-                                <button class="mode-btn" data-mode="study">
-                                    <i class="bi bi-pencil"></i>
-                                    <span>学习</span>
-                                </button>
-                                <button class="mode-btn" data-mode="rest">
-                                    <i class="bi bi-moon"></i>
-                                    <span>休息</span>
-                                </button>
-                                <button class="mode-btn" data-mode="night">
+                    </div>
+                    <div class="mobile-card-content">
+                        <div class="light-controls">
+                            <!-- 电源开关 -->
+                            <div class="control-group">
+                                <label class="control-label">台灯电源</label>
+                                <div class="switch-container">
+                                    <label class="switch">
+                                        <input type="checkbox" id="power-switch" checked onchange="togglePower()">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- 灯光开关 -->
+                            <div class="control-group">
+                                <label class="control-label">灯光开关</label>
+                                <div class="switch-container">
+                                    <label class="switch">
+                                        <input type="checkbox" id="light-switch" checked onchange="toggleLight()">
+                                        <span class="slider round"></span>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <!-- 亮度调节 -->
+                            <div class="control-group">
+                                <label class="control-label">
+                                    亮度调节
+                                    <span class="control-value" id="brightness-display">500</span>
+                                </label>
+                                <div class="slider-container">
+                                    <input type="range" id="brightness-slider" min="0" max="1000" value="500" 
+                                           class="range-slider brightness-slider" oninput="adjustBrightness(this.value)">
+                                    <div class="slider-marks">
+                                        <span>0</span>
+                                        <span>250</span>
+                                        <span>500</span>
+                                        <span>750</span>
+                                        <span>1000</span>
+                                    </div>
+                                </div>
+                                <div class="quick-buttons">
+                                    <button class="quick-btn" onclick="setBrightness(200)">护眼</button>
+                                    <button class="quick-btn" onclick="setBrightness(500)">标准</button>
+                                    <button class="quick-btn" onclick="setBrightness(800)">明亮</button>
+                                </div>
+                            </div>
+
+                            <!-- 色温调节 -->
+                            <div class="control-group">
+                                <label class="control-label">
+                                    色温调节
+                                    <span class="control-value" id="temperature-display">5300K</span>
+                                </label>
+                                <div class="slider-container">
+                                    <input type="range" id="temperature-slider" min="3000" max="6500" value="5300" 
+                                           class="range-slider temperature-slider" oninput="adjustTemperature(this.value)">
+                                    <div class="slider-marks">
+                                        <span>3000K<br><small>暖光</small></span>
+                                        <span>4000K</span>
+                                        <span>5000K</span>
+                                        <span>6000K</span>
+                                        <span>6500K<br><small>冷光</small></span>
+                                    </div>
+                                </div>
+                                <div class="quick-buttons">
+                                    <button class="quick-btn" onclick="setTemperature(3000)">暖光</button>
+                                    <button class="quick-btn" onclick="setTemperature(4000)">自然</button>
+                                    <button class="quick-btn" onclick="setTemperature(5300)">标准</button>
+                                    <button class="quick-btn" onclick="setTemperature(6500)">冷光</button>
+                                </div>
+                            </div>
+
+                            <!-- 应用设置按钮 -->
+                            <div class="control-group">
+                                <button class="mobile-btn primary apply-btn" onclick="applyLightSettings()">
                                     <i class="bi bi-stars"></i>
-                                    <span>夜灯</span>
+                                    应用设置到台灯
                                 </button>
                             </div>
                         </div>
                     </div>
                 </div>
                 
-                <!-- 定时设置卡片 -->
+                <!-- 护眼设置卡片 -->
                 <div class="mobile-card">
                     <div class="mobile-card-header">
-                        <div class="mobile-card-title">定时设置</div>
+                        <div class="mobile-card-title">护眼提醒设置</div>
+                        <div class="control-icon">
+                            <i class="bi bi-eye"></i>
+                        </div>
                     </div>
                     <div class="mobile-card-content">
-                        <div class="timer-settings">
-                            <div class="timer-item">
-                                <div class="timer-label">开灯时间</div>
-                                <input type="time" id="onTime" value="07:00" class="time-input">
-                                <button class="timer-toggle" data-timer="on">
-                                    <i class="bi bi-toggle-off"></i>
-                                </button>
+                        <div class="eye-care-settings">
+                            <!-- 远眺休息设置 -->
+                            <div class="setting-group">
+                                <h4 class="setting-title">远眺休息间隔</h4>
+                                <p class="setting-desc">设置孩子远眺休息的时间间隔</p>
+                                <div class="setting-control">
+                                    <div class="input-group">
+                                        <input type="number" id="rest-interval" min="10" max="120" value="20" class="setting-input">
+                                        <span class="input-unit">分钟</span>
+                                    </div>
+                                    <div class="preset-buttons">
+                                        <button class="preset-btn" onclick="setRestInterval(15)">15分钟</button>
+                                        <button class="preset-btn active" onclick="setRestInterval(20)">20分钟</button>
+                                        <button class="preset-btn" onclick="setRestInterval(30)">30分钟</button>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="timer-item">
-                                <div class="timer-label">关灯时间</div>
-                                <input type="time" id="offTime" value="22:00" class="time-input">
-                                <button class="timer-toggle" data-timer="off">
-                                    <i class="bi bi-toggle-off"></i>
-                                </button>
+
+                            <!-- 长时间用眼提醒 -->
+                            <div class="setting-group">
+                                <h4 class="setting-title">长时间用眼提醒</h4>
+                                <p class="setting-desc">连续用眼超过设定时间时自动提醒</p>
+                                <div class="setting-control">
+                                    <div class="input-group">
+                                        <input type="number" id="continuous-time" min="30" max="180" value="45" class="setting-input">
+                                        <span class="input-unit">分钟</span>
+                                    </div>
+                                    <div class="preset-buttons">
+                                        <button class="preset-btn" onclick="setContinuousTime(30)">30分钟</button>
+                                        <button class="preset-btn active" onclick="setContinuousTime(45)">45分钟</button>
+                                        <button class="preset-btn" onclick="setContinuousTime(60)">60分钟</button>
+                                    </div>
+                                </div>
                             </div>
-                            <div class="timer-item">
-                                <div class="timer-label">提醒休息</div>
-                                <select id="restInterval" class="select-input">
-                                    <option value="30">30分钟</option>
-                                    <option value="45" selected>45分钟</option>
-                                    <option value="60">60分钟</option>
-                                </select>
-                                <button class="timer-toggle" data-timer="rest">
-                                    <i class="bi bi-toggle-on"></i>
-                                </button>
+
+                            <!-- 护眼模式开关 -->
+                            <div class="setting-group">
+                                <h4 class="setting-title">护眼模式</h4>
+                                <p class="setting-desc">自动调节灯光到护眼状态</p>
+                                <div class="setting-control">
+                                    <div class="switch-container">
+                                        <label class="switch">
+                                            <input type="checkbox" id="eye-care-mode" onchange="toggleEyeCareMode()">
+                                            <span class="slider round"></span>
+                                        </label>
+                                        <span class="switch-text" id="eye-care-mode-text">已关闭</span>
+                                    </div>
+                                </div>
                             </div>
                         </div>
                     </div>
                 </div>
                 
                 <!-- 设备信息卡片 -->
-                <div class="mobile-card">
+                <!-- <div class="mobile-card">
                     <div class="mobile-card-header">
                         <div class="mobile-card-title">设备信息</div>
+                        <div class="control-icon">
+                            <i class="bi bi-info-circle"></i>
+                        </div>
                     </div>
                     <div class="mobile-card-content">
                         <div class="device-info">
@@ -339,9 +411,17 @@
                                 <span class="info-label">信号强度</span>
                                 <span class="info-value">强 (-45dBm)</span>
                             </div>
+                            <div class="info-item">
+                                <span class="info-label">使用时长</span>
+                                <span class="info-value" id="usage-time">4.5小时</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="info-label">最后同步</span>
+                                <span class="info-value" id="last-sync">刚刚</span>
+                            </div>
                         </div>
                     </div>
-                </div>
+                </div> -->
             </div>
         </div>
         

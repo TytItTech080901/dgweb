@@ -219,43 +219,6 @@ function setupControlEvents() {
             showToast('已进入全屏模式');
         });
     }
-    
-    // 监控视频加载状态处理
-    const guardianVideo = document.getElementById('guardianVideo');
-    if (guardianVideo) {
-        const videoContainer = guardianVideo.parentElement;
-        
-        // 视频开始加载
-        guardianVideo.addEventListener('loadstart', function() {
-            if (videoContainer) {
-                videoContainer.classList.add('loading');
-                videoContainer.classList.remove('error');
-            }
-        });
-        
-        // 视频加载完成
-        guardianVideo.addEventListener('load', function() {
-            if (videoContainer) {
-                videoContainer.classList.remove('loading');
-                videoContainer.classList.remove('error');
-            }
-        });
-        
-        // 视频加载错误
-        guardianVideo.addEventListener('error', function() {
-            if (videoContainer) {
-                videoContainer.classList.remove('loading');
-                videoContainer.classList.add('error');
-                
-                // 3秒后尝试重新加载
-                setTimeout(() => {
-                    if (this.src) {
-                        this.src = this.src.split('?')[0] + '?t=' + new Date().getTime();
-                    }
-                }, 3000);
-            }
-        });
-    }
 }
 
 // 显示指定页面，隐藏其他页面
@@ -289,7 +252,7 @@ function showPage(pageId) {
             refreshGuardianData();
             break;
         case 'remote':
-            fetchLampStatus();
+            initRemoteControlPage();
             break;
         case 'settings':
             // 设置页面无需特殊处理
@@ -646,7 +609,65 @@ function updateLampStatus(data) {
                 'status-indicator status-paused';
         }
         
-        // 更新亮度滑块
+        // 更新新的亮度控件
+        if (data.brightness !== undefined) {
+            const brightnessSlider = document.getElementById('brightness-slider');
+            const brightnessDisplay = document.getElementById('brightness-display');
+            const currentBrightness = document.getElementById('currentBrightness');
+            
+            if (brightnessSlider) {
+                brightnessSlider.value = data.brightness;
+            }
+            if (brightnessDisplay) {
+                brightnessDisplay.textContent = data.brightness;
+            }
+            if (currentBrightness) {
+                currentBrightness.textContent = data.brightness;
+            }
+        }
+        
+        // 更新新的色温控件
+        if (data.temperature !== undefined) {
+            const temperatureSlider = document.getElementById('temperature-slider');
+            const temperatureDisplay = document.getElementById('temperature-display');
+            const currentTemperature = document.getElementById('currentTemperature');
+            
+            const tempValue = data.temperature + 'K';
+            if (temperatureSlider) {
+                temperatureSlider.value = data.temperature;
+            }
+            if (temperatureDisplay) {
+                temperatureDisplay.textContent = tempValue;
+            }
+            if (currentTemperature) {
+                currentTemperature.textContent = tempValue;
+            }
+        }
+        
+        // 更新开关状态
+        if (data.power_status !== undefined) {
+            const powerSwitch = document.getElementById('power-switch');
+            const powerSwitchText = document.getElementById('power-switch-text');
+            if (powerSwitch) {
+                powerSwitch.checked = data.power_status;
+                if (powerSwitchText) {
+                    powerSwitchText.textContent = data.power_status ? '已开启' : '已关闭';
+                }
+            }
+        }
+        
+        if (data.light_status !== undefined) {
+            const lightSwitch = document.getElementById('light-switch');
+            const lightSwitchText = document.getElementById('light-switch-text');
+            if (lightSwitch) {
+                lightSwitch.checked = data.light_status;
+                if (lightSwitchText) {
+                    lightSwitchText.textContent = data.light_status ? '已开启' : '已关闭';
+                }
+            }
+        }
+        
+        // 保留旧版本的兼容性
         const brightnessSlider = document.getElementById('brightnessSlider');
         const brightnessValue = document.getElementById('brightnessValue');
         if (brightnessSlider && data.brightness !== undefined) {
@@ -662,35 +683,8 @@ function updateLampStatus(data) {
 function refreshGuardianData() {
     // 刷新视频流
     const guardianVideo = document.getElementById('guardianVideo');
-    const videoContainer = guardianVideo?.parentElement;
-    
-    if (guardianVideo && videoContainer) {
-        // 显示加载状态
-        videoContainer.classList.add('loading');
-        videoContainer.classList.remove('error');
-        
-        // 创建新的图片元素来测试视频流
-        const testImg = new Image();
-        testImg.onload = function() {
-            // 视频流正常，更新src并移除加载状态
-            guardianVideo.src = '/video_feed?t=' + new Date().getTime();
-            setTimeout(() => {
-                videoContainer.classList.remove('loading');
-            }, 500);
-        };
-        
-        testImg.onerror = function() {
-            // 视频流错误，显示错误状态
-            videoContainer.classList.remove('loading');
-            videoContainer.classList.add('error');
-            
-            // 3秒后重试
-            setTimeout(() => {
-                refreshGuardianData();
-            }, 3000);
-        };
-        
-        testImg.src = '/video_feed?t=' + new Date().getTime();
+    if (guardianVideo) {
+        guardianVideo.src = '/video_feed?t=' + new Date().getTime();
     }
     
     // 可以在这里添加其他监护数据的刷新逻辑
@@ -795,7 +789,7 @@ function initPostureChart() {
                 }
             }
         }
-        });
+    });
 }
 
 // 初始化情绪图表（多视图）
@@ -1146,7 +1140,6 @@ function initPosturePieChart() {
         }
     });
     
-    
     console.log('坐姿时间占比饼图初始化完成');
 }
 
@@ -1203,9 +1196,9 @@ function initScoreTrendChart() {
                         }
                     }
                 }
-            }
+            },
         }
-        });
+    });
 }
 
 // 初始化不良姿态时段分布热力图
@@ -1892,7 +1885,31 @@ function setupChartSwiper() {
     });
 }
 
-// 切换用眼情况视图
+// 灯光控制与护眼设置切换功能
+function switchLightEyeContent(type) {
+    const lightBtn = document.querySelector('.light-eye-btn[onclick="switchLightEyeContent(\'light\')"]');
+    const eyeBtn = document.querySelector('.light-eye-btn[onclick="switchLightEyeContent(\'eye\')"]');
+    const lightContent = document.getElementById('light-content');
+    const eyeContent = document.getElementById('eye-content');
+    
+    // 移除所有按钮的active状态
+    lightBtn.classList.remove('active');
+    eyeBtn.classList.remove('active');
+    
+    // 隐藏所有内容
+    lightContent.style.display = 'none';
+    eyeContent.style.display = 'none';
+    
+    if (type === 'light') {
+        lightBtn.classList.add('active');
+        lightContent.style.display = 'block';
+    } else if (type === 'eye') {
+        eyeBtn.classList.add('active');
+        eyeContent.style.display = 'block';
+    }
+}
+
+// 用眼情况切换功能
 let currentEyeView = 0;
 
 function switchEyeView(index) {
@@ -1909,14 +1926,158 @@ function switchEyeView(index) {
     const slides = document.querySelectorAll('.eye-slide');
     slides.forEach((slide, i) => {
         slide.classList.toggle('active', i === index);
+        slide.style.display = i === index ? 'block' : 'none';
     });
     
     // 更新卡片标题
     const titleElement = document.getElementById('eyeCardTitle');
     if (titleElement) {
-        titleElement.textContent = index === 0 ? '用眼监控' : '每日反馈';
+        titleElement.textContent = index === 0 ? '详细分析' : '健康建议';
     }
 }
+
+// 修复护眼设置预设按钮功能
+function setRestInterval(minutes) {
+    const input = document.getElementById('rest-interval');
+    if (input) {
+        input.value = minutes;
+    }
+    
+    // 更新按钮状态
+    const parentGroup = input?.closest('.setting-group');
+    if (parentGroup) {
+        const buttons = parentGroup.querySelectorAll('.preset-btn');
+        buttons.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.textContent.includes(minutes + '分钟')) {
+                btn.classList.add('active');
+            }
+        });
+    }
+    
+    console.log('设置远眺休息间隔:', minutes, '分钟');
+    showToast(`远眺休息间隔已设置为${minutes}分钟`);
+}
+
+function setContinuousTime(minutes) {
+    const input = document.getElementById('continuous-time');
+    if (input) {
+        input.value = minutes;
+    }
+    
+    // 更新按钮状态
+    const parentGroup = input?.closest('.setting-group');
+    if (parentGroup) {
+        const buttons = parentGroup.querySelectorAll('.preset-btn');
+        buttons.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.textContent.includes(minutes + '分钟')) {
+                btn.classList.add('active');
+            }
+        });
+    }
+    
+    console.log('设置连续用眼时间:', minutes, '分钟');
+    showToast(`连续用眼提醒已设置为${minutes}分钟`);
+}
+
+function toggleEyeCareMode() {
+    const checkbox = document.getElementById('eye-care-mode');
+    const text = document.getElementById('eye-care-mode-text');
+    
+    if (checkbox && text) {
+        text.textContent = checkbox.checked ? '已开启' : '已关闭';
+        console.log('护眼模式:', checkbox.checked ? '开启' : '关闭');
+        showToast('护眼模式' + (checkbox.checked ? '已开启' : '已关闭'));
+    }
+}
+
+// 修复台灯控制按钮功能
+function togglePower() {
+    const powerBtn = document.getElementById('power-btn');
+    if (powerBtn) {
+        powerBtn.classList.toggle('active');
+        const isActive = powerBtn.classList.contains('active');
+        console.log('台灯电源:', isActive ? '开启' : '关闭');
+        showToast('台灯电源' + (isActive ? '已开启' : '已关闭'));
+    }
+}
+
+function toggleLight() {
+    const lightBtn = document.getElementById('light-btn');
+    if (lightBtn) {
+        lightBtn.classList.toggle('active');
+        const isActive = lightBtn.classList.contains('active');
+        console.log('灯光开关:', isActive ? '开启' : '关闭');
+        showToast('灯光开关' + (isActive ? '已开启' : '已关闭'));
+    }
+}
+
+function adjustBrightness(value) {
+    const brightnessDisplay = document.getElementById('brightness-display');
+    const currentBrightness = document.getElementById('currentBrightness');
+    
+    if (brightnessDisplay) {
+        brightnessDisplay.textContent = value;
+    }
+    if (currentBrightness) {
+        currentBrightness.textContent = value;
+    }
+    
+    console.log('调节亮度:', value);
+}
+
+function adjustTemperature(value) {
+    const temperatureDisplay = document.getElementById('temperature-display');
+    const currentTemperature = document.getElementById('currentTemperature');
+    
+    const tempValue = value + 'K';
+    if (temperatureDisplay) {
+        temperatureDisplay.textContent = tempValue;
+    }
+    if (currentTemperature) {
+        currentTemperature.textContent = tempValue;
+    }
+    
+    console.log('调节色温:', tempValue);
+}
+
+function setBrightness(value) {
+    const brightnessSlider = document.getElementById('brightness-slider');
+    if (brightnessSlider) {
+        brightnessSlider.value = value;
+        adjustBrightness(value);
+    }
+}
+
+function setTemperature(value) {
+    const temperatureSlider = document.getElementById('temperature-slider');
+    if (temperatureSlider) {
+        temperatureSlider.value = value;
+        adjustTemperature(value);
+    }
+}
+
+function applyLightSettings() {
+    const brightness = document.getElementById('brightness-slider')?.value;
+    const temperature = document.getElementById('temperature-slider')?.value;
+    
+    console.log('应用灯光设置:', { brightness, temperature });
+    showToast('灯光设置已应用');
+}
+
+// 更新全局函数声明
+window.switchEyeView = switchEyeView;
+window.setRestInterval = setRestInterval;
+window.setContinuousTime = setContinuousTime;
+window.toggleEyeCareMode = toggleEyeCareMode;
+window.togglePower = togglePower;
+window.toggleLight = toggleLight;
+window.adjustBrightness = adjustBrightness;
+window.adjustTemperature = adjustTemperature;
+window.setBrightness = setBrightness;
+window.setTemperature = setTemperature;
+window.applyLightSettings = applyLightSettings;
 
 // 全局函数声明，供HTML onclick调用
 window.showPage = showPage;
@@ -1925,3 +2086,439 @@ window.switchChart = switchChart;
 window.loadMorePostureImages = loadMorePostureImages;
 window.exportPostureImages = exportPostureImages;
 window.switchEyeView = switchEyeView;
+window.switchLightEyeContent = switchLightEyeContent;
+
+// 更新设备信息
+function updateDeviceInfo() {
+    // 更新使用时长
+    const usageTimeElement = document.getElementById('usage-time');
+    if (usageTimeElement) {
+        const hours = (Math.random() * 3 + 3).toFixed(1);
+        usageTimeElement.textContent = hours + '小时';
+    }
+    
+    // 更新最后同步时间
+    const lastSyncElement = document.getElementById('last-sync');
+    if (lastSyncElement) {
+        const now = new Date();
+        const timeStr = now.toLocaleTimeString('zh-CN', { 
+            hour: '2-digit', 
+            minute: '2-digit' 
+        });
+        lastSyncElement.textContent = timeStr;
+    }
+}
+
+// 在远程控制页面初始化时调用
+function initRemoteControlPage() {
+    console.log('初始化远程控制页面...');
+    
+    // 获取台灯状态
+    fetchLampStatus();
+    
+    // 更新设备信息
+    updateDeviceInfo();
+    
+    // 设置定时更新
+    setInterval(() => {
+        fetchLampStatus();
+        updateDeviceInfo();
+    }, 10000); // 每10秒更新一次
+}
+
+// 全局函数声明
+window.initRemoteControlPage = initRemoteControlPage;
+
+// 控制台日志测试
+console.log('移动端脚本已加载');
+
+// 远程控制功能函数
+
+// 电源开关控制
+function togglePower() {
+    const powerSwitch = document.getElementById('power-switch');
+    const powerSwitchText = document.getElementById('power-switch-text');
+    
+    if (powerSwitch.checked) {
+        sendLampCommand('power_on');
+    } else {
+        sendLampCommand('power_off');
+    }
+}
+
+// 灯光开关控制
+function toggleLight() {
+    const lightSwitch = document.getElementById('light-switch');
+    const lightSwitchText = document.getElementById('light-switch-text');
+    
+    if (lightSwitch.checked) {
+        lightSwitchText.textContent = '已开启';
+        sendLampCommand('light_on');
+    } else {
+        lightSwitchText.textContent = '已关闭';
+        sendLampCommand('light_off');
+    }
+}
+
+// 亮度调节
+function adjustBrightness(value) {
+    const brightnessDisplay = document.getElementById('brightness-display');
+    const currentBrightness = document.getElementById('currentBrightness');
+    
+    if (brightnessDisplay) {
+        brightnessDisplay.textContent = value;
+    }
+    if (currentBrightness) {
+        currentBrightness.textContent = value;
+    }
+}
+
+// 色温调节
+function adjustTemperature(value) {
+    const temperatureDisplay = document.getElementById('temperature-display');
+    const currentTemperature = document.getElementById('currentTemperature');
+    
+    const tempValue = value + 'K';
+    if (temperatureDisplay) {
+        temperatureDisplay.textContent = tempValue;
+    }
+    if (currentTemperature) {
+        currentTemperature.textContent = tempValue;
+    }
+}
+
+// 设置亮度快捷值
+function setBrightness(value) {
+    const brightnessSlider = document.getElementById('brightness-slider');
+    if (brightnessSlider) {
+        brightnessSlider.value = value;
+        adjustBrightness(value);
+    }
+}
+
+// 设置色温快捷值
+function setTemperature(value) {
+    const temperatureSlider = document.getElementById('temperature-slider');
+    if (temperatureSlider) {
+        temperatureSlider.value = value;
+        adjustTemperature(value);
+    }
+}
+
+// 应用灯光设置
+function applyLightSettings() {
+    const brightness = document.getElementById('brightness-slider')?.value;
+    const temperature = document.getElementById('temperature-slider')?.value;
+    
+    const settings = {
+        brightness: brightness,
+        temperature: temperature
+    };
+    
+    sendLampCommand('apply_settings', settings);
+    showToast('设置已应用到台灯');
+}
+
+// 护眼模式切换
+function toggleEyeCareMode() {
+    const eyeCareMode = document.getElementById('eye-care-mode');
+    const eyeCareModeText = document.getElementById('eye-care-mode-text');
+    
+    if (eyeCareMode.checked) {
+        eyeCareModeText.textContent = '已开启';
+        sendLampCommand('eye_care_on');
+        showToast('护眼模式已开启');
+    } else {
+        eyeCareModeText.textContent = '已关闭';
+        sendLampCommand('eye_care_off');
+        showToast('护眼模式已关闭');
+    }
+}
+
+// 设置远眺休息间隔
+function setRestInterval(minutes) {
+    const restIntervalInput = document.getElementById('rest-interval');
+    if (restIntervalInput) {
+        restIntervalInput.value = minutes;
+    }
+    
+    // 更新按钮状态
+    const restIntervalInputs = document.querySelectorAll('#rest-interval');
+    restIntervalInputs.forEach(input => {
+        const parentGroup = input.closest('.setting-group');
+        if (parentGroup) {
+            const presetButtons = parentGroup.querySelectorAll('.preset-btn');
+            presetButtons.forEach(btn => {
+                btn.classList.remove('active');
+                if (btn.textContent.includes(minutes + '分钟')) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+    });
+    
+    sendLampCommand('set_rest_interval', minutes);
+    showToast(`远眺休息间隔已设置为${minutes}分钟`);
+}
+
+// 设置连续用眼提醒时间
+function setContinuousTime(minutes) {
+    const continuousTimeInput = document.getElementById('continuous-time');
+    if (continuousTimeInput) {
+        continuousTimeInput.value = minutes;
+    }
+    
+    // 更新按钮状态
+    const parentGroup = document.querySelector('#continuous-time')?.closest('.setting-group');
+    if (parentGroup) {
+        const buttons = parentGroup.querySelectorAll('.preset-btn');
+        buttons.forEach(btn => {
+            btn.classList.remove('active');
+            if (btn.textContent.includes(minutes + '分钟')) {
+                btn.classList.add('active');
+            }
+        });
+    }
+    
+    sendLampCommand('set_continuous_time', minutes);
+    showToast(`连续用眼提醒已设置为${minutes}分钟`);
+}
+
+// 发送台灯控制命令
+function sendLampCommand(command, value = null) {
+    let url = '';
+    let data = {};
+    
+    switch(command) {
+        case 'power_on':
+            url = '/api/lamp/power';
+            data = { power: true };
+            break;
+        case 'power_off':
+            url = '/api/lamp/power';
+            data = { power: false };
+            break;
+        case 'light_on':
+            url = '/api/lamp/power';
+            data = { power: true };
+            break;
+        case 'light_off':
+            url = '/api/lamp/power';
+            data = { power: false };
+            break;
+        case 'brightness':
+            url = '/api/lamp/brightness';
+            data = { brightness: value };
+            break;
+        case 'temperature':
+            url = '/api/lamp/color_temp';
+            data = { color_temp: value };
+            break;
+        case 'apply_settings':
+            url = '/api/lamp/settings';
+            data = value;
+            break;
+        case 'eye_care_on':
+            url = '/api/lamp/scene';
+            data = { scene: 'reading' };
+            break;
+        case 'eye_care_off':
+            url = '/api/lamp/scene';
+            data = { scene: 'normal' };
+            break;
+        case 'set_rest_interval':
+            url = '/api/lamp/timer';
+            data = { timer_enabled: true, timer_duration: value };
+            break;
+        case 'set_continuous_time':
+            url = '/api/lamp/timer';
+            data = { timer_enabled: true, timer_duration: value };
+            break;
+        default:
+            console.warn('未知的台灯控制命令:', command);
+            return;
+    }
+    
+    const options = {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json'
+        }
+    };
+    
+    if (Object.keys(data).length > 0) {
+        options.body = JSON.stringify(data);
+    }
+    
+    fetch(url, options)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            return response.json();
+        })
+        .then(result => {
+            if (result.status === 'success') {
+                console.log('台灯控制命令执行成功:', command, value);
+                // 更新UI状态
+                updateLampStatusUI(result);
+                showToast(result.message || '操作成功');
+            } else {
+                console.error('台灯控制命令执行失败:', result.message);
+                showToast('操作失败: ' + (result.message || '未知错误'));
+            }
+        })
+        .catch(error => {
+            console.error('发送台灯控制命令失败:', error);
+            showToast('网络连接失败');
+        });
+}
+
+// 更新台灯状态UI
+function updateLampStatusUI(data) {
+    // 处理电源状态
+    if (data.data && data.data.power !== undefined) {
+        const powerSwitch = document.getElementById('power-switch');
+        const powerSwitchText = document.getElementById('power-switch-text');
+        const lightSwitch = document.getElementById('light-switch');
+        const lightSwitchText = document.getElementById('light-switch-text');
+        
+        if (powerSwitch) {
+            powerSwitch.checked = data.data.power;
+            if (powerSwitchText) {
+                powerSwitchText.textContent = data.data.power ? '已开启' : '已关闭';
+            }
+        }
+        
+        // 同时更新灯光开关状态
+        if (lightSwitch) {
+            lightSwitch.checked = data.data.power;
+            if (lightSwitchText) {
+                lightSwitchText.textContent = data.data.power ? '已开启' : '已关闭';
+            }
+        }
+    }
+    
+    // 处理亮度
+    if (data.data && data.data.brightness !== undefined) {
+        const brightnessSlider = document.getElementById('brightness-slider');
+        const brightnessValue = document.getElementById('brightness-value');
+        if (brightnessSlider) {
+            brightnessSlider.value = data.data.brightness;
+            if (brightnessValue) {
+                brightnessValue.textContent = data.data.brightness + '%';
+            }
+        }
+    }
+    
+    // 处理色温
+    if (data.data && data.data.color_temp !== undefined) {
+        const temperatureSlider = document.getElementById('temperature-slider');
+        const temperatureValue = document.getElementById('temperature-value');
+        if (temperatureSlider) {
+            temperatureSlider.value = data.data.color_temp;
+            if (temperatureValue) {
+                temperatureValue.textContent = data.data.color_temp + 'K';
+            }
+        }
+    }
+    
+    // 兼容旧格式（保持向后兼容）
+    if (data.power_status !== undefined) {
+        const powerSwitch = document.getElementById('power-switch');
+        const powerSwitchText = document.getElementById('power-switch-text');
+        if (powerSwitch) {
+            powerSwitch.checked = data.power_status;
+            if (powerSwitchText) {
+                powerSwitchText.textContent = data.power_status ? '已开启' : '已关闭';
+            }
+        }
+    }
+    
+    if (data.light_status !== undefined) {
+        const lightSwitch = document.getElementById('light-switch');
+        const lightSwitchText = document.getElementById('light-switch-text');
+        if (lightSwitch) {
+            lightSwitch.checked = data.light_status;
+            if (lightSwitchText) {
+                lightSwitchText.textContent = data.light_status ? '已开启' : '已关闭';
+            }
+        }
+    }
+    
+    if (data.brightness !== undefined) {
+        const brightnessSlider = document.getElementById('brightness-slider');
+        const brightnessDisplay = document.getElementById('brightness-display');
+        const currentBrightness = document.getElementById('currentBrightness');
+        
+        if (brightnessSlider) {
+            brightnessSlider.value = data.brightness;
+        }
+        if (brightnessDisplay) {
+            brightnessDisplay.textContent = data.brightness;
+        }
+        if (currentBrightness) {
+            currentBrightness.textContent = data.brightness;
+        }
+    }
+    
+    // 兼容新的温度格式（color_temp）
+    if (data.color_temp !== undefined) {
+        const temperatureSlider = document.getElementById('temperature-slider');
+        const temperatureDisplay = document.getElementById('temperature-display');
+        const currentTemperature = document.getElementById('currentTemperature');
+        
+        const tempValue = data.color_temp + 'K';
+        if (temperatureSlider) {
+            temperatureSlider.value = data.color_temp;
+        }
+        if (temperatureDisplay) {
+            temperatureDisplay.textContent = tempValue;
+        }
+        if (currentTemperature) {
+            currentTemperature.textContent = tempValue;
+        }
+    }
+    
+    // 兼容旧的温度格式
+    if (data.temperature !== undefined) {
+        const temperatureSlider = document.getElementById('temperature-slider');
+        const temperatureDisplay = document.getElementById('temperature-display');
+        const currentTemperature = document.getElementById('currentTemperature');
+        
+        const tempValue = data.temperature + 'K';
+        if (temperatureSlider) {
+            temperatureSlider.value = data.temperature;
+        }
+        if (temperatureDisplay) {
+            temperatureDisplay.textContent = tempValue;
+        }
+        if (currentTemperature) {
+            currentTemperature.textContent = tempValue;
+        }
+    }
+}
+
+// 切换灯光控制和护眼设置内容
+function switchLightEyeContent(type) {
+    const lightBtn = document.querySelector('.light-eye-btn[onclick="switchLightEyeContent(\'light\')"]');
+    const eyeBtn = document.querySelector('.light-eye-btn[onclick="switchLightEyeContent(\'eye\')"]');
+    const lightContent = document.getElementById('light-content');
+    const eyeContent = document.getElementById('eye-content');
+
+    // 移除所有按钮的active状态
+    lightBtn.classList.remove('active');
+    eyeBtn.classList.remove('active');
+    
+    // 隐藏所有内容
+    lightContent.style.display = 'none';
+    eyeContent.style.display = 'none';
+    
+    if (type === 'light') {
+        lightBtn.classList.add('active');
+        lightContent.style.display = 'block';
+    } else if (type === 'eye') {
+        eyeBtn.classList.add('active');
+        eyeContent.style.display = 'block';
+    }
+}
