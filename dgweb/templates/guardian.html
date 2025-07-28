@@ -1,0 +1,86 @@
+{% extends "base.html" %}
+
+{% block title %}家长监护 - 曈灵智能台灯家长端{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/guardian.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="mobile-page">
+    <div class="mobile-dashboard">
+        <!-- 实时监控卡片 -->
+        <div class="mobile-card">
+            <div class="mobile-card-header">
+                <div class="mobile-card-title">实时监控画面</div>
+                <div class="monitor-status">
+                    <span class="status-dot status-live"></span>
+                    <span>直播中</span>
+                </div>
+            </div>
+            <div class="mobile-card-content">
+                <div class="video-container">
+                    <img id="guardianVideo" src="{{ url_for('static', filename='asserts/WechatIMG69.jpg') }}" alt="监控视频">
+                    <div class="video-controls">
+                        <button class="video-btn" id="pauseVideo">
+                            <i class="bi bi-pause"></i>
+                        </button>
+                        <button class="video-btn" id="captureBtn">
+                            <i class="bi bi-camera"></i>
+                        </button>
+                        <button class="video-btn" id="fullscreenBtn">
+                            <i class="bi bi-fullscreen"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 消息推送卡片 -->
+        <div class="mobile-card">
+            <div class="mobile-card-header">
+                <div class="mobile-card-title">消息推送</div>
+                <button class="btn-mini" id="addMessage">
+                    <i class="bi bi-plus"></i>
+                </button>
+            </div>
+            <div class="mobile-card-content">
+                <div class="message-input">
+                    <textarea id="messageContent" placeholder="输入要发送的消息..." rows="3"></textarea>
+                    <div class="message-actions">
+                        <select id="messageType">
+                            <option value="immediate">立即发送</option>
+                            <option value="scheduled">定时发送</option>
+                        </select>
+                        <button class="mobile-btn" id="sendMessage">发送</button>
+                    </div>
+                </div>
+                
+                <!-- 消息历史 -->
+                <div class="message-history" id="messageHistory">
+                    <div class="message-item sent">
+                        <div class="message-sender">
+                            <i class="bi bi-person-check"></i>
+                            家长
+                        </div>
+                        <div class="message-content">记得保持正确坐姿哦</div>
+                        <div class="message-time">14:30</div>
+                    </div>
+                    <div class="message-item scheduled">
+                        <div class="message-sender">
+                            <i class="bi bi-clock"></i>
+                            定时消息
+                        </div>
+                        <div class="message-content">该休息一下眼睛了</div>
+                        <div class="message-time">15:00 (预定)</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/guardian.js') }}"></script>
+{% endblock %} 

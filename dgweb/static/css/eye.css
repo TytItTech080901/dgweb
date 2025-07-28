@@ -1,0 +1,538 @@
+/* 用眼情况工具样式 - 柔和绿色调配色方案 */
+
+/* 工具头部样式 */
+.tool-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    color: var(--dark-gray);
+    border-bottom: 1px solid var(--border-gray);
+    box-shadow: 0 2px 4px var(--card-shadow);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.tool-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    flex: 1;
+    text-align: center;
+}
+
+.back-btn {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: 20px;
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+}
+
+.back-btn:hover {
+    background-color: rgba(143, 180, 160, 0.1);
+    transform: scale(1.1);
+}
+
+.back-btn:active {
+    transform: scale(0.95);
+}
+
+/* 用眼状态指示器 */
+.eye-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--success-color);
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--success-color);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* 用眼指示器 */
+.eye-indicators {
+    display: flex;
+    gap: 2px;
+    margin-bottom: 20px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 20px;
+    padding: 4px;
+    border: 1px solid var(--border-gray);
+}
+
+.indicator-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    background: none;
+    color: var(--text-color);
+    border-radius: 16px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.indicator-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+    transition: left 0.5s;
+}
+
+.indicator-btn:hover::before {
+    left: 100%;
+}
+
+.indicator-btn.active {
+    background: var(--primary-color);
+    color: white;
+    box-shadow: 0 2px 8px rgba(143, 180, 160, 0.3);
+}
+
+.indicator-btn:hover:not(.active) {
+    background: rgba(143, 180, 160, 0.1);
+}
+
+/* 用眼滑动器 */
+.eye-swiper {
+    position: relative;
+    overflow: hidden;
+}
+
+.eye-slide {
+    display: none;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.eye-slide.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* 用眼指标 */
+.eye-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.metric-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid var(--border-gray);
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.metric-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 2px;
+    background: linear-gradient(90deg, var(--primary-color), var(--primary-light));
+    transform: scaleX(0);
+    transition: transform 0.3s ease;
+}
+
+.metric-item:hover::before {
+    transform: scaleX(1);
+}
+
+.metric-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(143, 180, 160, 0.15);
+}
+
+.metric-icon {
+    width: 48px;
+    height: 48px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    color: white;
+    border-radius: 12px;
+    font-size: 20px;
+    flex-shrink: 0;
+    box-shadow: 0 4px 12px rgba(143, 180, 160, 0.2);
+}
+
+.metric-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.metric-value {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.metric-label {
+    font-size: 13px;
+    color: var(--light-text);
+}
+
+/* 反馈列表 */
+.feedback-list {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.feedback-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid var(--border-gray);
+    transition: all 0.3s ease;
+}
+
+.feedback-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(143, 180, 160, 0.15);
+}
+
+.feedback-item.positive {
+    border-left: 4px solid var(--success-color);
+}
+
+.feedback-item.warning {
+    border-left: 4px solid var(--warning-color);
+}
+
+.feedback-badge {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex-shrink: 0;
+}
+
+.feedback-item.positive .feedback-badge {
+    background: var(--success-color);
+    color: white;
+}
+
+.feedback-item.warning .feedback-badge {
+    background: var(--warning-color);
+    color: white;
+}
+
+.feedback-content {
+    flex: 1;
+}
+
+.feedback-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-color);
+}
+
+.feedback-text strong {
+    color: var(--primary-color);
+    font-weight: 600;
+}
+
+/* 热力图容器 */
+.heatmap-container {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid var(--border-gray);
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+.heatmap-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(143, 180, 160, 0.05) 0%, rgba(232, 227, 220, 0.05) 100%);
+    pointer-events: none;
+}
+
+.heatmap-container:hover {
+    box-shadow: 0 4px 16px rgba(143, 180, 160, 0.15);
+    transform: translateY(-2px);
+}
+
+.heatmap-container #eyeHeatmapChart {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain;
+}
+
+/* 热力图图例 */
+.heatmap-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    border: 1px solid var(--border-gray);
+}
+
+.legend-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+    text-align: center;
+}
+
+.legend-scale {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-color);
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+.legend-color.low {
+    background: var(--success-color);
+}
+
+.legend-color.medium {
+    background: var(--warning-color);
+}
+
+.legend-color.high {
+    background: var(--danger-color);
+}
+
+/* 用眼建议 */
+.eye-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.eye-suggestions .suggestion-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid var(--border-gray);
+    transition: all 0.3s ease;
+}
+
+.eye-suggestions .suggestion-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(143, 180, 160, 0.15);
+}
+
+.eye-suggestions .suggestion-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--info-color), var(--primary-light));
+    color: white;
+    border-radius: 10px;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.eye-suggestions .suggestion-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.eye-suggestions .suggestion-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--dark-gray);
+}
+
+.eye-suggestions .suggestion-text {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-color);
+}
+
+/* 响应式设计 */
+@media (max-width: 375px) {
+    .eye-metrics {
+        gap: 12px;
+    }
+    
+    .metric-item {
+        padding: 12px;
+    }
+    
+    .metric-icon {
+        width: 40px;
+        height: 40px;
+        font-size: 18px;
+    }
+    
+    .metric-value {
+        font-size: 16px;
+    }
+    
+    .indicator-btn {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+}
+
+@media (min-width: 768px) {
+    .eye-metrics {
+        display: grid;
+        grid-template-columns: repeat(3, 1fr);
+        gap: 16px;
+    }
+    
+    .metric-item {
+        flex-direction: column;
+        text-align: center;
+        gap: 12px;
+    }
+    
+    .metric-icon {
+        width: 56px;
+        height: 56px;
+        font-size: 24px;
+    }
+    
+    .metric-value {
+        font-size: 20px;
+    }
+    
+    .heatmap-container {
+        height: 400px;
+    }
+}
+
+/* 动画效果 */
+.metric-item {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+.feedback-item {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+.eye-suggestions .suggestion-item {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 特殊状态 */
+.metric-item.warning {
+    border-left: 4px solid var(--warning-color);
+}
+
+.metric-item.danger {
+    border-left: 4px solid var(--danger-color);
+}
+
+.metric-item.warning .metric-icon {
+    background: linear-gradient(135deg, var(--warning-color), var(--danger-color));
+}
+
+.metric-item.danger .metric-icon {
+    background: linear-gradient(135deg, var(--danger-color), var(--warning-color));
+} 

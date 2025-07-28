@@ -1,0 +1,553 @@
+/* 远程控制页面样式 - 柔和绿色调配色方案 */
+
+/* 状态网格 */
+.status-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+    margin-top: 15px;
+}
+
+/* 状态项样式 */
+.status-item {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 12px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    border: 1px solid var(--border-gray);
+}
+
+.status-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    font-size: 18px;
+}
+
+.status-info {
+    flex: 1;
+}
+
+.status-value {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--dark-gray);
+    margin-bottom: 2px;
+}
+
+.status-label {
+    font-size: 12px;
+    color: var(--light-text);
+}
+
+/* 灯光控制样式 */
+.light-controls {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.control-group {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.control-label {
+    font-weight: 600;
+    color: var(--dark-gray);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 14px;
+}
+
+.control-value {
+    font-weight: 500;
+    color: var(--primary-color);
+    font-size: 14px;
+}
+
+/* 灯光控制和护眼设置切换块样式 */
+.light-eye-switcher {
+    display: flex;
+    background: var(--border-gray);
+    border-radius: 12px;
+    padding: 6px;
+    margin-bottom: 20px;
+    border: 1px solid var(--border-gray);
+    gap: 8px;
+}
+
+.light-eye-btn {
+    flex: 1;
+    padding: 10px 16px;
+    text-align: center;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    font-size: 0.9rem;
+    font-weight: 600;
+    color: var(--primary-color);
+    background: transparent;
+    border: none;
+}
+
+.light-eye-btn.active {
+    background: var(--primary-color);
+    color: white;
+    box-shadow: 0 2px 4px var(--card-shadow);
+}
+
+.light-eye-btn:hover:not(.active) {
+    background: rgba(143, 180, 160, 0.1);
+}
+
+/* 灯光控制和护眼设置内容区域 */
+.light-eye-content {
+    display: none;
+}
+
+.light-eye-content.active {
+    display: block;
+}
+
+/* 台灯按钮组横向排列 */
+.lamp-controls-row {
+    display: flex;
+    gap: 12px;
+    margin-bottom: 20px;
+}
+
+.lamp-control-btn {
+    flex: 1;
+    padding: 12px 16px;
+    border-radius: 8px;
+    background: linear-gradient(135deg, var(--medium-gray), var(--border-gray));
+    color: var(--dark-gray);
+    font-weight: 600;
+    border: 1px solid var(--border-gray);
+    cursor: pointer;
+    text-align: center;
+    font-size: 0.9rem;
+    transition: all 0.2s ease;
+    outline: none;
+}
+
+.lamp-control-btn:active {
+    background: linear-gradient(135deg, var(--border-gray), var(--medium-gray));
+    transform: translateY(1px);
+}
+
+.lamp-control-btn.on {
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-dark));
+    color: white;
+    border-color: var(--primary-color);
+}
+
+/* 护眼设置按钮修复 */
+.preset-buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.preset-btn {
+    flex: 1;
+    min-width: 70px;
+    padding: 8px 12px;
+    border-radius: 20px;
+    background: var(--border-gray);
+    color: var(--primary-color);
+    border: 2px solid var(--border-gray);
+    font-size: 0.85rem;
+    font-weight: 500;
+    cursor: pointer;
+    text-align: center;
+    transition: all 0.2s ease;
+    outline: none;
+    white-space: nowrap;
+}
+
+.preset-btn.active {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.preset-btn:hover:not(.active) {
+    background: rgba(143, 180, 160, 0.1);
+}
+
+/* 开关样式 */
+.switch-container {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.switch {
+    position: relative;
+    display: inline-block;
+    width: 50px;
+    height: 28px;
+}
+
+.switch input {
+    opacity: 0;
+    width: 0;
+    height: 0;
+}
+
+.slider {
+    position: absolute;
+    cursor: pointer;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background-color: var(--border-gray);
+    transition: .3s;
+}
+
+.slider.round {
+    border-radius: 28px;
+}
+
+.slider:before {
+    position: absolute;
+    content: "";
+    height: 20px;
+    width: 20px;
+    left: 4px;
+    bottom: 4px;
+    background-color: white;
+    transition: .3s;
+    border-radius: 50%;
+}
+
+input:checked + .slider {
+    background-color: var(--primary-color);
+}
+
+input:checked + .slider:before {
+    transform: translateX(22px);
+}
+
+.switch-text {
+    font-weight: 500;
+    color: var(--text-color);
+    font-size: 14px;
+}
+
+/* 滑块样式 */
+.slider-container {
+    position: relative;
+    margin: 10px 0;
+}
+
+.range-slider {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 100%;
+    height: 6px;
+    border-radius: 3px;
+    outline: none;
+    transition: opacity 0.2s;
+}
+
+.brightness-slider {
+    background: linear-gradient(to right, #333 0%, #fff 100%);
+}
+
+.temperature-slider {
+    background: linear-gradient(to right, #ff8a00 0%, #ffffff 50%, #87ceeb 100%);
+}
+
+.range-slider::-webkit-slider-thumb {
+    -webkit-appearance: none;
+    appearance: none;
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+    box-shadow: 0 2px 4px var(--card-shadow);
+}
+
+.range-slider::-webkit-slider-thumb:hover {
+    transform: scale(1.1);
+    box-shadow: 0 4px 8px var(--card-shadow);
+}
+
+.range-slider::-moz-range-thumb {
+    width: 20px;
+    height: 20px;
+    border-radius: 50%;
+    background: var(--primary-color);
+    cursor: pointer;
+    border: none;
+    box-shadow: 0 2px 4px var(--card-shadow);
+}
+
+.slider-marks {
+    display: flex;
+    justify-content: space-between;
+    margin-top: 8px;
+    font-size: 10px;
+    color: var(--text-color);
+    opacity: 0.7;
+}
+
+.slider-marks span {
+    text-align: center;
+    line-height: 1.2;
+}
+
+.slider-marks small {
+    display: block;
+    font-size: 9px;
+    margin-top: 2px;
+    color: var(--muted-text);
+}
+
+/* 快捷按钮 */
+.quick-buttons {
+    display: flex;
+    gap: 6px;
+    margin-top: 10px;
+    flex-wrap: wrap;
+}
+
+.quick-btn {
+    padding: 8px 12px;
+    border: 1px solid var(--primary-color);
+    background: var(--medium-gray);
+    color: var(--primary-color);
+    border-radius: 20px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s;
+    flex: 1;
+    min-width: 60px;
+    text-align: center;
+}
+
+.quick-btn:hover, .quick-btn:active {
+    background: var(--primary-color);
+    color: white;
+    transform: translateY(-1px);
+}
+
+.apply-btn {
+    width: 100%;
+    padding: 14px;
+    font-size: 16px;
+    font-weight: 600;
+    margin-top: 10px;
+}
+
+/* 护眼设置样式 */
+.eye-care-settings {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.setting-group {
+    padding: 15px 0;
+    border-bottom: 1px solid var(--border-gray);
+}
+
+.setting-group:last-child {
+    border-bottom: none;
+}
+
+.setting-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--dark-gray);
+    margin-bottom: 5px;
+}
+
+.setting-desc {
+    font-size: 13px;
+    color: var(--light-text);
+    margin-bottom: 12px;
+    line-height: 1.4;
+}
+
+.setting-control {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.input-group {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.setting-input {
+    flex: 1;
+    padding: 10px 12px;
+    border: 1px solid var(--border-gray);
+    border-radius: 8px;
+    font-size: 14px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+}
+
+.input-unit {
+    font-size: 14px;
+    color: var(--light-text);
+    font-weight: 500;
+}
+
+/* 控制图标 */
+.control-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 50%;
+    font-size: 16px;
+}
+
+/* 响应式设计 */
+@media (max-width: 375px) {
+    .preset-buttons {
+        flex-wrap: nowrap;
+        overflow-x: auto;
+        gap: 6px;
+    }
+    
+    .preset-btn {
+        min-width: 60px;
+        font-size: 0.8rem;
+    }
+    
+    .lamp-controls-row {
+        gap: 8px;
+    }
+    
+    .lamp-control-btn {
+        font-size: 0.8rem;
+        padding: 10px 12px;
+    }
+    
+    .status-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+    }
+}
+
+@media (min-width: 768px) {
+    .status-grid {
+        grid-template-columns: 1fr 1fr;
+        gap: 20px;
+    }
+    
+    .lamp-controls-row {
+        gap: 16px;
+    }
+    
+    .lamp-control-btn {
+        padding: 14px 20px;
+        font-size: 1rem;
+    }
+}
+
+/* 动画效果 */
+.light-eye-btn {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.light-eye-content {
+    animation: slideIn 0.3s ease-out;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes slideIn {
+    from {
+        opacity: 0;
+        transform: translateX(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* 悬停效果增强 */
+.lamp-control-btn:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(143, 180, 160, 0.2);
+}
+
+.preset-btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px rgba(143, 180, 160, 0.15);
+}
+
+.quick-btn:hover {
+    box-shadow: 0 4px 12px rgba(143, 180, 160, 0.2);
+}
+
+/* 状态指示器样式 */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--light-text);
+}
+
+.status-indicator .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--success-color);
+    animation: pulse 2s infinite;
+}
+
+.status-indicator .status-text {
+    font-weight: 500;
+    color: var(--success-color);
+}
+
+/* 输入框焦点效果 */
+.setting-input:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(143, 180, 160, 0.1);
+}
+
+/* 滑块焦点效果 */
+.range-slider:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(143, 180, 160, 0.1);
+} 

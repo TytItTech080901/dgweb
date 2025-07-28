@@ -1,0 +1,201 @@
+{% extends "base.html" %}
+
+{% block title %}远程控制 - 曈灵智能台灯家长端{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/remote.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="mobile-page">
+    <div class="mobile-dashboard">
+        <!-- 台灯状态卡片 -->
+        <div class="mobile-card">
+            <div class="mobile-card-header">
+                <div class="mobile-card-title">台灯状态</div>
+                <div class="status-indicator">
+                    <span class="status-dot"></span>
+                    <span id="lampStatus" class="status-text">已开启</span>
+                </div>
+            </div>
+            <div class="mobile-card-content">
+                <div class="status-grid">
+                    <div class="status-item">
+                        <div class="status-icon">
+                            <i class="bi bi-lightbulb-fill"></i>
+                        </div>
+                        <div class="status-info">
+                            <div class="status-value" id="currentBrightness">500</div>
+                            <div class="status-label">当前亮度</div>
+                        </div>
+                    </div>
+                    <div class="status-item">
+                        <div class="status-icon">
+                            <i class="bi bi-thermometer-half"></i>
+                        </div>
+                        <div class="status-info">
+                            <div class="status-value" id="currentTemperature">5300K</div>
+                            <div class="status-label">当前色温</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 灯光控制与护眼设置合并卡片 -->
+        <div class="mobile-card">
+            <div class="mobile-card-header">
+                <div class="mobile-card-title">灯光与护眼</div>
+                <div class="control-icon">
+                    <i class="bi bi-lightbulb"></i>
+                </div>
+            </div>
+            <div class="mobile-card-content">
+                <!-- 切换按钮 -->
+                <div class="light-eye-switcher">
+                    <button class="light-eye-btn active" onclick="switchLightEyeContent('light')">
+                        <i class="bi bi-toggles"></i>
+                        灯光控制
+                    </button>
+                    <button class="light-eye-btn" onclick="switchLightEyeContent('eye')">
+                        <i class="bi bi-eye"></i>
+                        护眼设置
+                    </button>
+                </div>
+
+                <!-- 灯光控制内容 -->
+                <div class="light-eye-content" id="light-content">
+                    <div class="light-controls">
+                        <!-- 台灯电源和灯光开关横向排列 -->
+                        <div class="lamp-controls-row">
+                            <button class="lamp-control-btn" id="power-btn" onclick="togglePower()">
+                                <i class="bi bi-power"></i>
+                                台灯电源
+                            </button>
+                            <button class="lamp-control-btn" id="light-btn" onclick="toggleLight()">
+                                <i class="bi bi-lightbulb"></i>
+                                灯光开关
+                            </button>
+                        </div>
+
+                        <!-- 亮度调节 -->
+                        <div class="control-group">
+                            <label class="control-label">
+                                亮度调节
+                                <span class="control-value" id="brightness-display">500</span>
+                            </label>
+                            <div class="slider-container">
+                                <input type="range" id="brightness-slider" min="0" max="1000" value="500" 
+                                       class="range-slider brightness-slider" oninput="adjustBrightness(this.value)">
+                                <div class="slider-marks">
+                                    <span>0</span>
+                                    <span>250</span>
+                                    <span>500</span>
+                                    <span>750</span>
+                                    <span>1000</span>
+                                </div>
+                            </div>
+                            <div class="quick-buttons">
+                                <button class="quick-btn" onclick="setBrightness(200)">护眼</button>
+                                <button class="quick-btn" onclick="setBrightness(500)">标准</button>
+                                <button class="quick-btn" onclick="setBrightness(800)">明亮</button>
+                            </div>
+                        </div>
+
+                        <!-- 色温调节 -->
+                        <div class="control-group">
+                            <label class="control-label">
+                                色温调节
+                                <span class="control-value" id="temperature-display">5300K</span>
+                            </label>
+                            <div class="slider-container">
+                                <input type="range" id="temperature-slider" min="3000" max="6500" value="5300" 
+                                       class="range-slider temperature-slider" oninput="adjustTemperature(this.value)">
+                                <div class="slider-marks">
+                                    <span>3000K<br><small>暖光</small></span>
+                                    <span>4000K</span>
+                                    <span>5000K</span>
+                                    <span>6000K</span>
+                                    <span>6500K<br><small>冷光</small></span>
+                                </div>
+                            </div>
+                            <div class="quick-buttons">
+                                <button class="quick-btn" onclick="setTemperature(3000)">暖光</button>
+                                <button class="quick-btn" onclick="setTemperature(4000)">自然</button>
+                                <button class="quick-btn" onclick="setTemperature(5300)">标准</button>
+                                <button class="quick-btn" onclick="setTemperature(6500)">冷光</button>
+                            </div>
+                        </div>
+
+                        <!-- 应用设置按钮 -->
+                        <div class="control-group">
+                            <button class="mobile-btn primary apply-btn" onclick="applyLightSettings()">
+                                <i class="bi bi-stars"></i>
+                                应用设置到台灯
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 护眼设置内容 -->
+                <div class="light-eye-content" id="eye-content" style="display: none;">
+                    <div class="eye-care-settings">
+                        <!-- 远眺休息设置 -->
+                        <div class="setting-group">
+                            <h4 class="setting-title">远眺休息间隔</h4>
+                            <p class="setting-desc">设置孩子远眺休息的时间间隔</p>
+                            <div class="setting-control">
+                                <div class="input-group">
+                                    <input type="number" id="rest-interval" min="10" max="120" value="20" class="setting-input">
+                                    <span class="input-unit">分钟</span>
+                                </div>
+                                <div class="preset-buttons">
+                                    <button class="preset-btn" onclick="setRestInterval(15)">15分钟</button>
+                                    <button class="preset-btn active" onclick="setRestInterval(20)">20分钟</button>
+                                    <button class="preset-btn" onclick="setRestInterval(30)">30分钟</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 长时间用眼提醒 -->
+                        <div class="setting-group">
+                            <h4 class="setting-title">长时间用眼提醒</h4>
+                            <p class="setting-desc">连续用眼超过设定时间时自动提醒</p>
+                            <div class="setting-control">
+                                <div class="input-group">
+                                    <input type="number" id="continuous-time" min="30" max="180" value="45" class="setting-input">
+                                    <span class="input-unit">分钟</span>
+                                </div>
+                                <div class="preset-buttons">
+                                    <button class="preset-btn" onclick="setContinuousTime(30)">30分钟</button>
+                                    <button class="preset-btn active" onclick="setContinuousTime(45)">45分钟</button>
+                                    <button class="preset-btn" onclick="setContinuousTime(60)">60分钟</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 护眼模式开关 -->
+                        <div class="setting-group">
+                            <h4 class="setting-title">护眼模式</h4>
+                            <p class="setting-desc">自动调节灯光到护眼状态</p>
+                            <div class="setting-control">
+                                <div class="switch-container">
+                                    <label class="switch">
+                                        <input type="checkbox" id="eye-care-mode" onchange="toggleEyeCareMode()">
+                                        <span class="slider round"></span>
+                                    </label>
+                                    <span class="switch-text" id="eye-care-mode-text">已关闭</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/remote.js') }}"></script>
+{% endblock %} 
