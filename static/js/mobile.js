@@ -3,45 +3,23 @@
 // 全局变量声明
 let currentChartIndex = 0;
 
+// 文档加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
-    // 初始化移动端应用
+    console.log('DOM加载完成，开始初始化移动端应用...');
+    
+    // 立即确保导航栏固定
+    ensureNavFixed();
+    
+    // 初始化应用
     initMobileApp();
     
-    // 注册导航切换事件
-    setupNavigation();
-    
-    // 注册工具点击事件
-    setupToolEvents();
-    
-    // 注册控制按钮事件
-    setupControlEvents();
-    
-    // 图表切换器将在显示坐姿检测工具时初始化
-});
-
-// 移动端应用初始化
-function initMobileApp() {
-    console.log('移动端应用初始化...');
-    
-    // 显示默认的首页
+    // 显示首页
     showPage('home');
     
-    // 获取分析系统状态并更新UI
-    fetchAnalysisStatus();
-    
-    // 定时更新状态
-    setInterval(function() {
-        fetchAnalysisStatus();
-        updateMockData();
-    }, 5000);
-    
-    // 更新初始数据
-    updateMockData();
-    
-    // 初始化首页图表
+    // 延迟检查工具图标，确保Bootstrap Icons已加载
     setTimeout(() => {
-        initCharts();
-    }, 1000);
+        checkAndFixToolIcons();
+    }, 500);
     
     // 确保 ECharts 库已加载
     if (typeof echarts === 'undefined') {
@@ -49,6 +27,7 @@ function initMobileApp() {
         setTimeout(() => {
             if (typeof echarts !== 'undefined') {
                 console.log('ECharts 库已加载');
+                initCharts();
             } else {
                 console.error('ECharts 库加载失败');
             }
@@ -56,6 +35,243 @@ function initMobileApp() {
     } else {
         console.log('ECharts 库已准备就绪');
     }
+    
+    // 再次确保导航栏固定（延迟执行）
+    setTimeout(() => {
+        ensureNavFixed();
+    }, 1000);
+    
+    console.log('移动端应用初始化完成');
+});
+
+// 检查并修复工具图标显示
+function checkAndFixToolIcons() {
+    const toolItems = document.querySelectorAll('.tool-item');
+    toolItems.forEach(item => {
+        const toolImage = item.querySelector('.tool-image');
+        const toolOverlay = item.querySelector('.tool-overlay');
+        const toolIcon = item.querySelector('.tool-icon i');
+        
+        // 确保图标元素存在
+        if (toolIcon) {
+            console.log('工具图标存在:', toolIcon.className);
+        } else {
+            console.warn('工具图标缺失，正在修复...');
+            const iconContainer = item.querySelector('.tool-icon');
+            if (iconContainer) {
+                const toolType = item.getAttribute('data-tool');
+                let iconClass = 'bi bi-question-circle';
+                
+                switch(toolType) {
+                    case 'posture':
+                        iconClass = 'bi bi-person-standing';
+                        break;
+                    case 'eye':
+                        iconClass = 'bi bi-eye';
+                        break;
+                    case 'emotion':
+                        iconClass = 'bi bi-emoji-smile';
+                        break;
+                }
+                
+                iconContainer.innerHTML = `<i class="${iconClass}"></i>`;
+            }
+        }
+        
+        // 确保悬停效果正常工作
+        item.addEventListener('mouseenter', function() {
+            if (toolOverlay) {
+                toolOverlay.style.opacity = '1';
+            }
+        });
+        
+        item.addEventListener('mouseleave', function() {
+            if (toolOverlay) {
+                toolOverlay.style.opacity = '0';
+            }
+        });
+    });
+}
+
+// 确保导航栏固定定位
+function ensureNavFixed() {
+    const nav = document.querySelector('.mobile-nav');
+    if (nav) {
+        // 强制设置固定定位
+        nav.style.position = 'fixed';
+        nav.style.bottom = '0';
+        nav.style.left = '0';
+        nav.style.right = '0';
+        nav.style.zIndex = '1000';
+        
+        // 监听滚动事件，确保导航栏保持固定
+        window.addEventListener('scroll', function() {
+            nav.style.position = 'fixed';
+            nav.style.bottom = '0';
+        });
+        
+        // 监听窗口大小变化
+        window.addEventListener('resize', function() {
+            nav.style.position = 'fixed';
+            nav.style.bottom = '0';
+        });
+        
+        console.log('导航栏固定定位已确保');
+    }
+}
+
+// 初始化透明化渐变效果
+function initTransparentGradientEffects() {
+    // 确保导航栏固定
+    ensureNavFixed();
+    
+    // 检查并修复工具图标
+    checkAndFixToolIcons();
+    
+    // 为卡片添加渐变背景动画
+    const cards = document.querySelectorAll('.mobile-card');
+    cards.forEach((card, index) => {
+        // 添加延迟动画效果
+        card.style.animationDelay = `${index * 0.1}s`;
+        card.classList.add('fade-in-up');
+        
+        // 添加鼠标悬停时的渐变效果
+        card.addEventListener('mouseenter', function() {
+            this.style.background = 'rgba(255, 255, 255, 0.3)';
+            this.style.backdropFilter = 'blur(20px)';
+        });
+        
+        card.addEventListener('mouseleave', function() {
+            this.style.background = 'rgba(255, 255, 255, 0.2)';
+            this.style.backdropFilter = 'blur(15px)';
+        });
+    });
+    
+    // 为工具项添加渐变效果
+    const toolItems = document.querySelectorAll('.tool-item');
+    toolItems.forEach((item, index) => {
+        item.style.animationDelay = `${index * 0.15}s`;
+        item.classList.add('fade-in-up');
+        
+        // 添加悬停时的渐变背景
+        item.addEventListener('mouseenter', function() {
+            this.style.background = 'rgba(255, 255, 255, 0.3)';
+            this.style.border = '1px solid rgba(255, 255, 255, 0.4)';
+        });
+        
+        item.addEventListener('mouseleave', function() {
+            this.style.background = 'rgba(255, 255, 255, 0.15)';
+            this.style.border = '1px solid rgba(255, 255, 255, 0.2)';
+        });
+    });
+    
+    // 为统计项添加渐变效果
+    const statItems = document.querySelectorAll('.stat-item');
+    statItems.forEach((item, index) => {
+        item.style.animationDelay = `${index * 0.1}s`;
+        item.classList.add('fade-in-up');
+    });
+    
+    // 为按钮添加渐变效果
+    const buttons = document.querySelectorAll('.mobile-btn');
+    buttons.forEach(button => {
+        button.addEventListener('mouseenter', function() {
+            this.style.background = 'rgba(143, 180, 160, 0.3)';
+            this.style.border = '1px solid rgba(143, 180, 160, 0.5)';
+        });
+        
+        button.addEventListener('mouseleave', function() {
+            this.style.background = 'rgba(143, 180, 160, 0.2)';
+            this.style.border = '1px solid rgba(143, 180, 160, 0.3)';
+        });
+    });
+}
+
+// 添加CSS动画类
+function addGradientAnimations() {
+    const style = document.createElement('style');
+    style.textContent = `
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateY(20px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+        
+        .fade-in-up {
+            animation: fadeInUp 0.6s ease-out forwards;
+            opacity: 0;
+        }
+        
+        .mobile-card {
+            transition: all 0.3s ease;
+        }
+        
+        .mobile-card:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 12px 40px rgba(143, 180, 160, 0.12), 0 6px 20px rgba(143, 180, 160, 0.06);
+        }
+        
+        .tool-item {
+            transition: all 0.3s ease;
+        }
+        
+        .tool-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(143, 180, 160, 0.15);
+        }
+        
+        .stat-item {
+            transition: all 0.3s ease;
+        }
+        
+        .stat-item:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 24px rgba(143, 180, 160, 0.12);
+        }
+    `;
+    document.head.appendChild(style);
+}
+
+// 初始化移动端应用
+function initMobileApp() {
+    console.log('初始化移动端应用...');
+    
+    // 添加渐变动画样式
+    addGradientAnimations();
+    
+    // 初始化透明化渐变效果
+    initTransparentGradientEffects();
+    
+    // 设置导航
+    setupNavigation();
+    
+    // 设置工具事件
+    setupToolEvents();
+    
+    // 设置控制事件
+    setupControlEvents();
+    
+    // 初始化图表
+    initCharts();
+    
+    // 更新模拟数据
+    updateMockData();
+    
+    // 定期更新数据
+    setInterval(updateMockData, 30000);
+    
+    // 定期获取系统状态
+    setInterval(fetchAnalysisStatus, 10000);
+    
+    // 定期获取台灯状态
+    setInterval(fetchLampStatus, 15000);
+    
+    console.log('移动端应用初始化完成');
 }
 
 // 设置导航切换
@@ -235,37 +451,70 @@ function setupControlEvents() {
     }
 }
 
-// 显示指定页面，隐藏其他页面
+// 显示指定页面
 function showPage(pageId) {
-    const pages = document.querySelectorAll('.mobile-page');
-    const header = document.querySelector('header');
+    console.log('切换到页面:', pageId);
     
+    // 隐藏所有页面
+    const pages = document.querySelectorAll('.mobile-page');
     pages.forEach(page => {
-        if (page.id === pageId) {
-            page.style.display = 'block';
-        } else {
-            page.style.display = 'none';
-        }
+        page.style.display = 'none';
+        page.classList.remove('active');
     });
     
-    // 确保header始终显示，保留"曈灵智能台灯家长端"标题
-    if (header) {
-        header.style.display = 'block';
+    // 移除所有导航项的激活状态
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+        item.classList.remove('active');
+    });
+    
+    // 显示目标页面
+    const targetPage = document.getElementById(pageId);
+    if (targetPage) {
+        targetPage.style.display = 'block';
+        // 添加延迟以显示动画效果
+        setTimeout(() => {
+            targetPage.classList.add('active');
+        }, 50);
     }
     
-    // 页面切换后的特殊处理
+    // 激活对应的导航项
+    const activeNavItem = document.querySelector(`[data-page="${pageId}"]`);
+    if (activeNavItem) {
+        activeNavItem.classList.add('active');
+    }
+    
+    // 根据页面类型执行特定初始化
     switch(pageId) {
         case 'home':
-            fetchLatestData();
+            // 重新初始化首页的透明化渐变效果
+            setTimeout(() => {
+                initTransparentGradientEffects();
+                updateMockData();
+            }, 100);
             break;
         case 'guardian':
-            refreshGuardianData();
+            // 初始化监护页面的透明化效果
+            setTimeout(() => {
+                initTransparentGradientEffects();
+                refreshGuardianData();
+            }, 100);
             break;
         case 'remote':
-            initRemoteControlPage();
+            // 初始化远程控制页面的透明化效果
+            setTimeout(() => {
+                initTransparentGradientEffects();
+                fetchLampStatus();
+            }, 100);
             break;
         case 'settings':
-            // 设置页面无需特殊处理
+            // 初始化设置页面的透明化效果
+            setTimeout(() => {
+                initTransparentGradientEffects();
+            }, 100);
+            break;
+        case 'tool-detail':
+            // 工具详情页面保持当前状态
             break;
     }
 }
@@ -746,13 +995,12 @@ function updateLampStatus(data) {
 
 // 刷新监护数据
 function refreshGuardianData() {
-    // 刷新视频流
     const guardianVideo = document.getElementById('guardianVideo');
     if (guardianVideo) {
-        guardianVideo.src = '/video_feed?t=' + new Date().getTime();
+        // 注释掉原来的视频流，使用静态图片
+        // guardianVideo.src = '/video_feed?t=' + new Date().getTime();
+        guardianVideo.src = '/static/assert/WechatIMG69.jpg?t=' + new Date().getTime();
     }
-    
-    // 可以在这里添加其他监护数据的刷新逻辑
 }
 
 // 获取最新数据
@@ -846,11 +1094,11 @@ function initPostureChart() {
             datasets: [{
                 data: [75, 15, 8, 2, 0],
                 backgroundColor: [
-                    '#34a853',
-                    '#fbbc05',
-                    '#ea4335',
-                    '#4285f4',
-                    '#9aa0a6'
+                    '#90EE90',    // 正确姿势 - 薄荷绿
+                    '#DDA15E',    // 低头 - 暖橙
+                    '#8FBC8F',    // 前倾 - 抹茶绿
+                    '#6B9DC7',    // 侧倾 - 浅蓝
+                    '#E8EAE6'     // 其他 - 灰色
                 ],
                 borderWidth: 0
             }]
@@ -927,7 +1175,7 @@ function initEmotionRadarChart() {
             },
             splitLine: {
                 lineStyle: {
-                    color: '#ddd'
+                    color: '#E8DDD6'
                 }
             }
         },
@@ -938,11 +1186,11 @@ function initEmotionRadarChart() {
                 value: [85, 70, 75, 15, 25, 60],
                 name: '当前状态',
                 itemStyle: {
-                    color: '#2196f3'
+                    color: '#F4A261'
                 },
                 areaStyle: {
                     opacity: 0.3,
-                    color: '#2196f3'
+                    color: '#F4A261'
                 }
             }]
         }]
@@ -974,15 +1222,15 @@ function initEmotionTrendChart() {
             datasets: [{
                 label: '积极情绪',
                 data: [75, 80, 70, 85, 60, 90, 65, 85],
-                borderColor: '#4caf50',
-                backgroundColor: 'rgba(76, 175, 80, 0.1)',
+                borderColor: '#90EE90',
+                backgroundColor: 'rgba(144, 238, 144, 0.1)',
                 tension: 0.4,
                 fill: true
             }, {
                 label: '消极情绪', 
                 data: [20, 15, 25, 10, 35, 8, 30, 12],
-                borderColor: '#f44336',
-                backgroundColor: 'rgba(244, 67, 54, 0.1)',
+                borderColor: '#8FBC8F',
+                backgroundColor: 'rgba(143, 188, 143, 0.1)',
                 tension: 0.4,
                 fill: true
             }]
@@ -1033,9 +1281,9 @@ function initEmotionDistributionChart() {
             datasets: [{
                 data: [65, 25, 10],
                 backgroundColor: [
-                    '#4caf50',
-                    '#ff9800', 
-                    '#f44336'
+                    '#90EE90',   // 薄荷绿 - 积极情绪
+                    '#DDA15E',   // 暖橙 - 中性情绪
+                    '#8FBC8F'    // 抹茶绿 - 消极情绪
                 ],
                 borderWidth: 2,
                 borderColor: '#fff'
@@ -1242,11 +1490,12 @@ function initPosturePieChart() {
                     datasets: [{
                         data: [50, 30, 20],
                         backgroundColor: [
-                            '#34a853',   // 绿色 - 良好坐姿
-                            '#fbbc05',   // 黄色 - 轻度不良坐姿
-                            '#ea4335'    // 红色 - 不良坐姿
+                            '#90EE90',   // 薄荷绿 - 良好坐姿
+                            '#DDA15E',   // 暖橙 - 轻度不良坐姿
+                            '#8FBC8F'    // 抹茶绿 - 不良坐姿
                         ],
-                        borderWidth: 0
+                        borderWidth: 2,
+                        borderColor: '#FFFFFF'
                     }]
                 },
                 options: {
@@ -1297,11 +1546,11 @@ function initScoreTrendChart() {
             datasets: [{
                 label: '坐姿评分',
                 data: [70, 72, 68, 75, 73, 76, 64],
-                borderColor: '#4285f4',
-                backgroundColor: 'rgba(66, 133, 244, 0.1)',
+                borderColor: '#8FBC8F',
+                backgroundColor: 'rgba(143, 188, 143, 0.1)',
                 tension: 0.4,
                 fill: true,
-                pointBackgroundColor: '#4285f4',
+                pointBackgroundColor: '#8FBC8F',
                 pointBorderColor: '#fff',
                 pointBorderWidth: 2,
                 pointRadius: 4
@@ -1372,9 +1621,9 @@ function initHeatmapChart() {
                 data: data,
                 backgroundColor: function(context) {
                     const value = context.parsed.v;
-                    if (value < 30) return 'rgba(52, 168, 83, 0.8)';
-                    if (value < 60) return 'rgba(251, 188, 5, 0.8)';
-                    return 'rgba(234, 67, 53, 0.8)';
+                    if (value < 30) return 'rgba(168, 218, 220, 0.8)'; // 淡绿色
+                    if (value < 60) return 'rgba(244, 162, 97, 0.8)';  // 柔和橙色
+                    return 'rgba(231, 111, 81, 0.8)';                  // 暖红色
                 },
                 pointRadius: function(context) {
                     return Math.max(4, context.parsed.v / 10);
@@ -1583,10 +1832,9 @@ function initEyeHeatmapChart() {
                     calculable: true,
                     orient: 'horizontal',
                     left: 'center',
-                    bottom: '0',
-                    inRange: {
-                        color: ['#e0f7fa', '#ffecb3', '#ff8a65']
-                    },
+                    bottom: '0',            inRange: {
+                color: ['#F7F3EF', '#F4A261', '#E76F51']
+            },
                     textStyle: {
                         fontSize: 10
                     }
