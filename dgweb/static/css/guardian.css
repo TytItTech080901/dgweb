@@ -101,20 +101,17 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    z-index: 1;
+    color: white;
+    font-size: 14px;
 }
 
 .video-container.loading img {
-    opacity: 0.5;
+    opacity: 0.3;
 }
 
 .video-container.error {
-    background: linear-gradient(135deg, var(--danger-color), #FF8A80);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: white;
-    font-size: 14px;
+    background: linear-gradient(135deg, #f8d7da 0%, #f5c6cb 100%);
+    border-color: #dc3545;
 }
 
 .video-container.error::after {
@@ -123,25 +120,28 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    text-align: center;
+    color: #721c24;
+    font-size: 14px;
+    font-weight: 500;
 }
 
-/* 消息输入区域 */
+/* 消息输入 */
 .message-input {
-    margin-bottom: 20px;
+    margin-bottom: 16px;
+    margin-top: 24px;
 }
 
 .message-input textarea {
     width: 100%;
+    min-height: 80px;
     padding: 12px;
     border: 1px solid var(--border-gray);
-    border-radius: var(--border-radius-small);
-    font-size: 14px;
-    font-family: inherit;
-    resize: vertical;
-    min-height: 80px;
+    border-radius: 8px;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
+    font-size: 14px;
+    line-height: 1.5;
+    resize: vertical;
     transition: var(--transition);
 }
 
@@ -162,10 +162,10 @@
     flex: 1;
     padding: 8px 12px;
     border: 1px solid var(--border-gray);
-    border-radius: var(--border-radius-small);
-    font-size: 14px;
+    border-radius: 6px;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
+    font-size: 14px;
     transition: var(--transition);
 }
 
@@ -175,38 +175,44 @@
 }
 
 .message-actions .mobile-btn {
-    padding: 8px 16px;
-    font-size: 13px;
+    padding: 8px 20px;
+    white-space: nowrap;
 }
 
-/* 消息历史 */
 .message-history {
     max-height: 300px;
     overflow-y: auto;
-    padding-right: 8px;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
+    scrollbar-width: none; /* Firefox */
+    -ms-overflow-style: none; /* IE 10+ */
+}
+.message-history::-webkit-scrollbar {
+    display: none; /* Chrome/Safari/Webkit */
 }
 
 .message-item {
     display: flex;
     flex-direction: column;
-    padding: 12px;
-    margin-bottom: 12px;
-    border-radius: var(--border-radius-small);
+    gap: 8px;
+    padding: 16px;
     background: rgba(255, 255, 255, 0.95);
     backdrop-filter: blur(10px);
-    border-left: 3px solid var(--primary-color);
+    border-radius: 8px;
+    border: 1px solid var(--border-gray);
     transition: var(--transition);
-    border: 1px solid rgba(255, 255, 255, 0.3);
+    animation: messageSlideIn 0.3s ease-out;
 }
 
 .message-item:hover {
-    transform: translateX(4px);
-    box-shadow: var(--shadow-light);
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(143, 180, 160, 0.15);
 }
 
 .message-item.scheduled {
-    border-left-color: var(--warning-color);
-    background: linear-gradient(135deg, rgba(230, 184, 148, 0.1), rgba(230, 184, 148, 0.05));
+    border-left: 4px solid var(--warning-color);
 }
 
 .message-sender {
@@ -215,7 +221,7 @@
     gap: 6px;
     font-size: 12px;
     color: var(--light-text);
-    margin-bottom: 4px;
+    font-weight: 500;
 }
 
 .message-sender i {
@@ -224,18 +230,16 @@
 
 .message-content {
     font-size: 14px;
+    line-height: 1.5;
     color: var(--text-color);
-    line-height: 1.4;
-    margin-bottom: 4px;
 }
 
 .message-time {
     font-size: 11px;
-    color: var(--muted-text);
+    color: var(--light-text);
     align-self: flex-end;
 }
 
-/* 小按钮样式 */
 .btn-mini {
     width: 32px;
     height: 32px;
@@ -248,36 +252,34 @@
     justify-content: center;
     cursor: pointer;
     transition: var(--transition);
-    box-shadow: var(--shadow-light);
+    font-size: 16px;
 }
 
 .btn-mini:hover {
+    background: var(--primary-dark);
     transform: scale(1.1);
-    box-shadow: var(--shadow-medium);
 }
 
 .btn-mini i {
     font-size: 14px;
 }
 
-/* 监控状态 */
 .monitor-status {
     display: flex;
     align-items: center;
     gap: 6px;
     font-size: 12px;
-    color: var(--light-text);
+    color: var(--success-color);
 }
 
 .monitor-status .status-dot {
     width: 8px;
     height: 8px;
     border-radius: 50%;
-    background: var(--danger-color);
+    background: var(--success-color);
     animation: pulse 1.5s infinite;
 }
 
-/* 响应式设计 */
 @media (max-width: 480px) {
     .video-container {
         height: 160px;
@@ -299,7 +301,7 @@
     
     .message-actions {
         flex-direction: column;
-        gap: 8px;
+        align-items: stretch;
     }
     
     .message-actions select,
@@ -328,49 +330,47 @@
     }
 }
 
-/* 动画效果 */
 @keyframes messageSlideIn {
     from {
         opacity: 0;
-        transform: translateX(-20px);
+        transform: translateY(10px);
     }
     to {
         opacity: 1;
-        transform: translateX(0);
+        transform: translateY(0);
     }
 }
 
 .message-item {
-    animation: messageSlideIn 0.3s ease-out forwards;
+    animation: messageSlideIn 0.3s ease-out;
 }
 
 .message-item:nth-child(1) { animation-delay: 0.1s; }
 .message-item:nth-child(2) { animation-delay: 0.2s; }
 .message-item:nth-child(3) { animation-delay: 0.3s; }
 
-/* 滚动条样式 */
+/* 消息历史滚动条样式 */
 .message-history::-webkit-scrollbar {
     width: 4px;
 }
 
 .message-history::-webkit-scrollbar-track {
-    background: rgba(255, 255, 255, 0.95);
+    background: rgba(0, 0, 0, 0.05);
     border-radius: 2px;
 }
 
 .message-history::-webkit-scrollbar-thumb {
-    background: var(--border-gray);
+    background: rgba(143, 180, 160, 0.3);
     border-radius: 2px;
 }
 
 .message-history::-webkit-scrollbar-thumb:hover {
-    background: var(--light-text);
+    background: rgba(143, 180, 160, 0.5);
 }
 
-/* 消息发送动画 */
 .message-item.sending {
     opacity: 0.7;
-    transform: translateX(10px);
+    pointer-events: none;
 }
 
 .message-item.sent {
@@ -379,31 +379,31 @@
 
 @keyframes messageSent {
     0% {
-        opacity: 0;
-        transform: translateX(-20px);
+        transform: scale(0.95);
+        opacity: 0.8;
     }
     50% {
-        opacity: 0.8;
-        transform: translateX(5px);
+        transform: scale(1.02);
+        opacity: 1;
     }
     100% {
+        transform: scale(1);
         opacity: 1;
-        transform: translateX(0);
     }
 }
 
-/* 视频控制按钮悬停效果 */
 .video-btn::before {
     content: '';
     position: absolute;
     top: 50%;
     left: 50%;
-    transform: translate(-50%, -50%);
     width: 0;
     height: 0;
-    background: rgba(143, 180, 160, 0.2);
+    background: rgba(255, 255, 255, 0.3);
     border-radius: 50%;
-    transition: var(--transition);
+    transform: translate(-50%, -50%);
+    transition: all 0.3s ease;
+    pointer-events: none;
 }
 
 .video-btn:hover::before {
@@ -411,8 +411,148 @@
     height: 100%;
 }
 
-/* 消息输入框焦点效果 */
 .message-input textarea:focus {
-    background: rgba(255, 255, 255, 1);
-    box-shadow: 0 0 0 3px rgba(143, 180, 160, 0.1), var(--shadow-light);
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(143, 180, 160, 0.1);
+}
+
+/* 家长监护tab导航样式 */
+.guardian-tabs-nav {
+    display: flex;
+    border-bottom: 1px solid var(--border-gray);
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px 12px 0 0;
+    overflow: hidden;
+}
+
+.guardian-tab-btn {
+    flex: 1;
+    padding: 12px 0;
+    background: none;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--primary-color);
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    outline: none;
+}
+
+.guardian-tab-btn.active {
+    background: var(--primary-color);
+    color: #fff;
+}
+
+.guardian-tabs-content {
+    padding: 0;
+    padding-top: 20px;
+}
+
+.guardian-tab-panel {
+    display: none;
+    animation: fadeIn 0.3s;
+}
+
+.guardian-tab-panel.active {
+    display: block;
+}
+
+
+
+/* 图标样式 */
+.push-icon,
+.history-icon,
+.scheduled-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 8px;
+    font-size: 16px;
+}
+
+/* 定时消息样式 */
+.scheduled-messages {
+    max-height: 300px;
+    overflow-y: auto;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-top: 24px;
+}
+
+.scheduled-message-item {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    border: 1px solid var(--border-gray);
+    border-left: 4px solid var(--warning-color);
+    transition: var(--transition);
+}
+
+.scheduled-message-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(143, 180, 160, 0.15);
+}
+
+.scheduled-message-time {
+    font-size: 12px;
+    color: var(--warning-color);
+    font-weight: 500;
+}
+
+.scheduled-message-content {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-color);
+}
+
+.scheduled-message-actions {
+    display: flex;
+    gap: 8px;
+    margin-top: 8px;
+}
+
+.scheduled-message-actions button {
+    padding: 4px 8px;
+    font-size: 12px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.scheduled-message-actions .edit-btn {
+    background: var(--info-color);
+    color: white;
+}
+
+.scheduled-message-actions .delete-btn {
+    background: var(--danger-color);
+    color: white;
+}
+
+.scheduled-message-actions button:hover {
+    opacity: 0.8;
+    transform: scale(1.05);
+}
+
+/* 空状态样式 */
+.empty-state {
+    text-align: center;
+    padding: 60px 20px;
+    color: var(--light-text);
+    font-size: 14px;
+    background: rgba(255, 255, 255, 0.5);
+    border-radius: 12px;
+    border: 1px dashed var(--border-gray);
+    margin: 20px 0;
 } 

@@ -8,19 +8,21 @@ let eyeMetrics = {
     blinkRate: '15次/分钟',
     screenDistance: '45cm'
 };
+let isDataLoaded = {
+    monitor: false,
+    feedback: false,
+    weekly: false
+};
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
     console.log('用眼情况工具初始化');
     
-    // 初始化图表
-    initEyeCharts();
-    
-    // 加载用眼数据
-    loadEyeData();
-    
     // 初始化事件监听器
     initEyeEventListeners();
+    
+    // 默认加载用眼监控数据
+    loadTabData('monitor');
     
     // 开始实时监控
     startEyeMonitoring();
@@ -50,22 +52,38 @@ function initEyeEventListeners() {
             
             currentEyeTab = tab;
             
-            // 显示提示
-            const tabNames = {
-                monitor: '用眼监控',
-                feedback: '每日反馈',
-                weekly: '本周情况'
-            };
-            showToast(`已切换到${tabNames[tab]}`);
+            // 按需加载数据
+            loadTabData(tab);
         });
     });
+}
+
+// 按需加载tab数据
+function loadTabData(tab) {
+    if (isDataLoaded[tab]) {
+        return; // 数据已加载，无需重复加载
+    }
+    
+    switch(tab) {
+        case 'monitor':
+            loadEyeData();
+            break;
+        case 'feedback':
+            loadFeedbackData();
+            break;
+        case 'weekly':
+            loadWeeklyData();
+            break;
+    }
+    
+    isDataLoaded[tab] = true;
 }
 
 // 初始化用眼图表
 function initEyeCharts() {
     // 初始化热力图
     const heatmapContainer = document.getElementById('eyeHeatmapChart');
-    if (heatmapContainer) {
+    if (heatmapContainer && !eyeHeatmapChart) {
         // 这里可以集成热力图库，暂时用简单的柱状图代替
         const canvas = document.createElement('canvas');
         heatmapContainer.appendChild(canvas);
@@ -103,18 +121,49 @@ function initEyeCharts() {
 
 // 加载用眼数据
 function loadEyeData() {
-    // 模拟API调用
+    // 尝试API调用
     fetch('/api/eye/data')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('API not available');
+            }
+            return response.json();
+        })
         .then(data => {
             console.log('用眼数据加载成功:', data);
             updateEyeMetrics(data);
         })
         .catch(error => {
-            console.error('加载用眼数据失败:', error);
-            // 使用模拟数据
+            console.log('使用模拟用眼数据:', error.message);
             loadMockEyeData();
         });
+}
+
+// 加载反馈数据
+function loadFeedbackData() {
+    // 使用模拟数据
+    const mockFeedback = [
+        { type: 'positive', text: '本周平均远眺次数：4.3 次/天', icon: 'bi-check-circle-fill' },
+        { type: 'positive', text: '当前环境光照：良好', icon: 'bi-brightness-high-fill' },
+        { type: 'positive', text: '色温状态：柔和', icon: 'bi-thermometer-sun' },
+        { type: 'warning', text: '昨日连续用眼超时：72 分钟', icon: 'bi-exclamation-triangle-fill' }
+    ];
+    
+    updateFeedbackList(mockFeedback);
+}
+
+// 加载周数据
+function loadWeeklyData() {
+    // 初始化图表
+    initEyeCharts();
+    
+    // 使用模拟数据
+    const mockWeeklyData = [65, 72, 68, 75, 82, 58, 45];
+    
+    if (eyeHeatmapChart) {
+        eyeHeatmapChart.data.datasets[0].data = mockWeeklyData;
+        eyeHeatmapChart.update();
+    }
 }
 
 // 加载模拟用眼数据

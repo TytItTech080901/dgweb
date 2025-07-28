@@ -5,7 +5,10 @@ class GuardianPage {
         this.videoStream = null;
         this.isVideoPaused = false;
         this.messageHistory = [];
+        this.scheduledMessages = [];
+        this.currentTab = 'push';
         this.updateInterval = null;
+        this.historyUpdateInterval = null;
         
         this.init();
     }
@@ -17,6 +20,7 @@ class GuardianPage {
         this.loadInitialData();
         this.startVideoStream();
         this.startAutoUpdate();
+        this.startHistoryUpdate();
         this.isInitialized = true;
         
         console.log('家长监护页面初始化完成');
@@ -42,14 +46,9 @@ class GuardianPage {
         
         // 消息发送
         const sendBtn = document.getElementById('sendMessage');
-        const addMessageBtn = document.getElementById('addMessage');
         
         if (sendBtn) {
             sendBtn.addEventListener('click', () => this.sendMessage());
-        }
-        
-        if (addMessageBtn) {
-            addMessageBtn.addEventListener('click', () => this.showMessageInput());
         }
         
         // 消息输入框回车发送
@@ -62,33 +61,108 @@ class GuardianPage {
                 }
             });
         }
+        
+        // 家长监护tab切换事件
+        const tabBtns = document.querySelectorAll('.guardian-tab-btn');
+        const tabPanels = document.querySelectorAll('.guardian-tab-panel');
+        
+        tabBtns.forEach(btn => {
+            btn.addEventListener('click', function() {
+                // 切换按钮激活状态
+                tabBtns.forEach(b => b.classList.remove('active'));
+                this.classList.add('active');
+                
+                // 切换内容面板显示
+                const tab = this.getAttribute('data-tab');
+                tabPanels.forEach(panel => {
+                    if (panel.id === 'tab-' + tab) {
+                        panel.classList.add('active');
+                    } else {
+                        panel.classList.remove('active');
+                    }
+                });
+                
+                window.guardianPage.currentTab = tab;
+            });
+        });
+        
+        // 网络状态监听
+        window.addEventListener('online', () => {
+            console.log('网络连接恢复');
+            this.showToast('网络连接已恢复', 'success');
+        });
+        
+        window.addEventListener('offline', () => {
+            console.log('网络连接断开');
+            this.showToast('网络连接已断开，使用本地数据', 'warning');
+        });
     }
     
     async loadInitialData() {
         try {
+            console.log('开始加载初始数据...');
+            
             // 加载消息历史
             await this.loadMessageHistory();
+            console.log('消息历史加载完成，数量:', this.messageHistory.length);
+            
+            // 加载定时消息
+            await this.loadScheduledMessages();
+            console.log('定时消息加载完成，数量:', this.scheduledMessages.length);
             
             // 更新UI
             this.updateMessageDisplay();
+            this.updateScheduledMessagesDisplay();
+            
+            console.log('初始数据加载完成');
             
         } catch (error) {
             console.error('加载监护数据失败:', error);
-            MobileUtils.showToast('数据加载失败', 'error');
+            this.showToast('数据加载失败', 'error');
         }
     }
     
     async loadMessageHistory() {
         try {
-            const response = await MobileUtils.fetchData('/api/guardian/messages');
-            this.messageHistory = response;
-            
-            // 保存到本地存储
-            MobileUtils.setLocalStorage('guardianMessages', this.messageHistory);
-            
+            const response = await this.fetchData('/api/guardian/messages');
+            if (response && Array.isArray(response)) {
+                this.messageHistory = response;
+                // 保存到本地存储
+                this.setLocalStorage('guardianMessages', this.messageHistory);
+            } else {
+                throw new Error('Invalid response format');
+            }
         } catch (error) {
             console.warn('API请求失败，使用本地数据:', error);
-            this.messageHistory = MobileUtils.getLocalStorage('guardianMessages', this.getDefaultMessages());
+            const localData = this.getLocalStorage('guardianMessages', null);
+            if (localData && Array.isArray(localData)) {
+                this.messageHistory = localData;
+            } else {
+                this.messageHistory = this.getDefaultMessages();
+                this.setLocalStorage('guardianMessages', this.messageHistory);
+            }
+        }
+    }
+    
+    async loadScheduledMessages() {
+        try {
+            const response = await this.fetchData('/api/guardian/scheduled_messages');
+            if (response && Array.isArray(response)) {
+                this.scheduledMessages = response;
+                // 保存到本地存储
+                this.setLocalStorage('guardianScheduledMessages', this.scheduledMessages);
+            } else {
+                throw new Error('Invalid response format');
+            }
+        } catch (error) {
+            console.warn('API请求失败，使用本地数据:', error);
+            const localData = this.getLocalStorage('guardianScheduledMessages', null);
+            if (localData && Array.isArray(localData)) {
+                this.scheduledMessages = localData;
+            } else {
+                this.scheduledMessages = this.getDefaultScheduledMessages();
+                this.setLocalStorage('guardianScheduledMessages', this.scheduledMessages);
+            }
         }
     }
     
@@ -98,15 +172,32 @@ class GuardianPage {
                 id: 1,
                 sender: 'parent',
                 content: '记得保持正确坐姿哦',
-                type: 'sent',
+                type: 'immediate',
                 timestamp: new Date(Date.now() - 3600000).toISOString()
             },
             {
                 id: 2,
-                sender: 'scheduled',
+                sender: 'parent',
                 content: '该休息一下眼睛了',
-                type: 'scheduled',
-                timestamp: new Date(Date.now() + 1800000).toISOString()
+                type: 'immediate',
+                timestamp: new Date(Date.now() - 1800000).toISOString()
+            }
+        ];
+    }
+    
+    getDefaultScheduledMessages() {
+        return [
+            {
+                id: 1,
+                content: '记得保持正确坐姿哦',
+                scheduledTime: new Date(Date.now() + 1800000).toISOString(),
+                status: 'pending'
+            },
+            {
+                id: 2,
+                content: '该休息一下眼睛了',
+                scheduledTime: new Date(Date.now() + 3600000).toISOString(),
+                status: 'pending'
             }
         ];
     }
@@ -115,34 +206,86 @@ class GuardianPage {
         const container = document.getElementById('messageHistory');
         if (!container) return;
         
+        console.log('更新消息显示，当前消息数量:', this.messageHistory.length);
+        
         // 清空容器
         container.innerHTML = '';
         
+        // 只显示最新的10条消息
+        const recentMessages = this.messageHistory.slice(0, 10);
+        
+        if (recentMessages.length === 0) {
+            container.innerHTML = '<div class="empty-state">暂无历史消息</div>';
+            console.log('显示空状态');
+            return;
+        }
+        
         // 添加消息项
-        this.messageHistory.forEach(message => {
+        recentMessages.forEach(message => {
             const messageEl = this.createMessageElement(message);
             container.appendChild(messageEl);
         });
         
+        console.log('显示消息数量:', recentMessages.length);
+        
         // 滚动到底部
         container.scrollTop = container.scrollHeight;
+    }
+    
+    updateScheduledMessagesDisplay() {
+        const container = document.getElementById('scheduledMessages');
+        if (!container) return;
+        
+        // 清空容器
+        container.innerHTML = '';
+        
+        if (this.scheduledMessages.length === 0) {
+            container.innerHTML = '<div class="empty-state">暂无定时消息</div>';
+            return;
+        }
+        
+        // 添加定时消息项
+        this.scheduledMessages.forEach(message => {
+            const messageEl = this.createScheduledMessageElement(message);
+            container.appendChild(messageEl);
+        });
     }
     
     createMessageElement(message) {
         const messageEl = document.createElement('div');
         messageEl.className = `message-item ${message.type}`;
         
-        const sender = message.sender === 'parent' ? '家长' : '定时消息';
-        const icon = message.sender === 'parent' ? 'bi-person-check' : 'bi-clock';
-        const time = MobileUtils.formatDate(message.timestamp);
+        const sender = '家长';
+        const icon = 'bi-person-check';
+        const time = this.formatDate(message.timestamp);
+        const typeText = message.type === 'immediate' ? '立即发送' : '定时发送';
         
         messageEl.innerHTML = `
             <div class="message-sender">
                 <i class="bi ${icon}"></i>
-                ${sender}
+                ${sender} (${typeText})
             </div>
             <div class="message-content">${message.content}</div>
             <div class="message-time">${time}</div>
+        `;
+        
+        return messageEl;
+    }
+    
+    createScheduledMessageElement(message) {
+        const messageEl = document.createElement('div');
+        messageEl.className = 'scheduled-message-item';
+        
+        const scheduledTime = this.formatDate(message.scheduledTime);
+        const statusText = message.status === 'pending' ? '待发送' : '已发送';
+        
+        messageEl.innerHTML = `
+            <div class="scheduled-message-time">${scheduledTime} (${statusText})</div>
+            <div class="scheduled-message-content">${message.content}</div>
+            <div class="scheduled-message-actions">
+                <button class="edit-btn" onclick="window.guardianPage.editScheduledMessage(${message.id})">编辑</button>
+                <button class="delete-btn" onclick="window.guardianPage.deleteScheduledMessage(${message.id})">删除</button>
+            </div>
         `;
         
         return messageEl;
@@ -189,7 +332,7 @@ class GuardianPage {
         
         this.updateVideoStatus();
         
-        MobileUtils.showToast(
+        this.showToast(
             this.isVideoPaused ? '视频已暂停' : '视频已恢复',
             'info'
         );
@@ -203,12 +346,12 @@ class GuardianPage {
                 captureBtn.innerHTML = '<i class="bi bi-arrow-clockwise"></i>';
             }
             
-            const response = await MobileUtils.fetchData('/api/guardian/capture', {
+            const response = await this.fetchData('/api/guardian/capture', {
                 method: 'POST'
             });
             
             if (response.success) {
-                MobileUtils.showToast('拍照成功', 'success');
+                this.showToast('拍照成功', 'success');
                 
                 // 模拟拍照效果
                 const videoEl = document.getElementById('guardianVideo');
@@ -224,7 +367,7 @@ class GuardianPage {
             
         } catch (error) {
             console.error('拍照失败:', error);
-            MobileUtils.showToast('拍照失败', 'error');
+            this.showToast('拍照失败', 'error');
         } finally {
             const captureBtn = document.getElementById('captureBtn');
             if (captureBtn) {
@@ -241,18 +384,10 @@ class GuardianPage {
         if (!document.fullscreenElement) {
             videoContainer.requestFullscreen().catch(err => {
                 console.error('全屏失败:', err);
-                MobileUtils.showToast('全屏失败', 'error');
+                this.showToast('全屏失败', 'error');
             });
         } else {
             document.exitFullscreen();
-        }
-    }
-    
-    showMessageInput() {
-        const messageInput = document.getElementById('messageContent');
-        if (messageInput) {
-            messageInput.focus();
-            messageInput.scrollIntoView({ behavior: 'smooth' });
         }
     }
     
@@ -266,12 +401,21 @@ class GuardianPage {
         const type = messageType.value;
         
         if (!content) {
-            MobileUtils.showToast('请输入消息内容', 'warning');
+            this.showToast('请输入消息内容', 'warning');
             return;
         }
         
+        // 创建新消息
+        const newMessage = {
+            id: Date.now(),
+            sender: 'parent',
+            content: content,
+            type: type,
+            timestamp: new Date().toISOString()
+        };
+        
         try {
-            const response = await MobileUtils.fetchData('/api/guardian/send_message', {
+            const response = await this.fetchData('/api/guardian/send_message', {
                 method: 'POST',
                 body: JSON.stringify({
                     content: content,
@@ -280,43 +424,90 @@ class GuardianPage {
             });
             
             if (response.success) {
-                // 添加到消息历史
-                this.messageHistory.unshift(response.message);
-                
-                // 更新显示
-                this.updateMessageDisplay();
-                
-                // 清空输入框
-                messageInput.value = '';
-                
-                MobileUtils.showToast('消息发送成功', 'success');
-                
-                // 保存到本地存储
-                MobileUtils.setLocalStorage('guardianMessages', this.messageHistory);
-                
+                this.showToast('消息发送成功', 'success');
             } else {
                 throw new Error('发送失败');
             }
             
         } catch (error) {
             console.error('发送消息失败:', error);
-            MobileUtils.showToast('发送失败', 'error');
+            this.showToast('消息已保存到本地', 'info');
+        }
+        
+        // 无论API是否成功，都添加到本地历史记录
+        this.messageHistory.unshift(newMessage);
+        
+        // 只保留最新的10条消息
+        if (this.messageHistory.length > 10) {
+            this.messageHistory = this.messageHistory.slice(0, 10);
+        }
+        
+        // 更新显示
+        this.updateMessageDisplay();
+        
+        // 清空输入框
+        messageInput.value = '';
+        
+        // 保存到本地存储
+        this.setLocalStorage('guardianMessages', this.messageHistory);
+    }
+    
+    editScheduledMessage(messageId) {
+        const message = this.scheduledMessages.find(m => m.id === messageId);
+        if (message) {
+            this.showToast('编辑定时消息功能开发中', 'info');
+        }
+    }
+    
+    deleteScheduledMessage(messageId) {
+        const index = this.scheduledMessages.findIndex(m => m.id === messageId);
+        if (index !== -1) {
+            this.scheduledMessages.splice(index, 1);
+            this.updateScheduledMessagesDisplay();
+            this.setLocalStorage('guardianScheduledMessages', this.scheduledMessages);
+            this.showToast('定时消息已删除', 'success');
         }
     }
     
     startAutoUpdate() {
-        // 每10秒更新一次数据
+        // 每30秒更新一次数据，减少频率避免频繁API请求
         this.updateInterval = setInterval(() => {
-            this.loadMessageHistory().then(() => {
-                this.updateMessageDisplay();
-            });
-        }, 10000);
+            // 只在有网络连接时才尝试更新
+            if (navigator.onLine) {
+                this.loadMessageHistory().then(() => {
+                    this.updateMessageDisplay();
+                }).catch(() => {
+                    // 如果更新失败，保持当前显示
+                    console.log('自动更新失败，保持当前数据');
+                });
+            }
+        }, 30000);
+    }
+    
+    startHistoryUpdate() {
+        // 每2分钟更新一次历史留言板，减少频率
+        this.historyUpdateInterval = setInterval(() => {
+            // 只在有网络连接时才尝试更新
+            if (navigator.onLine) {
+                this.loadMessageHistory().then(() => {
+                    this.updateMessageDisplay();
+                }).catch(() => {
+                    // 如果更新失败，保持当前显示
+                    console.log('历史更新失败，保持当前数据');
+                });
+            }
+        }, 120000);
     }
     
     stopAutoUpdate() {
         if (this.updateInterval) {
             clearInterval(this.updateInterval);
             this.updateInterval = null;
+        }
+        
+        if (this.historyUpdateInterval) {
+            clearInterval(this.historyUpdateInterval);
+            this.historyUpdateInterval = null;
         }
         
         if (this.videoStream) {
@@ -328,14 +519,112 @@ class GuardianPage {
     // 页面可见性变化处理
     onPageVisible() {
         console.log('监护页面变为可见');
-        this.loadMessageHistory().then(() => {
-            this.updateMessageDisplay();
-        });
+        // 只在有网络连接时才尝试更新
+        if (navigator.onLine) {
+            this.loadMessageHistory().then(() => {
+                this.updateMessageDisplay();
+            }).catch(() => {
+                // 如果更新失败，保持当前显示
+                console.log('页面可见性更新失败，保持当前数据');
+            });
+        }
     }
     
     onPageHidden() {
         console.log('监护页面变为隐藏');
         this.stopAutoUpdate();
+    }
+    
+    // 工具方法
+    async fetchData(url, options = {}) {
+        try {
+            const response = await fetch(url, {
+                headers: {
+                    'Content-Type': 'application/json',
+                    ...options.headers
+                },
+                ...options
+            });
+            
+            if (!response.ok) {
+                throw new Error(`HTTP error! status: ${response.status}`);
+            }
+            
+            return await response.json();
+        } catch (error) {
+            console.log('API请求失败，使用本地数据:', error.message);
+            throw error;
+        }
+    }
+    
+    setLocalStorage(key, value) {
+        try {
+            localStorage.setItem(key, JSON.stringify(value));
+        } catch (error) {
+            console.error('LocalStorage set error:', error);
+        }
+    }
+    
+    getLocalStorage(key, defaultValue = null) {
+        try {
+            const item = localStorage.getItem(key);
+            return item ? JSON.parse(item) : defaultValue;
+        } catch (error) {
+            console.error('LocalStorage get error:', error);
+            return defaultValue;
+        }
+    }
+    
+    formatDate(dateString) {
+        const date = new Date(dateString);
+        const now = new Date();
+        const diff = now - date;
+        
+        if (diff < 60000) { // 1分钟内
+            return '刚刚';
+        } else if (diff < 3600000) { // 1小时内
+            return `${Math.floor(diff / 60000)}分钟前`;
+        } else if (diff < 86400000) { // 1天内
+            return `${Math.floor(diff / 3600000)}小时前`;
+        } else {
+            return date.toLocaleDateString();
+        }
+    }
+    
+    showToast(message) {
+        const toast = document.createElement('div');
+        toast.textContent = message;
+        toast.style.cssText = `
+            position: fixed;
+            top: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: var(--primary-color);
+            color: white;
+            padding: 12px 24px;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            z-index: 10000;
+            box-shadow: 0 4px 12px rgba(143, 180, 160, 0.3);
+            opacity: 0;
+            transition: opacity 0.3s ease;
+        `;
+        
+        document.body.appendChild(toast);
+        
+        setTimeout(() => {
+            toast.style.opacity = '1';
+        }, 100);
+        
+        setTimeout(() => {
+            toast.style.opacity = '0';
+            setTimeout(() => {
+                if (toast.parentNode) {
+                    toast.parentNode.removeChild(toast);
+                }
+            }, 300);
+        }, 3000);
     }
     
     // 清理资源

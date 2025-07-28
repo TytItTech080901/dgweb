@@ -331,51 +331,7 @@
     font-size: 14px;
 }
 
-/* 分布统计 */
-.distribution-stats {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 16px;
-    background: rgba(255, 255, 255, 0.95);
-    backdrop-filter: blur(10px);
-    border-radius: 8px;
-    border: 1px solid var(--border-gray);
-}
 
-.stat-row {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 8px 0;
-    border-bottom: 1px solid var(--border-gray);
-}
-
-.stat-row:last-child {
-    border-bottom: none;
-}
-
-.stat-label {
-    font-size: 14px;
-    color: var(--text-color);
-}
-
-.stat-value {
-    font-size: 14px;
-    font-weight: 600;
-}
-
-.stat-value.positive {
-    color: var(--success-color);
-}
-
-.stat-value.neutral {
-    color: var(--info-color);
-}
-
-.stat-value.negative {
-    color: var(--danger-color);
-}
 
 /* 热力图图例 */
 .heatmap-legend {
@@ -581,11 +537,6 @@
     }
     
     .trend-insights {
-        flex-direction: row;
-        justify-content: space-between;
-    }
-    
-    .distribution-stats {
         flex-direction: row;
         justify-content: space-between;
     }

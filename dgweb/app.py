@@ -99,86 +99,385 @@ def api_home_stats():
     }
     return jsonify(stats)
 
-@app.route('/api/guardian/video_status')
-def api_video_status():
-    """获取视频状态"""
+# 坐姿检测API接口
+@app.route('/api/posture/data')
+def api_posture_data():
+    """获取坐姿数据"""
+    range_type = request.args.get('range', 'day')
+    
+    # 模拟数据
+    if range_type == 'day':
+        data = {
+            'goodPostureTime': '3.2h',
+            'mildBadPostureTime': '1.2h',
+            'badPostureTime': '0.6h',
+            'postureRate': '64%',
+            'pieData': [64, 24, 12],
+            'heatmapData': [85, 78, 72, 65, 58, 82, 90, 88]
+        }
+    elif range_type == 'week':
+        data = {
+            'goodPostureTime': '22.4h',
+            'mildBadPostureTime': '8.4h',
+            'badPostureTime': '4.2h',
+            'postureRate': '68%',
+            'pieData': [68, 22, 10],
+            'heatmapData': [88, 82, 75, 68, 72, 85, 92, 89]
+        }
+    else:  # month
+        data = {
+            'goodPostureTime': '96.0h',
+            'mildBadPostureTime': '36.0h',
+            'badPostureTime': '18.0h',
+            'postureRate': '72%',
+            'pieData': [72, 20, 8],
+            'heatmapData': [90, 85, 78, 72, 75, 88, 94, 91]
+        }
+    
+    return jsonify(data)
+
+@app.route('/api/posture/images')
+def api_posture_images():
+    """获取坐姿图像记录"""
+    # 模拟图像数据
+    images = [
+        {
+            'id': 1,
+            'url': '/static/placeholder.jpg',
+            'time': '2025-05-28 21:39:01',
+            'status': 'good'
+        },
+        {
+            'id': 2,
+            'url': '/static/placeholder.jpg',
+            'time': '2025-05-28 21:40:33',
+            'status': 'warning'
+        },
+        {
+            'id': 3,
+            'url': '/static/placeholder.jpg',
+            'time': '2025-05-28 21:41:21',
+            'status': 'good'
+        },
+        {
+            'id': 4,
+            'url': '/static/placeholder.jpg',
+            'time': '2025-05-28 21:42:32',
+            'status': 'bad'
+        },
+        {
+            'id': 5,
+            'url': '/static/placeholder.jpg',
+            'time': '2025-05-28 22:04:03',
+            'status': 'good'
+        },
+        {
+            'id': 6,
+            'url': '/static/placeholder.jpg',
+            'time': '2025-05-28 22:14:34',
+            'status': 'warning'
+        }
+    ]
+    
     return jsonify({
-        'status': 'live',
-        'isStreaming': True,
-        'lastFrame': datetime.now().isoformat()
+        'status': 'success',
+        'images': images
     })
 
-@app.route('/api/guardian/capture')
-def api_capture_photo():
-    """拍照功能"""
-    try:
-        # 模拟拍照
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = f"capture_{timestamp}.jpg"
-        
-        return jsonify({
-            'success': True,
-            'filename': filename,
-            'timestamp': datetime.now().isoformat()
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
-
-@app.route('/api/guardian/send_message', methods=['POST'])
-def api_send_message():
-    """发送消息"""
-    try:
-        data = request.get_json()
-        content = data.get('content', '')
-        message_type = data.get('type', 'immediate')
-        
-        # 模拟消息发送
-        message = {
-            'id': random.randint(1000, 9999),
-            'content': content,
-            'type': message_type,
-            'timestamp': datetime.now().isoformat(),
-            'status': 'sent'
+@app.route('/api/posture/distribution')
+def api_posture_distribution():
+    """获取坐姿分布数据"""
+    range_type = request.args.get('range', 'day')
+    
+    # 模拟分布数据
+    if range_type == 'day':
+        data = {
+            'heatmapData': [85, 78, 72, 65, 58, 82, 90, 88]
         }
-        
-        return jsonify({
-            'success': True,
-            'message': message
-        })
-    except Exception as e:
-        return jsonify({'success': False, 'error': str(e)}), 500
+    elif range_type == 'week':
+        data = {
+            'heatmapData': [88, 82, 75, 68, 72, 85, 92, 89]
+        }
+    else:  # month
+        data = {
+            'heatmapData': [90, 85, 78, 72, 75, 88, 94, 91]
+        }
+    
+    return jsonify(data)
 
-@app.route('/api/guardian/messages')
-def api_get_messages():
+# 用眼情况API接口
+@app.route('/api/eye/data')
+def api_eye_data():
+    """获取用眼数据"""
+    # 模拟用眼数据
+    data = {
+        'continuousTime': '2.5小时',
+        'blinkRate': '15次/分钟',
+        'screenDistance': '45cm',
+        'weeklyData': [65, 72, 68, 75, 82, 58, 45],
+        'feedback': [
+            { 'type': 'positive', 'text': '本周平均远眺次数：4.3 次/天', 'icon': 'bi-check-circle-fill' },
+            { 'type': 'positive', 'text': '当前环境光照：良好', 'icon': 'bi-brightness-high-fill' },
+            { 'type': 'positive', 'text': '色温状态：柔和', 'icon': 'bi-thermometer-sun' },
+            { 'type': 'warning', 'text': '昨日连续用眼超时：72 分钟', 'icon': 'bi-exclamation-triangle-fill' }
+        ]
+    }
+    
+    return jsonify(data)
+
+@app.route('/api/eye/feedback')
+def api_eye_feedback():
+    """获取用眼反馈数据"""
+    # 模拟反馈数据
+    feedback = [
+        { 'type': 'positive', 'text': '本周平均远眺次数：4.3 次/天', 'icon': 'bi-check-circle-fill' },
+        { 'type': 'positive', 'text': '当前环境光照：良好', 'icon': 'bi-brightness-high-fill' },
+        { 'type': 'positive', 'text': '色温状态：柔和', 'icon': 'bi-thermometer-sun' },
+        { 'type': 'warning', 'text': '昨日连续用眼超时：72 分钟', 'icon': 'bi-exclamation-triangle-fill' },
+        { 'type': 'positive', 'text': '护眼模式已开启', 'icon': 'bi-shield-check' },
+        { 'type': 'info', 'text': '建议每30分钟休息5分钟', 'icon': 'bi-info-circle' }
+    ]
+    
+    return jsonify({
+        'status': 'success',
+        'feedback': feedback
+    })
+
+@app.route('/api/eye/weekly')
+def api_eye_weekly():
+    """获取用眼周数据"""
+    # 模拟周数据
+    data = {
+        'weeklyData': [65, 72, 68, 75, 82, 58, 45],
+        'summary': {
+            'averageIntensity': 66.4,
+            'maxIntensity': 82,
+            'minIntensity': 45,
+            'improvement': '+12%'
+        }
+    }
+    
+    return jsonify(data)
+
+# 情绪识别API接口
+@app.route('/api/emotion/data')
+def api_emotion_data():
+    """获取情绪数据"""
+    # 模拟情绪数据
+    data = {
+        'dominantEmotion': '高兴',
+        'emotionScore': 4.2,
+        'stability': '良好',
+        'stabilityChange': 15,
+        'timeline': [
+            { 'time': '15:30', 'emotion': '高兴', 'emoji': '😊' },
+            { 'time': '14:45', 'emotion': '平静', 'emoji': '😐' },
+            { 'time': '14:20', 'emotion': '焦虑', 'emoji': '😟' },
+            { 'time': '13:55', 'emotion': '高兴', 'emoji': '😊' },
+            { 'time': '13:30', 'emotion': '兴奋', 'emoji': '🤩' },
+            { 'time': '13:05', 'emotion': '平静', 'emoji': '😐' }
+        ],
+        'distribution': {
+            '高兴': 40,
+            '平静': 35,
+            '焦虑': 15,
+            '兴奋': 10
+        },
+        'trend': [4.2, 3.8, 4.0, 3.5, 4.5, 4.2, 4.0]
+    }
+    
+    return jsonify(data)
+
+# 家长监护API接口
+@app.route('/api/guardian/scheduled_messages')
+def api_guardian_scheduled_messages():
+    """获取定时消息列表"""
+    # 模拟定时消息数据
+    messages = [
+        {
+            'id': 1,
+            'content': '记得保持正确坐姿哦',
+            'scheduledTime': '2025-01-20T10:30:00Z',
+            'status': 'pending'
+        },
+        {
+            'id': 2,
+            'content': '该休息一下眼睛了',
+            'scheduledTime': '2025-01-20T11:00:00Z',
+            'status': 'pending'
+        },
+        {
+            'id': 3,
+            'content': '记得喝水补充水分',
+            'scheduledTime': '2025-01-20T11:30:00Z',
+            'status': 'pending'
+        }
+    ]
+    
+    return jsonify(messages)
+
+@app.route('/api/guardian/messages', methods=['GET'])
+def api_guardian_messages():
     """获取消息历史"""
-    # 模拟消息历史
+    # 模拟消息历史数据
     messages = [
         {
             'id': 1,
             'sender': 'parent',
             'content': '记得保持正确坐姿哦',
-            'type': 'sent',
-            'timestamp': (datetime.now() - timedelta(hours=1)).isoformat()
+            'type': 'immediate',
+            'timestamp': '2025-01-20T09:30:00Z'
         },
         {
             'id': 2,
-            'sender': 'scheduled',
+            'sender': 'parent',
             'content': '该休息一下眼睛了',
-            'type': 'scheduled',
-            'timestamp': (datetime.now() + timedelta(minutes=30)).isoformat()
+            'type': 'immediate',
+            'timestamp': '2025-01-20T09:00:00Z'
+        },
+        {
+            'id': 3,
+            'sender': 'system',
+            'content': '检测到坐姿不良，已自动提醒',
+            'type': 'system',
+            'timestamp': '2025-01-20T08:45:00Z'
         }
     ]
+    
     return jsonify(messages)
+
+@app.route('/api/guardian/send_message', methods=['POST'])
+def api_guardian_send_message():
+    """发送消息"""
+    data = request.get_json()
+    message_content = data.get('content', '')
+    
+    # 模拟发送消息
+    response = {
+        'status': 'success',
+        'message': '消息发送成功',
+        'data': {
+            'id': random.randint(1000, 9999),
+            'content': message_content,
+            'timestamp': datetime.now().isoformat()
+        }
+    }
+    
+    return jsonify(response)
+
+# 远程控制API接口
+@app.route('/api/lamp/power', methods=['POST'])
+def api_lamp_power():
+    """控制台灯电源"""
+    data = request.get_json()
+    power = data.get('power', False)
+    
+    # 模拟台灯控制
+    response = {
+        'status': 'success',
+        'message': f'台灯已{"开启" if power else "关闭"}',
+        'data': {
+            'power': power
+        }
+    }
+    
+    return jsonify(response)
+
+@app.route('/api/lamp/brightness', methods=['POST'])
+def api_lamp_brightness():
+    """控制台灯亮度"""
+    data = request.get_json()
+    brightness = data.get('brightness', 500)
+    
+    # 模拟亮度控制
+    response = {
+        'status': 'success',
+        'message': f'亮度已调整为{brightness}',
+        'data': {
+            'brightness': brightness
+        }
+    }
+    
+    return jsonify(response)
+
+@app.route('/api/lamp/color_temp', methods=['POST'])
+def api_lamp_color_temp():
+    """控制台灯色温"""
+    data = request.get_json()
+    color_temp = data.get('color_temp', 5300)
+    
+    # 模拟色温控制
+    response = {
+        'status': 'success',
+        'message': f'色温已调整为{color_temp}K',
+        'data': {
+            'color_temp': color_temp
+        }
+    }
+    
+    return jsonify(response)
+
+@app.route('/api/lamp/settings', methods=['POST'])
+def api_lamp_settings():
+    """应用台灯设置"""
+    data = request.get_json()
+    
+    # 模拟设置应用
+    response = {
+        'status': 'success',
+        'message': '设置已应用',
+        'data': data
+    }
+    
+    return jsonify(response)
+
+@app.route('/api/lamp/scene', methods=['POST'])
+def api_lamp_scene():
+    """切换台灯场景"""
+    data = request.get_json()
+    scene = data.get('scene', 'normal')
+    
+    # 模拟场景切换
+    response = {
+        'status': 'success',
+        'message': f'已切换到{scene}模式',
+        'data': {
+            'scene': scene
+        }
+    }
+    
+    return jsonify(response)
+
+@app.route('/api/lamp/timer', methods=['POST'])
+def api_lamp_timer():
+    """设置台灯定时器"""
+    data = request.get_json()
+    timer_enabled = data.get('timer_enabled', False)
+    timer_duration = data.get('timer_duration', 30)
+    
+    # 模拟定时器设置
+    response = {
+        'status': 'success',
+        'message': f'定时器已{"开启" if timer_enabled else "关闭"}，时长{timer_duration}分钟',
+        'data': {
+            'timer_enabled': timer_enabled,
+            'timer_duration': timer_duration
+        }
+    }
+    
+    return jsonify(response)
 
 @app.route('/api/lamp/status')
 def api_lamp_status():
     """获取台灯状态"""
     return jsonify({
-        'power': True,
-        'light': True,
-        'brightness': 500,
-        'temperature': 5300,
-        'mode': 'manual',
+        'status': 'success',
+        'data': {
+            'power': True,
+            'brightness': 500,
+            'color_temp': 5300,
+            'mode': 'manual'
+        },
         'lastUpdate': datetime.now().isoformat()
     })
 

@@ -200,12 +200,6 @@ class HomePage {
     handleStatClick(element) {
         // 添加点击反馈
         this.addClickAnimation(element);
-        
-        // 显示详细信息
-        const label = element.querySelector('.stat-label').textContent;
-        const value = element.querySelector('.stat-value').textContent;
-        
-        MobileUtils.showToast(`${label}: ${value}`, 'info', 2000);
     }
     
     addTouchFeedback(element) {
@@ -254,14 +248,14 @@ class HomePage {
     
     // 页面可见性变化处理
     onPageVisible() {
-        console.log('首页变为可见');
+        // console.log('首页变为可见');
         this.loadStatsData().then(() => {
             this.updateStatsDisplay();
         });
     }
     
     onPageHidden() {
-        console.log('首页变为隐藏');
+        // console.log('首页变为隐藏');
         this.stopAutoUpdate();
     }
     

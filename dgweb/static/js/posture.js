@@ -6,22 +6,21 @@ let currentPostureTab = 'proportion';
 let posturePieChart = null;
 let heatmapChart = null;
 let postureImages = [];
+let isDataLoaded = {
+    proportion: false,
+    distribution: false,
+    images: false
+};
 
 // 页面加载完成后初始化
 document.addEventListener('DOMContentLoaded', function() {
     console.log('坐姿检测工具初始化');
     
-    // 初始化图表
-    initCharts();
-    
-    // 加载数据
-    loadPostureData();
-    
-    // 加载坐姿图像
-    loadPostureImages();
-    
     // 初始化事件监听器
     initEventListeners();
+    
+    // 默认加载坐姿分析数据
+    loadTabData('proportion');
 });
 
 // 初始化事件监听器
@@ -57,15 +56,31 @@ function initEventListeners() {
             
             currentPostureTab = tab;
             
-            // 显示提示
-            const tabNames = {
-                proportion: '坐姿时间占比',
-                distribution: '不良姿态时间分布',
-                images: '坐姿图像记录'
-            };
-            showToast(`已切换到${tabNames[tab]}`);
+            // 按需加载数据
+            loadTabData(tab);
         });
     });
+}
+
+// 按需加载tab数据
+function loadTabData(tab) {
+    if (isDataLoaded[tab]) {
+        return; // 数据已加载，无需重复加载
+    }
+    
+    switch(tab) {
+        case 'proportion':
+            loadPostureData();
+            break;
+        case 'distribution':
+            loadDistributionData();
+            break;
+        case 'images':
+            loadPostureImages();
+            break;
+    }
+    
+    isDataLoaded[tab] = true;
 }
 
 // 切换时间范围
@@ -78,8 +93,12 @@ function changeTimeRange(range) {
     });
     document.querySelector(`[data-range="${range}"]`).classList.add('active');
     
-    // 重新加载数据
-    loadPostureData();
+    // 重新加载当前tab的数据
+    if (currentPostureTab === 'proportion') {
+        loadPostureData();
+    } else if (currentPostureTab === 'distribution') {
+        loadDistributionData();
+    }
     
     // 显示提示
     const rangeNames = {
@@ -87,14 +106,13 @@ function changeTimeRange(range) {
         week: '本周',
         month: '本月'
     };
-    showToast(`已切换到${rangeNames[range]}数据`);
 }
 
 // 初始化图表
 function initCharts() {
     // 初始化饼图
     const pieCtx = document.getElementById('posturePieChart');
-    if (pieCtx) {
+    if (pieCtx && !posturePieChart) {
         posturePieChart = new Chart(pieCtx, {
             type: 'doughnut',
             data: {
@@ -129,7 +147,7 @@ function initCharts() {
     
     // 初始化热力图
     const heatmapCtx = document.getElementById('heatmapChart');
-    if (heatmapCtx) {
+    if (heatmapCtx && !heatmapChart) {
         heatmapChart = new Chart(heatmapCtx, {
             type: 'bar',
             data: {
@@ -163,23 +181,56 @@ function initCharts() {
 
 // 加载坐姿数据
 function loadPostureData() {
-    // 模拟API调用
+    // 初始化图表
+    initCharts();
+    
+    // 尝试API调用
     fetch(`/api/posture/data?range=${currentTimeRange}`)
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('API not available');
+            }
+            return response.json();
+        })
         .then(data => {
             console.log('坐姿数据加载成功:', data);
             updateStats(data);
             updateCharts(data);
         })
         .catch(error => {
-            console.error('加载坐姿数据失败:', error);
-            // 使用模拟数据
-            loadMockPostureData();
+            console.log('使用模拟数据:', error.message);
+            const mockData = getMockPostureData();
+            updateStats(mockData);
+            updateCharts(mockData);
         });
 }
 
-// 加载模拟坐姿数据
-function loadMockPostureData() {
+// 加载分布数据
+function loadDistributionData() {
+    // 初始化图表
+    initCharts();
+    
+    // 尝试API调用
+    fetch(`/api/posture/distribution?range=${currentTimeRange}`)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('API not available');
+            }
+            return response.json();
+        })
+        .then(data => {
+            console.log('分布数据加载成功:', data);
+            updateDistributionChart(data);
+        })
+        .catch(error => {
+            console.log('使用模拟分布数据:', error.message);
+            const mockData = getMockDistributionData();
+            updateDistributionChart(mockData);
+        });
+}
+
+// 获取模拟坐姿数据
+function getMockPostureData() {
     const mockData = {
         goodPostureTime: '3.2h',
         mildBadPostureTime: '1.2h',
@@ -189,8 +240,29 @@ function loadMockPostureData() {
         heatmapData: [85, 78, 72, 65, 58, 82, 90, 88]
     };
     
-    updateStats(mockData);
-    updateCharts(mockData);
+    // 根据时间范围调整数据
+    if (currentTimeRange === 'week') {
+        mockData.goodPostureTime = '22.4h';
+        mockData.mildBadPostureTime = '8.4h';
+        mockData.badPostureTime = '4.2h';
+        mockData.postureRate = '68%';
+        mockData.pieData = [68, 22, 10];
+    } else if (currentTimeRange === 'month') {
+        mockData.goodPostureTime = '96.0h';
+        mockData.mildBadPostureTime = '36.0h';
+        mockData.badPostureTime = '18.0h';
+        mockData.postureRate = '72%';
+        mockData.pieData = [72, 20, 8];
+    }
+    
+    return mockData;
+}
+
+// 获取模拟分布数据
+function getMockDistributionData() {
+    return {
+        heatmapData: [85, 78, 72, 65, 58, 82, 90, 88]
+    };
 }
 
 // 更新统计数据
@@ -223,19 +295,31 @@ function updateCharts(data) {
     }
 }
 
+// 更新分布图表
+function updateDistributionChart(data) {
+    if (heatmapChart && data.heatmapData) {
+        heatmapChart.data.datasets[0].data = data.heatmapData;
+        heatmapChart.update();
+    }
+}
+
 // 加载坐姿图像
 function loadPostureImages() {
-    // 模拟API调用
+    // 尝试API调用
     fetch('/api/posture/images')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('API not available');
+            }
+            return response.json();
+        })
         .then(data => {
             console.log('坐姿图像加载成功:', data);
             postureImages = data.images || [];
             renderPostureImages();
         })
         .catch(error => {
-            console.error('加载坐姿图像失败:', error);
-            // 使用模拟数据
+            console.log('使用模拟图像数据:', error.message);
             loadMockPostureImages();
         });
 }
@@ -243,10 +327,12 @@ function loadPostureImages() {
 // 加载模拟坐姿图像
 function loadMockPostureImages() {
     postureImages = [
-        { id: 1, url: '/static/posture_images/posture_20250528_213901_8c748294.jpg', time: '2025-05-28 21:39:01', status: 'good' },
-        { id: 2, url: '/static/posture_images/posture_20250528_214033_8d2c9369.jpg', time: '2025-05-28 21:40:33', status: 'warning' },
-        { id: 3, url: '/static/posture_images/posture_20250528_214121_70930925.jpg', time: '2025-05-28 21:41:21', status: 'good' },
-        { id: 4, url: '/static/posture_images/posture_20250528_214232_a147a01a.jpg', time: '2025-05-28 21:42:32', status: 'bad' }
+        { id: 1, url: '/static/placeholder.jpg', time: '2025-05-28 21:39:01', status: 'good' },
+        { id: 2, url: '/static/placeholder.jpg', time: '2025-05-28 21:40:33', status: 'warning' },
+        { id: 3, url: '/static/placeholder.jpg', time: '2025-05-28 21:41:21', status: 'good' },
+        { id: 4, url: '/static/placeholder.jpg', time: '2025-05-28 21:42:32', status: 'bad' },
+        { id: 5, url: '/static/placeholder.jpg', time: '2025-05-28 22:04:03', status: 'good' },
+        { id: 6, url: '/static/placeholder.jpg', time: '2025-05-28 22:14:34', status: 'warning' }
     ];
     renderPostureImages();
 }
@@ -284,18 +370,18 @@ function showImageDetail(imageId) {
 
 // 加载更多坐姿图像
 function loadMorePostureImages() {
-    showToast('正在加载更多图像...');
+    showToast('正在加载更多记录...');
     
     // 模拟加载更多图像
     setTimeout(() => {
         const newImages = [
-            { id: 5, url: '/static/posture_images/posture_20250528_220403_6e4d79db.jpg', time: '2025-05-28 22:04:03', status: 'good' },
-            { id: 6, url: '/static/posture_images/posture_20250528_221434_ef659455.jpg', time: '2025-05-28 22:14:34', status: 'warning' }
+            { id: 7, url: '/static/placeholder.jpg', time: '2025-05-28 22:30:15', status: 'good' },
+            { id: 8, url: '/static/placeholder.jpg', time: '2025-05-28 22:45:22', status: 'warning' }
         ];
         
         postureImages.push(...newImages);
         renderPostureImages();
-        showToast('已加载更多图像');
+        showToast('加载完成');
     }, 1000);
 }
 

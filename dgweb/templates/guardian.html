@@ -36,43 +36,63 @@
             </div>
         </div>
         
-        <!-- 消息推送卡片 -->
-        <div class="mobile-card">
-            <div class="mobile-card-header">
-                <div class="mobile-card-title">消息推送</div>
-                <button class="btn-mini" id="addMessage">
-                    <i class="bi bi-plus"></i>
-                </button>
+        <!-- 消息管理tab卡片 -->
+        <div class="mobile-card guardian-tabs-card">
+            <div class="guardian-tabs-nav">
+                <button class="guardian-tab-btn active" data-tab="push">消息推送</button>
+                <button class="guardian-tab-btn" data-tab="history">历史留言板</button>
+                <button class="guardian-tab-btn" data-tab="scheduled">定时消息</button>
             </div>
-            <div class="mobile-card-content">
-                <div class="message-input">
-                    <textarea id="messageContent" placeholder="输入要发送的消息..." rows="3"></textarea>
-                    <div class="message-actions">
-                        <select id="messageType">
-                            <option value="immediate">立即发送</option>
-                            <option value="scheduled">定时发送</option>
-                        </select>
-                        <button class="mobile-btn" id="sendMessage">发送</button>
+            <div class="guardian-tabs-content">
+                <!-- 消息推送tab面板 -->
+                <div class="guardian-tab-panel active" id="tab-push">
+                    <div class="mobile-card-header">
+                        <div class="mobile-card-title">消息推送</div>
+                        <div class="push-icon">
+                            <i class="bi bi-chat-dots"></i>
+                        </div>
+                    </div>
+                    <div class="mobile-card-content">
+                        <div class="message-input">
+                            <textarea id="messageContent" placeholder="输入要发送的消息..." rows="3"></textarea>
+                            <div class="message-actions">
+                                <select id="messageType">
+                                    <option value="immediate">立即发送</option>
+                                    <option value="scheduled">定时发送</option>
+                                </select>
+                                <button class="mobile-btn" id="sendMessage">发送</button>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
-                <!-- 消息历史 -->
-                <div class="message-history" id="messageHistory">
-                    <div class="message-item sent">
-                        <div class="message-sender">
-                            <i class="bi bi-person-check"></i>
-                            家长
+                <!-- 历史留言板tab面板 -->
+                <div class="guardian-tab-panel" id="tab-history">
+                    <div class="mobile-card-header">
+                        <div class="mobile-card-title">历史留言板</div>
+                        <div class="history-icon">
+                            <i class="bi bi-clock-history"></i>
                         </div>
-                        <div class="message-content">记得保持正确坐姿哦</div>
-                        <div class="message-time">14:30</div>
                     </div>
-                    <div class="message-item scheduled">
-                        <div class="message-sender">
-                            <i class="bi bi-clock"></i>
-                            定时消息
+                    <div class="mobile-card-content">
+                        <div class="message-history" id="messageHistory">
+                            <!-- 消息历史将通过JS动态加载 -->
                         </div>
-                        <div class="message-content">该休息一下眼睛了</div>
-                        <div class="message-time">15:00 (预定)</div>
+                    </div>
+                </div>
+                
+                <!-- 定时消息tab面板 -->
+                <div class="guardian-tab-panel" id="tab-scheduled">
+                    <div class="mobile-card-header">
+                        <div class="mobile-card-title">定时消息</div>
+                        <div class="scheduled-icon">
+                            <i class="bi bi-calendar-check"></i>
+                        </div>
+                    </div>
+                    <div class="mobile-card-content">
+                        <div class="scheduled-messages" id="scheduledMessages">
+                            <!-- 定时消息将通过JS动态加载 -->
+                        </div>
                     </div>
                 </div>
             </div>

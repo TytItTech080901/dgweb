@@ -151,17 +151,17 @@ class MobileApp {
     
     // 页面状态管理
     onPageHidden() {
-        console.log('页面隐藏');
+        // console.log('页面隐藏');
         // 可以在这里暂停一些不必要的操作
     }
     
     onPageVisible() {
-        console.log('页面显示');
+        // console.log('页面显示');
         // 可以在这里恢复一些操作
     }
     
     onWindowResize() {
-        console.log('窗口大小变化');
+        // console.log('窗口大小变化');
         // 处理响应式布局调整
     }
     

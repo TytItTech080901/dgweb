@@ -294,16 +294,20 @@ function updateTrendChart() {
 
 // 加载情绪数据
 function loadEmotionData() {
-    // 模拟API调用
+    // 尝试API调用
     fetch('/api/emotion/data')
-        .then(response => response.json())
+        .then(response => {
+            if (!response.ok) {
+                throw new Error('API not available');
+            }
+            return response.json();
+        })
         .then(data => {
             console.log('情绪数据加载成功:', data);
             updateEmotionData(data);
         })
         .catch(error => {
-            console.error('加载情绪数据失败:', error);
-            // 使用模拟数据
+            console.log('使用模拟情绪数据:', error.message);
             loadMockEmotionData();
         });
 }
