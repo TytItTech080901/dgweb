@@ -17,27 +17,24 @@
     </div>
     
     <div class="mobile-dashboard">
-        <!-- 用眼监控和每日反馈切换模块 -->
-        <div class="mobile-card">
-            <div class="mobile-card-header">
-                <div class="mobile-card-title" id="eyeCardTitle">用眼监控</div>
-                <div class="eye-status">
-                    <span class="status-dot"></span>
-                    <span>监控中</span>
-                </div>
+        <!-- tab卡片结构 -->
+        <div class="mobile-card eye-tabs-card">
+            <div class="eye-tabs-nav">
+                <button class="eye-tab-btn active" data-tab="monitor">用眼监控</button>
+                <button class="eye-tab-btn" data-tab="feedback">每日反馈</button>
+                <button class="eye-tab-btn" data-tab="weekly">本周情况</button>
             </div>
-            <div class="mobile-card-content">
-                <!-- 切换指示器 -->
-                <div class="eye-indicators">
-                    <div class="indicator-btn active" data-eye-view="0" onclick="switchEyeView(0)">用眼监控</div>
-                    <div class="indicator-btn" data-eye-view="1" onclick="switchEyeView(1)">每日反馈</div>
-                </div>
-                
-                <!-- 可切换的内容容器 -->
-                <div class="eye-swiper" id="eyeSwiper">
-                    <!-- 用眼监控内容 -->
-                    <div class="eye-slide active" id="eye-slide-0">
-                        <div class="eye-metrics">
+            <div class="eye-tabs-content">
+                <!-- 用眼监控tab面板 -->
+                <div class="eye-tab-panel active" id="tab-monitor">
+                    <div class="mobile-card-header">
+                        <div class="mobile-card-title">实时监控数据</div>
+                        <div class="monitor-icon">
+                            <i class="bi bi-activity"></i>
+                        </div>
+                    </div>
+                    <div class="mobile-card-content">
+                        <div class="real-time-metrics">
                             <div class="metric-item">
                                 <div class="metric-icon">
                                     <i class="bi bi-clock"></i>
@@ -67,9 +64,17 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- 每日反馈内容 -->
-                    <div class="eye-slide" id="eye-slide-1">
+                </div>
+                
+                <!-- 每日反馈tab面板 -->
+                <div class="eye-tab-panel" id="tab-feedback">
+                    <div class="mobile-card-header">
+                        <div class="mobile-card-title">每日反馈</div>
+                        <div class="feedback-icon">
+                            <i class="bi bi-chat-dots"></i>
+                        </div>
+                    </div>
+                    <div class="mobile-card-content">
                         <div class="feedback-list">
                             <div class="feedback-item positive">
                                 <div class="feedback-badge">
@@ -106,76 +111,35 @@
                         </div>
                     </div>
                 </div>
-            </div>
-        </div>
-        
-        <!-- 用眼时间热力图 -->
-        <div class="mobile-card">
-            <div class="mobile-card-header">
-                <div class="mobile-card-title">用眼时间柱状图</div>
-                <div class="heatmap-icon">
-                    <i class="bi bi-calendar-week"></i>
-                </div>
-            </div>
-            <div class="mobile-card-content">
-                <div class="heatmap-container">
-                    <div id="eyeHeatmapChart"></div>
-                </div>
-                <div class="heatmap-legend">
-                    <div class="legend-title">用眼强度</div>
-                    <div class="legend-scale">
-                        <div class="legend-item">
-                            <div class="legend-color low"></div>
-                            <span>低</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color medium"></div>
-                            <span>中</span>
-                        </div>
-                        <div class="legend-item">
-                            <div class="legend-color high"></div>
-                            <span>高</span>
+                
+                <!-- 本周情况tab面板 -->
+                <div class="eye-tab-panel" id="tab-weekly">
+                    <div class="mobile-card-header">
+                        <div class="mobile-card-title">本周情况</div>
+                        <div class="weekly-icon">
+                            <i class="bi bi-calendar-week"></i>
                         </div>
                     </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 用眼健康建议 -->
-        <div class="mobile-card">
-            <div class="mobile-card-header">
-                <div class="mobile-card-title">用眼健康建议</div>
-                <div class="suggestion-icon">
-                    <i class="bi bi-lightbulb"></i>
-                </div>
-            </div>
-            <div class="mobile-card-content">
-                <div class="eye-suggestions">
-                    <div class="suggestion-item">
-                        <div class="suggestion-icon">
-                            <i class="bi bi-clock-history"></i>
+                    <div class="mobile-card-content">
+                        <div class="heatmap-container">
+                            <div id="eyeHeatmapChart"></div>
                         </div>
-                        <div class="suggestion-content">
-                            <div class="suggestion-title">20-20-20法则</div>
-                            <div class="suggestion-text">每20分钟看20英尺外的物体20秒，缓解眼部疲劳</div>
-                        </div>
-                    </div>
-                    <div class="suggestion-item">
-                        <div class="suggestion-icon">
-                            <i class="bi bi-brightness-high"></i>
-                        </div>
-                        <div class="suggestion-content">
-                            <div class="suggestion-title">调整屏幕亮度</div>
-                            <div class="suggestion-text">保持屏幕亮度与周围环境光线协调</div>
-                        </div>
-                    </div>
-                    <div class="suggestion-item">
-                        <div class="suggestion-icon">
-                            <i class="bi bi-arrows-angle-expand"></i>
-                        </div>
-                        <div class="suggestion-content">
-                            <div class="suggestion-title">保持适当距离</div>
-                            <div class="suggestion-text">眼睛与屏幕保持50-60厘米的距离</div>
+                        <div class="heatmap-legend">
+                            <div class="legend-title">用眼强度</div>
+                            <div class="legend-scale">
+                                <div class="legend-item">
+                                    <div class="legend-color low"></div>
+                                    <span>低</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color medium"></div>
+                                    <span>中</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color high"></div>
+                                    <span>高</span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                 </div>

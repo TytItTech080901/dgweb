@@ -9,173 +9,39 @@
 {% block content %}
 <div class="mobile-page">
     <div class="mobile-dashboard">
-        <!-- 通知设置卡片 -->
-        <div class="mobile-card">
-            <div class="mobile-card-header">
-                <div class="mobile-card-title">通知设置</div>
+        <div class="setting-entry-list">
+          <a class="setting-entry" href="/mobile/settings/notifications">
+            <i class="bi bi-bell entry-icon"></i>
+            <div class="entry-info">
+              <div class="entry-title">通知设置</div>
+              <div class="entry-desc">姿势、用眼、情绪、报告推送</div>
             </div>
-            <div class="mobile-card-content">
-                <div class="setting-list">
-                    <div class="setting-item">
-                        <div class="setting-info">
-                            <div class="setting-title">姿势提醒</div>
-                            <div class="setting-desc">检测到不良姿势时发送通知</div>
-                        </div>
-                        <button class="setting-toggle active" data-setting="posture">
-                            <i class="bi bi-toggle-on"></i>
-                        </button>
-                    </div>
-                    <div class="setting-item">
-                        <div class="setting-info">
-                            <div class="setting-title">用眼提醒</div>
-                            <div class="setting-desc">连续用眼时间过长时提醒</div>
-                        </div>
-                        <button class="setting-toggle active" data-setting="eye">
-                            <i class="bi bi-toggle-on"></i>
-                        </button>
-                    </div>
-                    <div class="setting-item">
-                        <div class="setting-info">
-                            <div class="setting-title">情绪异常</div>
-                            <div class="setting-desc">检测到情绪异常时通知</div>
-                        </div>
-                        <button class="setting-toggle" data-setting="emotion">
-                            <i class="bi bi-toggle-off"></i>
-                        </button>
-                    </div>
-                    <div class="setting-item">
-                        <div class="setting-info">
-                            <div class="setting-title">学习报告</div>
-                            <div class="setting-desc">每日学习报告推送</div>
-                        </div>
-                        <button class="setting-toggle active" data-setting="report">
-                            <i class="bi bi-toggle-on"></i>
-                        </button>
-                    </div>
-                </div>
+            <i class="bi bi-chevron-right entry-arrow"></i>
+          </a>
+          <a class="setting-entry" href="/mobile/settings/monitor">
+            <i class="bi bi-camera-video entry-icon"></i>
+            <div class="entry-info">
+              <div class="entry-title">监控设置</div>
+              <div class="entry-desc">灵敏度、拍照频率、数据保存</div>
             </div>
-        </div>
-        
-        <!-- 监控设置卡片 -->
-        <div class="mobile-card">
-            <div class="mobile-card-header">
-                <div class="mobile-card-title">监控设置</div>
+            <i class="bi bi-chevron-right entry-arrow"></i>
+          </a>
+          <a class="setting-entry" href="/mobile/settings/account">
+            <i class="bi bi-person-circle entry-icon"></i>
+            <div class="entry-info">
+              <div class="entry-title">账户设置</div>
+              <div class="entry-desc">个人信息、密码、网络、导出</div>
             </div>
-            <div class="mobile-card-content">
-                <div class="setting-list">
-                    <div class="setting-item">
-                        <div class="setting-info">
-                            <div class="setting-title">检测灵敏度</div>
-                            <div class="setting-desc">调整姿势检测的敏感程度</div>
-                        </div>
-                        <select class="setting-select">
-                            <option value="low">低</option>
-                            <option value="medium" selected>中</option>
-                            <option value="high">高</option>
-                        </select>
-                    </div>
-                    <div class="setting-item">
-                        <div class="setting-info">
-                            <div class="setting-title">拍照频率</div>
-                            <div class="setting-desc">自动拍照的时间间隔</div>
-                        </div>
-                        <select class="setting-select">
-                            <option value="5">5分钟</option>
-                            <option value="10" selected>10分钟</option>
-                            <option value="15">15分钟</option>
-                            <option value="30">30分钟</option>
-                        </select>
-                    </div>
-                    <div class="setting-item">
-                        <div class="setting-info">
-                            <div class="setting-title">数据保存</div>
-                            <div class="setting-desc">历史数据保留时间</div>
-                        </div>
-                        <select class="setting-select">
-                            <option value="7">7天</option>
-                            <option value="30" selected>30天</option>
-                            <option value="90">90天</option>
-                            <option value="365">1年</option>
-                        </select>
-                    </div>
-                </div>
+            <i class="bi bi-chevron-right entry-arrow"></i>
+          </a>
+          <a class="setting-entry" href="/mobile/settings/system">
+            <i class="bi bi-info-circle entry-icon"></i>
+            <div class="entry-info">
+              <div class="entry-title">系统信息</div>
+              <div class="entry-desc">版本、设备ID、更新</div>
             </div>
-        </div>
-        
-        <!-- 账户设置卡片 -->
-        <div class="mobile-card">
-            <div class="mobile-card-header">
-                <div class="mobile-card-title">账户设置</div>
-            </div>
-            <div class="mobile-card-content">
-                <div class="account-info">
-                    <div class="avatar-section">
-                        <div class="avatar">
-                            <i class="bi bi-person-circle"></i>
-                        </div>
-                        <div class="user-info">
-                            <div class="username">家长用户</div>
-                            <div class="user-role">管理员</div>
-                        </div>
-                    </div>
-                    
-                    <div class="account-actions">
-                        <button class="action-item">
-                            <i class="bi bi-person"></i>
-                            <span>修改个人信息</span>
-                            <i class="bi bi-chevron-right"></i>
-                        </button>
-                        <button class="action-item">
-                            <i class="bi bi-shield-lock"></i>
-                            <span>修改密码</span>
-                            <i class="bi bi-chevron-right"></i>
-                        </button>
-                        <button class="action-item">
-                            <i class="bi bi-wifi"></i>
-                            <span>网络设置</span>
-                            <i class="bi bi-chevron-right"></i>
-                        </button>
-                        <button class="action-item">
-                            <i class="bi bi-download"></i>
-                            <span>数据导出</span>
-                            <i class="bi bi-chevron-right"></i>
-                        </button>
-                        <button class="action-item">
-                            <i class="bi bi-question-circle"></i>
-                            <span>帮助与反馈</span>
-                            <i class="bi bi-chevron-right"></i>
-                        </button>
-                        <button class="action-item logout">
-                            <i class="bi bi-box-arrow-right"></i>
-                            <span>退出登录</span>
-                            <i class="bi bi-chevron-right"></i>
-                        </button>
-                    </div>
-                </div>
-            </div>
-        </div>
-        
-        <!-- 系统信息卡片 -->
-        <div class="mobile-card">
-            <div class="mobile-card-header">
-                <div class="mobile-card-title">系统信息</div>
-            </div>
-            <div class="mobile-card-content">
-                <div class="system-info">
-                    <div class="info-item">
-                        <span class="info-label">应用版本</span>
-                        <span class="info-value">v2.1.0</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">最后更新</span>
-                        <span class="info-value">2025-07-20</span>
-                    </div>
-                    <div class="info-item">
-                        <span class="info-label">设备ID</span>
-                        <span class="info-value">TL-001-2025</span>
-                    </div>
-                </div>
-            </div>
+            <i class="bi bi-chevron-right entry-arrow"></i>
+          </a>
         </div>
     </div>
 </div>

@@ -28,6 +28,26 @@ document.addEventListener('DOMContentLoaded', function() {
     
     // 开始实时监控
     startEmotionMonitoring();
+
+    // 新增tab切换事件监听
+    const tabBtns = document.querySelectorAll('.emotion-tab-btn');
+    const tabPanels = document.querySelectorAll('.emotion-tab-panel');
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // 切换按钮激活状态
+            tabBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            // 切换内容面板显示
+            const tab = this.getAttribute('data-tab');
+            tabPanels.forEach(panel => {
+                if (panel.id === 'tab-' + tab) {
+                    panel.classList.add('active');
+                } else {
+                    panel.classList.remove('active');
+                }
+            });
+        });
+    });
 });
 
 // 初始化事件监听器

@@ -1,7 +1,7 @@
 // 用眼情况工具JavaScript - 柔和绿色调配色方案
 
 // 全局变量
-let currentEyeView = 0;
+let currentEyeTab = 'monitor';
 let eyeHeatmapChart = null;
 let eyeMetrics = {
     continuousTime: '2.5小时',
@@ -28,53 +28,37 @@ document.addEventListener('DOMContentLoaded', function() {
 
 // 初始化事件监听器
 function initEyeEventListeners() {
-    // 用眼视图切换事件
-    const indicatorBtns = document.querySelectorAll('.indicator-btn');
-    indicatorBtns.forEach(btn => {
+    // 用眼tab切换事件
+    const tabBtns = document.querySelectorAll('.eye-tab-btn');
+    const tabPanels = document.querySelectorAll('.eye-tab-panel');
+    
+    tabBtns.forEach(btn => {
         btn.addEventListener('click', function() {
-            const viewIndex = parseInt(this.getAttribute('data-eye-view'));
-            switchEyeView(viewIndex);
+            // 切换按钮激活状态
+            tabBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            // 切换内容面板显示
+            const tab = this.getAttribute('data-tab');
+            tabPanels.forEach(panel => {
+                if (panel.id === 'tab-' + tab) {
+                    panel.classList.add('active');
+                } else {
+                    panel.classList.remove('active');
+                }
+            });
+            
+            currentEyeTab = tab;
+            
+            // 显示提示
+            const tabNames = {
+                monitor: '用眼监控',
+                feedback: '每日反馈',
+                weekly: '本周情况'
+            };
+            showToast(`已切换到${tabNames[tab]}`);
         });
     });
-}
-
-// 切换用眼视图
-function switchEyeView(viewIndex) {
-    if (viewIndex === currentEyeView) return;
-    
-    // 更新按钮状态
-    document.querySelectorAll('.indicator-btn').forEach(btn => {
-        btn.classList.remove('active');
-    });
-    document.querySelector(`[data-eye-view="${viewIndex}"]`).classList.add('active');
-    
-    // 更新内容显示
-    const slides = document.querySelectorAll('.eye-slide');
-    slides.forEach(slide => {
-        slide.classList.remove('active');
-    });
-    
-    const targetSlide = slides[viewIndex];
-    targetSlide.classList.add('active');
-    
-    currentEyeView = viewIndex;
-    
-    // 更新卡片标题
-    updateEyeCardTitle(viewIndex);
-    
-    // 显示提示
-    const viewNames = ['用眼监控', '每日反馈'];
-    showToast(`已切换到${viewNames[viewIndex]}`);
-}
-
-// 更新用眼卡片标题
-function updateEyeCardTitle(viewIndex) {
-    const titleElement = document.getElementById('eyeCardTitle');
-    const titles = ['用眼监控', '每日反馈'];
-    
-    if (titleElement) {
-        titleElement.textContent = titles[viewIndex];
-    }
 }
 
 // 初始化用眼图表
@@ -160,7 +144,7 @@ function updateEyeMetrics(data) {
         screenDistance: data.screenDistance || '45cm'
     };
     
-    // 更新UI
+    // 更新UI - 更新所有metric-value元素
     const metricElements = document.querySelectorAll('.metric-value');
     if (metricElements.length >= 3) {
         metricElements[0].textContent = eyeMetrics.continuousTime;
@@ -225,7 +209,7 @@ function updateRealTimeMetrics() {
     const newDistance = Math.round(randomChange(currentDistance, 5));
     eyeMetrics.screenDistance = newDistance + 'cm';
     
-    // 更新UI
+    // 更新UI - 更新所有metric-value元素
     const metricElements = document.querySelectorAll('.metric-value');
     if (metricElements.length >= 3) {
         metricElements[0].textContent = eyeMetrics.continuousTime;
@@ -367,7 +351,6 @@ window.addEventListener('beforeunload', function() {
 
 // 导出函数供其他模块使用
 window.eyeModule = {
-    switchEyeView,
     loadEyeData,
     updateEyeMetrics,
     exportEyeReport,

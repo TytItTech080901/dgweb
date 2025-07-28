@@ -535,4 +535,67 @@
 
 .metric-item.danger .metric-icon {
     background: linear-gradient(135deg, var(--danger-color), var(--warning-color));
+}
+
+/* 用眼tab导航样式 */
+.eye-tabs-nav {
+    display: flex;
+    border-bottom: 1px solid var(--border-gray);
+    background: rgba(255, 255, 255, 0.95);
+    border-radius: 12px 12px 0 0;
+    overflow: hidden;
+}
+
+.eye-tab-btn {
+    flex: 1;
+    padding: 12px 0;
+    background: none;
+    border: none;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--primary-color);
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    outline: none;
+}
+
+.eye-tab-btn.active {
+    background: var(--primary-color);
+    color: #fff;
+}
+
+.eye-tabs-content {
+    padding: 0;
+    padding-top: 20px;
+}
+
+.eye-tab-panel {
+    display: none;
+    animation: fadeIn 0.3s;
+}
+
+.eye-tab-panel.active {
+    display: block;
+}
+
+/* 实时监控指标样式 */
+.real-time-metrics {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* 图标样式 */
+.monitor-icon,
+.feedback-icon,
+.weekly-icon {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    background: var(--primary-color);
+    color: white;
+    border-radius: 8px;
+    font-size: 16px;
 } 

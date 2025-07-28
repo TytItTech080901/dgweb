@@ -170,10 +170,6 @@ class HomePage {
         // 添加点击动画
         this.addClickAnimation(element);
         
-        // 显示加载状态
-        MobileUtils.showToast(`正在加载${this.getToolName(tool)}...`, 'info');
-        
-        // 导航到工具详情页
         setTimeout(() => {
             // 跳转到独立的工具页面
             const toolRoutes = {

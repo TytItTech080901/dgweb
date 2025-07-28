@@ -44,6 +44,22 @@ def mobile_remote():
 def mobile_settings():
     return render_template('settings.html')
 
+@app.route('/mobile/settings/notifications')
+def mobile_settings_notifications():
+    return render_template('settings_notifications.html')
+
+@app.route('/mobile/settings/monitor')
+def mobile_settings_monitor():
+    return render_template('settings_monitor.html')
+
+@app.route('/mobile/settings/account')
+def mobile_settings_account():
+    return render_template('settings_account.html')
+
+@app.route('/mobile/settings/system')
+def mobile_settings_system():
+    return render_template('settings_system.html')
+
 @app.route('/mobile/tool/<tool_name>')
 def mobile_tool_detail(tool_name):
     return render_template('tool_detail.html', tool_name=tool_name)

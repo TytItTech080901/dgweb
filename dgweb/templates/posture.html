@@ -50,26 +50,23 @@
             </div>
         </div>
         
-        <!-- 数据分析图表滑动模块 -->
-        <div class="mobile-card">
-            <div class="mobile-card-header">
-                <div class="mobile-card-title" id="chartTitle">坐姿时间占比</div>
-                <div class="chart-icon" id="chartIcon">
-                    <i class="bi bi-pie-chart"></i>
-                </div>
+        <!-- 新增tab卡片结构 -->
+        <div class="mobile-card posture-tabs-card">
+            <div class="posture-tabs-nav">
+                <button class="posture-tab-btn active" data-tab="proportion">坐姿分析</button>
+                <button class="posture-tab-btn" data-tab="distribution">不良姿态</button>
+                <button class="posture-tab-btn" data-tab="images">图像记录</button>
             </div>
-            <div class="mobile-card-content">
-                <!-- 图表指示器点 -->
-                <div class="chart-indicators">
-                    <div class="indicator-dot active" data-chart="0" onclick="switchChart(0)"></div>
-                    <div class="indicator-dot" data-chart="1" onclick="switchChart(1)"></div>
-                    <div class="indicator-dot" data-chart="2" onclick="switchChart(2)"></div>
-                </div>
-                
-                <!-- 可滑动的图表容器 -->
-                <div class="chart-swiper" id="chartSwiper">
-                    <!-- 坐姿时间占比图表 -->
-                    <div class="chart-slide active" id="slide-0">
+            <div class="posture-tabs-content">
+                <!-- 坐姿时间占比tab面板 -->
+                <div class="posture-tab-panel active" id="tab-proportion">
+                    <div class="mobile-card-header">
+                        <div class="mobile-card-title">坐姿时间占比</div>
+                        <div class="proportion-icon">
+                            <i class="bi bi-pie-chart"></i>
+                        </div>
+                    </div>
+                    <div class="mobile-card-content">
                         <div class="chart-container">
                             <canvas id="posturePieChart"></canvas>
                         </div>
@@ -92,9 +89,17 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- 不良姿态时段分布图表 -->
-                    <div class="chart-slide" id="slide-1">
+                </div>
+                
+                <!-- 不良姿态时间分布tab面板 -->
+                <div class="posture-tab-panel" id="tab-distribution">
+                    <div class="mobile-card-header">
+                        <div class="mobile-card-title">不良姿态时间分布</div>
+                        <div class="distribution-icon">
+                            <i class="bi bi-calendar-week"></i>
+                        </div>
+                    </div>
+                    <div class="mobile-card-content">
                         <div class="chart-container">
                             <canvas id="heatmapChart"></canvas>
                         </div>
@@ -113,9 +118,17 @@
                             </div>
                         </div>
                     </div>
-                    
-                    <!-- 坐姿图像记录 -->
-                    <div class="chart-slide" id="slide-2">
+                </div>
+                
+                <!-- 坐姿图像记录tab面板 -->
+                <div class="posture-tab-panel" id="tab-images">
+                    <div class="mobile-card-header">
+                        <div class="mobile-card-title">坐姿图像记录</div>
+                        <div class="images-icon">
+                            <i class="bi bi-images"></i>
+                        </div>
+                    </div>
+                    <div class="mobile-card-content">
                         <div id="posture-images-container" class="mobile-image-gallery">
                             <!-- 坐姿图像将通过JS动态加载 -->
                             <div class="loading-indicator">

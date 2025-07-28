@@ -2,7 +2,7 @@
 
 // 全局变量
 let currentTimeRange = 'day';
-let currentChartIndex = 0;
+let currentPostureTab = 'proportion';
 let posturePieChart = null;
 let heatmapChart = null;
 let postureImages = [];
@@ -35,12 +35,35 @@ function initEventListeners() {
         });
     });
     
-    // 图表指示器事件
-    const indicatorDots = document.querySelectorAll('.indicator-dot');
-    indicatorDots.forEach(dot => {
-        dot.addEventListener('click', function() {
-            const chartIndex = parseInt(this.getAttribute('data-chart'));
-            switchChart(chartIndex);
+    // 坐姿tab切换事件
+    const tabBtns = document.querySelectorAll('.posture-tab-btn');
+    const tabPanels = document.querySelectorAll('.posture-tab-panel');
+    
+    tabBtns.forEach(btn => {
+        btn.addEventListener('click', function() {
+            // 切换按钮激活状态
+            tabBtns.forEach(b => b.classList.remove('active'));
+            this.classList.add('active');
+            
+            // 切换内容面板显示
+            const tab = this.getAttribute('data-tab');
+            tabPanels.forEach(panel => {
+                if (panel.id === 'tab-' + tab) {
+                    panel.classList.add('active');
+                } else {
+                    panel.classList.remove('active');
+                }
+            });
+            
+            currentPostureTab = tab;
+            
+            // 显示提示
+            const tabNames = {
+                proportion: '坐姿时间占比',
+                distribution: '不良姿态时间分布',
+                images: '坐姿图像记录'
+            };
+            showToast(`已切换到${tabNames[tab]}`);
         });
     });
 }
@@ -67,61 +90,6 @@ function changeTimeRange(range) {
     showToast(`已切换到${rangeNames[range]}数据`);
 }
 
-// 切换图表
-function switchChart(chartIndex) {
-    if (chartIndex === currentChartIndex) return;
-    
-    // 更新指示器状态
-    document.querySelectorAll('.indicator-dot').forEach(dot => {
-        dot.classList.remove('active');
-    });
-    document.querySelector(`[data-chart="${chartIndex}"]`).classList.add('active');
-    
-    // 更新图表显示
-    const slides = document.querySelectorAll('.chart-slide');
-    slides.forEach(slide => {
-        slide.classList.remove('active');
-    });
-    
-    const currentSlide = slides[currentChartIndex];
-    const targetSlide = slides[chartIndex];
-    
-    // 添加切换动画
-    currentSlide.classList.add('slide-out-left');
-    setTimeout(() => {
-        currentSlide.classList.remove('active', 'slide-out-left');
-        targetSlide.classList.add('active', 'slide-in-right');
-        setTimeout(() => {
-            targetSlide.classList.remove('slide-in-right');
-        }, 300);
-    }, 150);
-    
-    currentChartIndex = chartIndex;
-    
-    // 更新图表标题和图标
-    updateChartHeader(chartIndex);
-    
-    // 重新渲染图表
-    renderChart(chartIndex);
-}
-
-// 更新图表头部
-function updateChartHeader(chartIndex) {
-    const titles = ['坐姿时间占比', '不良姿态时段分布', '坐姿图像记录'];
-    const icons = ['bi-pie-chart', 'bi-calendar-week', 'bi-images'];
-    
-    const titleElement = document.getElementById('chartTitle');
-    const iconElement = document.getElementById('chartIcon');
-    
-    if (titleElement) {
-        titleElement.textContent = titles[chartIndex];
-    }
-    
-    if (iconElement) {
-        iconElement.innerHTML = `<i class="bi ${icons[chartIndex]}"></i>`;
-    }
-}
-
 // 初始化图表
 function initCharts() {
     // 初始化饼图
@@ -135,13 +103,13 @@ function initCharts() {
                     data: [64, 24, 12],
                     backgroundColor: [
                         'rgba(143, 180, 160, 0.8)',
-                        'rgba(230, 184, 148, 0.8)',
-                        'rgba(209, 139, 122, 0.8)'
+                        'rgba(255, 193, 7, 0.8)',
+                        'rgba(220, 53, 69, 0.8)'
                     ],
                     borderColor: [
                         'rgba(143, 180, 160, 1)',
-                        'rgba(230, 184, 148, 1)',
-                        'rgba(209, 139, 122, 1)'
+                        'rgba(255, 193, 7, 1)',
+                        'rgba(220, 53, 69, 1)'
                     ],
                     borderWidth: 2
                 }]
@@ -151,16 +119,10 @@ function initCharts() {
                 maintainAspectRatio: false,
                 plugins: {
                     legend: {
-                        position: 'bottom',
-                        labels: {
-                            padding: 20,
-                            usePointStyle: true,
-                            font: {
-                                size: 12
-                            }
-                        }
+                        display: false
                     }
-                }
+                },
+                cutout: '60%'
             }
         });
     }
@@ -168,14 +130,13 @@ function initCharts() {
     // 初始化热力图
     const heatmapCtx = document.getElementById('heatmapChart');
     if (heatmapCtx) {
-        // 这里可以集成热力图库，暂时用简单的柱状图代替
         heatmapChart = new Chart(heatmapCtx, {
             type: 'bar',
             data: {
-                labels: ['6-8', '8-10', '10-12', '12-14', '14-16', '16-18', '18-20'],
+                labels: ['6-8', '8-10', '10-12', '12-14', '14-16', '16-18', '18-20', '20-22'],
                 datasets: [{
                     label: '坐姿质量',
-                    data: [85, 78, 72, 65, 58, 82, 90],
+                    data: [85, 78, 72, 65, 58, 82, 90, 88],
                     backgroundColor: 'rgba(143, 180, 160, 0.6)',
                     borderColor: 'rgba(143, 180, 160, 1)',
                     borderWidth: 1
@@ -200,72 +161,6 @@ function initCharts() {
     }
 }
 
-// 渲染图表
-function renderChart(chartIndex) {
-    switch(chartIndex) {
-        case 0:
-            updatePieChart();
-            break;
-        case 1:
-            updateHeatmapChart();
-            break;
-        case 2:
-            // 图像记录不需要重新渲染
-            break;
-    }
-}
-
-// 更新饼图数据
-function updatePieChart() {
-    if (!posturePieChart) return;
-    
-    // 模拟不同时间范围的数据
-    const dataMap = {
-        day: [64, 24, 12],
-        week: [58, 28, 14],
-        month: [52, 32, 16]
-    };
-    
-    const newData = dataMap[currentTimeRange] || dataMap.day;
-    
-    posturePieChart.data.datasets[0].data = newData;
-    posturePieChart.update();
-    
-    // 更新统计数值
-    updateStats(newData);
-}
-
-// 更新热力图数据
-function updateHeatmapChart() {
-    if (!heatmapChart) return;
-    
-    // 模拟不同时间范围的数据
-    const dataMap = {
-        day: [85, 78, 72, 65, 58, 82, 90],
-        week: [82, 75, 68, 62, 55, 79, 87],
-        month: [79, 72, 65, 58, 52, 76, 84]
-    };
-    
-    const newData = dataMap[currentTimeRange] || dataMap.day;
-    
-    heatmapChart.data.datasets[0].data = newData;
-    heatmapChart.update();
-}
-
-// 更新统计数值
-function updateStats(data) {
-    const total = data.reduce((sum, val) => sum + val, 0);
-    const goodTime = (data[0] / total * 5).toFixed(1);
-    const mildTime = (data[1] / total * 5).toFixed(1);
-    const badTime = (data[2] / total * 5).toFixed(1);
-    const rate = data[0];
-    
-    document.getElementById('goodPostureTime').textContent = goodTime + 'h';
-    document.getElementById('mildBadPostureTime').textContent = mildTime + 'h';
-    document.getElementById('badPostureTime').textContent = badTime + 'h';
-    document.getElementById('postureRate').textContent = rate + '%';
-}
-
 // 加载坐姿数据
 function loadPostureData() {
     // 模拟API调用
@@ -273,28 +168,68 @@ function loadPostureData() {
         .then(response => response.json())
         .then(data => {
             console.log('坐姿数据加载成功:', data);
-            // 这里可以处理真实的数据
+            updateStats(data);
+            updateCharts(data);
         })
         .catch(error => {
             console.error('加载坐姿数据失败:', error);
             // 使用模拟数据
-            updatePieChart();
-            updateHeatmapChart();
+            loadMockPostureData();
         });
+}
+
+// 加载模拟坐姿数据
+function loadMockPostureData() {
+    const mockData = {
+        goodPostureTime: '3.2h',
+        mildBadPostureTime: '1.2h',
+        badPostureTime: '0.6h',
+        postureRate: '64%',
+        pieData: [64, 24, 12],
+        heatmapData: [85, 78, 72, 65, 58, 82, 90, 88]
+    };
+    
+    updateStats(mockData);
+    updateCharts(mockData);
+}
+
+// 更新统计数据
+function updateStats(data) {
+    const elements = {
+        goodPostureTime: document.getElementById('goodPostureTime'),
+        mildBadPostureTime: document.getElementById('mildBadPostureTime'),
+        badPostureTime: document.getElementById('badPostureTime'),
+        postureRate: document.getElementById('postureRate')
+    };
+    
+    if (elements.goodPostureTime) elements.goodPostureTime.textContent = data.goodPostureTime;
+    if (elements.mildBadPostureTime) elements.mildBadPostureTime.textContent = data.mildBadPostureTime;
+    if (elements.badPostureTime) elements.badPostureTime.textContent = data.badPostureTime;
+    if (elements.postureRate) elements.postureRate.textContent = data.postureRate;
+}
+
+// 更新图表
+function updateCharts(data) {
+    // 更新饼图
+    if (posturePieChart && data.pieData) {
+        posturePieChart.data.datasets[0].data = data.pieData;
+        posturePieChart.update();
+    }
+    
+    // 更新热力图
+    if (heatmapChart && data.heatmapData) {
+        heatmapChart.data.datasets[0].data = data.heatmapData;
+        heatmapChart.update();
+    }
 }
 
 // 加载坐姿图像
 function loadPostureImages() {
-    const container = document.getElementById('posture-images-container');
-    if (!container) return;
-    
-    // 清空容器
-    container.innerHTML = '<div class="loading-indicator"><i class="bi bi-arrow-clockwise"></i><span>加载中...</span></div>';
-    
     // 模拟API调用
     fetch('/api/posture/images')
         .then(response => response.json())
         .then(data => {
+            console.log('坐姿图像加载成功:', data);
             postureImages = data.images || [];
             renderPostureImages();
         })
@@ -307,16 +242,12 @@ function loadPostureImages() {
 
 // 加载模拟坐姿图像
 function loadMockPostureImages() {
-    const mockImages = [
-        { id: 1, url: '/static/posture_images/posture_20250528_213901_8c748294.jpg', time: '2025-05-28 21:39:01', quality: 'good' },
-        { id: 2, url: '/static/posture_images/posture_20250528_214033_8d2c9369.jpg', time: '2025-05-28 21:40:33', quality: 'warning' },
-        { id: 3, url: '/static/posture_images/posture_20250528_214121_70930925.jpg', time: '2025-05-28 21:41:21', quality: 'good' },
-        { id: 4, url: '/static/posture_images/posture_20250528_214232_a147a01a.jpg', time: '2025-05-28 21:42:32', quality: 'danger' },
-        { id: 5, url: '/static/posture_images/posture_20250528_220403_6e4d79db.jpg', time: '2025-05-28 22:04:03', quality: 'good' },
-        { id: 6, url: '/static/posture_images/posture_20250528_221434_ef659455.jpg', time: '2025-05-28 22:14:34', quality: 'warning' }
+    postureImages = [
+        { id: 1, url: '/static/posture_images/posture_20250528_213901_8c748294.jpg', time: '2025-05-28 21:39:01', status: 'good' },
+        { id: 2, url: '/static/posture_images/posture_20250528_214033_8d2c9369.jpg', time: '2025-05-28 21:40:33', status: 'warning' },
+        { id: 3, url: '/static/posture_images/posture_20250528_214121_70930925.jpg', time: '2025-05-28 21:41:21', status: 'good' },
+        { id: 4, url: '/static/posture_images/posture_20250528_214232_a147a01a.jpg', time: '2025-05-28 21:42:32', status: 'bad' }
     ];
-    
-    postureImages = mockImages;
     renderPostureImages();
 }
 
@@ -326,51 +257,43 @@ function renderPostureImages() {
     if (!container) return;
     
     if (postureImages.length === 0) {
-        container.innerHTML = '<div class="loading-indicator"><i class="bi bi-images"></i><span>暂无图像记录</span></div>';
+        container.innerHTML = '<div class="loading-indicator">暂无坐姿图像记录</div>';
         return;
     }
     
-    const imageHTML = postureImages.map(image => `
-        <div class="posture-image-item" data-id="${image.id}">
-            <img src="${image.url}" alt="坐姿记录" onerror="this.src='/static/asserts/WechatIMG69.jpg'">
+    const imagesHTML = postureImages.map(image => `
+        <div class="posture-image-item" onclick="showImageDetail(${image.id})">
+            <img src="${image.url}" alt="坐姿记录" onerror="this.src='/static/placeholder.jpg'">
             <div class="posture-image-overlay">
-                <span style="color: white; font-size: 10px;">${image.time}</span>
+                ${image.time}
             </div>
         </div>
     `).join('');
     
-    container.innerHTML = imageHTML;
-    
-    // 添加图像点击事件
-    container.querySelectorAll('.posture-image-item').forEach(item => {
-        item.addEventListener('click', function() {
-            const imageId = this.getAttribute('data-id');
-            showImageDetail(imageId);
-        });
-    });
+    container.innerHTML = imagesHTML;
 }
 
 // 显示图像详情
 function showImageDetail(imageId) {
-    const image = postureImages.find(img => img.id == imageId);
-    if (!image) return;
-    
-    // 这里可以实现图像详情弹窗
-    showToast(`查看图像详情: ${image.time}`);
+    const image = postureImages.find(img => img.id === imageId);
+    if (image) {
+        showToast(`查看坐姿记录: ${image.time}`);
+        // 这里可以实现图像详情弹窗
+    }
 }
 
 // 加载更多坐姿图像
 function loadMorePostureImages() {
     showToast('正在加载更多图像...');
     
-    // 模拟加载更多数据
+    // 模拟加载更多图像
     setTimeout(() => {
         const newImages = [
-            { id: 7, url: '/static/posture_images/posture_20250528_222435_e4206c3e.jpg', time: '2025-05-28 22:24:35', quality: 'good' },
-            { id: 8, url: '/static/posture_images/posture_20250528_223456_f1234567.jpg', time: '2025-05-28 22:34:56', quality: 'warning' }
+            { id: 5, url: '/static/posture_images/posture_20250528_220403_6e4d79db.jpg', time: '2025-05-28 22:04:03', status: 'good' },
+            { id: 6, url: '/static/posture_images/posture_20250528_221434_ef659455.jpg', time: '2025-05-28 22:14:34', status: 'warning' }
         ];
         
-        postureImages = [...postureImages, ...newImages];
+        postureImages.push(...newImages);
         renderPostureImages();
         showToast('已加载更多图像');
     }, 1000);
@@ -378,11 +301,18 @@ function loadMorePostureImages() {
 
 // 导出坐姿图像
 function exportPostureImages() {
-    showToast('正在导出图像记录...');
+    showToast('正在导出坐姿记录...');
     
     // 模拟导出功能
     setTimeout(() => {
-        showToast('图像记录导出成功');
+        const report = {
+            date: new Date().toLocaleDateString(),
+            totalImages: postureImages.length,
+            images: postureImages
+        };
+        
+        console.log('坐姿记录导出:', report);
+        showToast('坐姿记录导出成功');
     }, 2000);
 }
 
@@ -437,8 +367,8 @@ window.addEventListener('beforeunload', function() {
 // 导出函数供其他模块使用
 window.postureModule = {
     changeTimeRange,
-    switchChart,
     loadPostureData,
     loadPostureImages,
+    exportPostureImages,
     showToast
 }; 

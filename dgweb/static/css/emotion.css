@@ -631,3 +631,38 @@
 .timeline-item.negative::before {
     background: linear-gradient(to bottom, var(--danger-color), var(--warning-color));
 } 
+
+.emotion-tabs-nav {
+  display: flex;
+  border-bottom: 1px solid var(--border-gray);
+  background: rgba(255,255,255,0.95);
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+}
+.emotion-tab-btn {
+  flex: 1;
+  padding: 12px 0;
+  background: none;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primary-color);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  outline: none;
+}
+.emotion-tab-btn.active {
+  background: var(--primary-color);
+  color: #fff;
+}
+.emotion-tabs-content {
+  padding: 0;
+  padding-top: 20px;
+}
+.emotion-tab-panel {
+  display: none;
+  animation: fadeIn 0.3s;
+}
+.emotion-tab-panel.active {
+  display: block;
+} 
