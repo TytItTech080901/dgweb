@@ -1,0 +1,196 @@
+/* 工具详情页面样式 */
+.tool-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background: white;
+    border-bottom: 1px solid #e0e0e0;
+    position: sticky;
+    top: 0;
+    z-index: 10;
+}
+
+.back-btn {
+    background: none;
+    border: none;
+    font-size: 20px;
+    color: #333;
+    cursor: pointer;
+    padding: 5px;
+    border-radius: 50%;
+    transition: background-color 0.2s;
+}
+
+.back-btn:hover {
+    background-color: #f0f0f0;
+}
+
+.tool-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    color: #333;
+}
+
+.tool-content {
+    display: none;
+}
+
+.tool-content.active {
+    display: block;
+}
+
+/* 时间范围选择器 */
+.time-range-selector {
+    display: flex;
+    background: white;
+    border-radius: 8px;
+    padding: 4px;
+    margin: 15px 20px;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.time-range-btn {
+    flex: 1;
+    background: none;
+    border: none;
+    padding: 10px;
+    border-radius: 6px;
+    font-size: 14px;
+    color: #666;
+    cursor: pointer;
+    transition: all 0.2s;
+}
+
+.time-range-btn.active {
+    background: #007bff;
+    color: white;
+}
+
+/* 改善建议样式 */
+.improvement-suggestion {
+    margin: 15px 20px;
+}
+
+.suggestion-icon {
+    color: #ffc107;
+    font-size: 20px;
+}
+
+.suggestion-content {
+    display: flex;
+    flex-direction: column;
+    gap: 15px;
+}
+
+.suggestion-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 10px;
+}
+
+.suggestion-indicator {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-top: 6px;
+    flex-shrink: 0;
+}
+
+.suggestion-indicator.warning {
+    background: #ffc107;
+}
+
+.suggestion-indicator.info {
+    background: #17a2b8;
+}
+
+.suggestion-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: #666;
+}
+
+/* 图表相关样式 */
+.chart-indicators {
+    display: flex;
+    justify-content: center;
+    gap: 8px;
+    margin-bottom: 15px;
+}
+
+.indicator-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: #ddd;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.indicator-dot.active {
+    background: #007bff;
+}
+
+.chart-swiper {
+    position: relative;
+    overflow: hidden;
+}
+
+.chart-slide {
+    display: none;
+    animation: fadeIn 0.3s ease-in;
+}
+
+.chart-slide.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+}
+
+.chart-container {
+    height: 200px;
+    margin-bottom: 20px;
+}
+
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 15px;
+}
+
+/* 响应式设计 */
+@media (max-width: 480px) {
+    .tool-header {
+        padding: 12px 15px;
+    }
+    
+    .tool-header h3 {
+        font-size: 16px;
+    }
+    
+    .time-range-selector {
+        margin: 10px 15px;
+    }
+    
+    .time-range-btn {
+        padding: 8px;
+        font-size: 13px;
+    }
+    
+    .improvement-suggestion {
+        margin: 10px 15px;
+    }
+    
+    .chart-container {
+        height: 180px;
+    }
+    
+    .stats-grid {
+        gap: 10px;
+    }
+} 

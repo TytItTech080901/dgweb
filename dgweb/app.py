@@ -4,10 +4,10 @@ import json
 from datetime import datetime, timedelta
 import random
 
-app = Flask(__name__, static_folder=None)
+app = Flask(__name__)
 
 # 配置
-app.config['SECRET_KEY'] = 'your-secret-key-here'
+app.config['SECRET_KEY'] = '114514'
 app.config['UPLOAD_FOLDER'] = 'static/mobile/uploads'
 
 # 确保上传目录存在
@@ -40,7 +40,7 @@ def get_static_path(path):
 def index():
     """主页 - 根据设备类型返回不同模板"""
     if is_mobile():
-        return render_template('mobile/home.html')
+        return render_template('mobile/loading.html')
     else:
         return render_template('desktop/main.html')
 
@@ -85,6 +85,18 @@ def lamp_control():
         return render_template('desktop/lamp_control.html')
 
 # 手机端路由
+@app.route('/mobile/loading')
+def mobile_loading():
+    return render_template('mobile/loading.html')
+
+@app.route('/mobile/test_loading')
+def mobile_test_loading():
+    return render_template('mobile/test_loading.html')
+
+@app.route('/mobile/test_all')
+def mobile_test_all():
+    return render_template('mobile/test_all.html')
+
 @app.route('/mobile/home')
 def mobile_home():
     return render_template('mobile/home.html')
@@ -151,21 +163,8 @@ def favicon():
     else:
         return send_from_directory('static/desktop', 'favicon.ico')
 
-@app.route('/static/<path:filename>')
-def static_files(filename):
-    """静态文件路由 - 根据设备类型返回对应文件"""
-    try:
-        if is_mobile():
-            return send_from_directory('static/mobile', filename)
-        else:
-            return send_from_directory('static/desktop', filename)
-    except Exception as e:
-        # 如果找不到文件，尝试从手机端目录获取
-        try:
-            return send_from_directory('static/mobile', filename)
-        except:
-            # 如果还是找不到，返回404
-            return "File not found", 404
+# 静态文件路由 - 使用Flask默认的静态文件服务
+# Flask会自动从static文件夹提供服务，不需要自定义路由
 
 @app.route('/video_feed')
 def video_feed():
