@@ -1,0 +1,153 @@
+{% extends "mobile/base.html" %}
+
+{% block title %}坐姿检测 - 曈灵智能台灯家长端{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="/static/css/posture.css">
+{% endblock %}
+
+{% block content %}
+<div class="mobile-page">
+    <div class="tool-header">
+        <button class="back-btn" onclick="history.back()">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <h3>坐姿检测</h3>
+        <div></div>
+    </div>
+    
+    <div class="mobile-dashboard">
+        <!-- 时间范围选择器 -->
+        <div class="time-range-selector">
+            <button class="time-range-btn active" data-range="day" onclick="changeTimeRange('day')">今日</button>
+            <button class="time-range-btn" data-range="week" onclick="changeTimeRange('week')">本周</button>
+            <button class="time-range-btn" data-range="month" onclick="changeTimeRange('month')">本月</button>
+        </div>
+        
+        <!-- 坐姿改善建议卡片 -->
+        <div class="mobile-card improvement-suggestion">
+            <div class="mobile-card-header">
+                <div class="mobile-card-title">坐姿改善建议</div>
+                <div class="suggestion-icon">
+                    <i class="bi bi-lightbulb"></i>
+                </div>
+            </div>
+            <div class="mobile-card-content">
+                <div class="suggestion-content">
+                    <div class="suggestion-item">
+                        <div class="suggestion-indicator warning"></div>
+                        <div class="suggestion-text">
+                            根据数据分析，您孩子在下午3-5点时段坐姿不良率较高，建议加强这个时段的监督或调整学习环境。
+                        </div>
+                    </div>
+                    <div class="suggestion-item">
+                        <div class="suggestion-indicator info"></div>
+                        <div class="suggestion-text">
+                            本周坐姿改善效果明显，请继续保持良好习惯。
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 新增tab卡片结构 -->
+        <div class="mobile-card posture-tabs-card">
+            <div class="posture-tabs-nav">
+                <button class="posture-tab-btn active" data-tab="proportion">坐姿分析</button>
+                <button class="posture-tab-btn" data-tab="distribution">不良姿态</button>
+                <button class="posture-tab-btn" data-tab="images">图像记录</button>
+            </div>
+            <div class="posture-tabs-content">
+                <!-- 坐姿时间占比tab面板 -->
+                <div class="posture-tab-panel active" id="tab-proportion">
+                    <div class="mobile-card-header">
+                        <div class="mobile-card-title">坐姿时间占比</div>
+                        <div class="proportion-icon">
+                            <i class="bi bi-pie-chart"></i>
+                        </div>
+                    </div>
+                    <div class="mobile-card-content">
+                        <div class="chart-container">
+                            <canvas id="posturePieChart"></canvas>
+                        </div>
+                        <div class="stats-grid">
+                            <div class="stat-item">
+                                <div class="stat-value" id="goodPostureTime">3.2h</div>
+                                <div class="stat-label">良好坐姿</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="mildBadPostureTime">1.2h</div>
+                                <div class="stat-label">轻度不良坐姿</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="badPostureTime">0.6h</div>
+                                <div class="stat-label">不良坐姿</div>
+                            </div>
+                            <div class="stat-item">
+                                <div class="stat-value" id="postureRate">64%</div>
+                                <div class="stat-label">良好率</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 不良姿态时间分布tab面板 -->
+                <div class="posture-tab-panel" id="tab-distribution">
+                    <div class="mobile-card-header">
+                        <div class="mobile-card-title">不良姿态时间分布</div>
+                        <div class="distribution-icon">
+                            <i class="bi bi-calendar-week"></i>
+                        </div>
+                    </div>
+                    <div class="mobile-card-content">
+                        <div class="chart-container">
+                            <canvas id="heatmapChart"></canvas>
+                        </div>
+                        <div class="heatmap-legend">
+                            <div class="legend-item">
+                                <div class="legend-color low"></div>
+                                <span>良好</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color medium"></div>
+                                <span>一般</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color high"></div>
+                                <span>较差</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <!-- 坐姿图像记录tab面板 -->
+                <div class="posture-tab-panel" id="tab-images">
+                    <div class="mobile-card-header">
+                        <div class="mobile-card-title">坐姿图像记录</div>
+                        <div class="images-icon">
+                            <i class="bi bi-images"></i>
+                        </div>
+                    </div>
+                    <div class="mobile-card-content">
+                        <div id="posture-images-container" class="mobile-image-gallery">
+                            <!-- 坐姿图像将通过JS动态加载 -->
+                            <div class="loading-indicator">
+                                <i class="bi bi-arrow-clockwise"></i>
+                                <span>加载中...</span>
+                            </div>
+                        </div>
+                        <div class="image-actions">
+                            <button class="mobile-btn secondary" onclick="loadMorePostureImages()">查看更多</button>
+                            <button class="mobile-btn primary" onclick="exportPostureImages()">导出记录</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/posture.js"></script>
+{% endblock %} 

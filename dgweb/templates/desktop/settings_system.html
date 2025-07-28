@@ -1,0 +1,39 @@
+{% extends "desktop/base.html" %}
+{% block title %}系统信息 - 曈灵智能台灯家长端{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+{% endblock %}
+{% block content %}
+<div class="mobile-page">
+    <div class="tool-header">
+        <button class="back-btn" onclick="history.back()">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <h3>系统信息</h3>
+        <div></div>
+    </div>
+    <div class="mobile-dashboard">
+        <div class="mobile-card">
+            <div class="mobile-card-header">
+                <div class="mobile-card-title">系统信息</div>
+            </div>
+            <div class="mobile-card-content">
+                <div class="system-info">
+                    <div class="info-item">
+                        <span class="info-label">应用版本</span>
+                        <span class="info-value">v2.1.0</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">最后更新</span>
+                        <span class="info-value">2025-07-20</span>
+                    </div>
+                    <div class="info-item">
+                        <span class="info-label">设备ID</span>
+                        <span class="info-value">TL-001-2025</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

@@ -1,0 +1,62 @@
+{% extends "desktop/base.html" %}
+{% block title %}监控设置 - 曈灵智能台灯家长端{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+{% endblock %}
+{% block content %}
+<div class="mobile-page">
+    <div class="tool-header">
+        <button class="back-btn" onclick="history.back()">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <h3>监控设置</h3>
+        <div></div>
+    </div>
+    <div class="mobile-dashboard">
+        <div class="mobile-card">
+            <div class="mobile-card-header">
+                <div class="mobile-card-title">监控设置</div>
+            </div>
+            <div class="mobile-card-content">
+                <div class="setting-list">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-title">检测灵敏度</div>
+                            <div class="setting-desc">调整姿势检测的敏感程度</div>
+                        </div>
+                        <select class="setting-select">
+                            <option value="low">低</option>
+                            <option value="medium" selected>中</option>
+                            <option value="high">高</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-title">拍照频率</div>
+                            <div class="setting-desc">自动拍照的时间间隔</div>
+                        </div>
+                        <select class="setting-select">
+                            <option value="5">5分钟</option>
+                            <option value="10" selected>10分钟</option>
+                            <option value="15">15分钟</option>
+                            <option value="30">30分钟</option>
+                        </select>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-title">数据保存</div>
+                            <div class="setting-desc">历史数据保留时间</div>
+                        </div>
+                        <select class="setting-select">
+                            <option value="7">7天</option>
+                            <option value="30" selected>30天</option>
+                            <option value="90">90天</option>
+                            <option value="365">1年</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

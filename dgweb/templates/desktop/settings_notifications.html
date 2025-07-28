@@ -1,0 +1,63 @@
+{% extends "desktop/base.html" %}
+{% block title %}通知设置 - 曈灵智能台灯家长端{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/settings.css') }}">
+{% endblock %}
+{% block content %}
+<div class="mobile-page">
+    <div class="tool-header">
+        <button class="back-btn" onclick="history.back()">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <h3>通知设置</h3>
+        <div></div>
+    </div>
+    <div class="mobile-dashboard">
+        <div class="mobile-card">
+            <div class="mobile-card-header">
+                <div class="mobile-card-title">通知设置</div>
+            </div>
+            <div class="mobile-card-content">
+                <div class="setting-list">
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-title">姿势提醒</div>
+                            <div class="setting-desc">检测到不良姿势时发送通知</div>
+                        </div>
+                        <button class="setting-toggle active" data-setting="posture">
+                            <i class="bi bi-toggle-on"></i>
+                        </button>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-title">用眼提醒</div>
+                            <div class="setting-desc">连续用眼时间过长时提醒</div>
+                        </div>
+                        <button class="setting-toggle active" data-setting="eye">
+                            <i class="bi bi-toggle-on"></i>
+                        </button>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-title">情绪异常</div>
+                            <div class="setting-desc">检测到情绪异常时通知</div>
+                        </div>
+                        <button class="setting-toggle" data-setting="emotion">
+                            <i class="bi bi-toggle-off"></i>
+                        </button>
+                    </div>
+                    <div class="setting-item">
+                        <div class="setting-info">
+                            <div class="setting-title">学习报告</div>
+                            <div class="setting-desc">每日学习报告推送</div>
+                        </div>
+                        <button class="setting-toggle active" data-setting="report">
+                            <i class="bi bi-toggle-on"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

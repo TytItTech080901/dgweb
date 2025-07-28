@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>{% block title %}曈灵智能台灯家长端 - 移动端{% endblock %}</title>
+    <link rel="stylesheet" href="/static/css/base.css">
+    <link rel="stylesheet" href="/static/css/nav.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.0.0"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.4.3/dist/echarts.min.js"></script>
+    {% block extra_head %}{% endblock %}
+</head>
+<body>
+    <div class="mobile-container">
+        <!-- 主要内容区域 -->
+        <main class="mobile-main">
+            {% block content %}{% endblock %}
+        </main>
+        
+        <!-- 底部导航 -->
+        <nav class="mobile-nav">
+            <a href="{{ url_for('mobile_home') }}" class="nav-item {% if request.endpoint == 'mobile_home' %}active{% endif %}">
+                <i class="bi bi-house nav-icon"></i>
+                <span>首页</span>
+            </a>
+            <a href="{{ url_for('mobile_guardian') }}" class="nav-item {% if request.endpoint == 'mobile_guardian' %}active{% endif %}">
+                <i class="bi bi-shield-check nav-icon"></i>
+                <span>家长监护</span>
+            </a>
+            <a href="{{ url_for('mobile_remote') }}" class="nav-item {% if request.endpoint == 'mobile_remote' %}active{% endif %}">
+                <i class="bi bi-toggles nav-icon"></i>
+                <span>远程控制</span>
+            </a>
+            <a href="{{ url_for('mobile_settings') }}" class="nav-item {% if request.endpoint == 'mobile_settings' %}active{% endif %}">
+                <i class="bi bi-gear nav-icon"></i>
+                <span>设置</span>
+            </a>
+        </nav>
+    </div>
+    
+    <!-- 基础JavaScript -->
+    <script src="/static/js/base.js"></script>
+    <script src="/static/js/nav.js"></script>
+    {% block extra_scripts %}{% endblock %}
+</body>
+</html>

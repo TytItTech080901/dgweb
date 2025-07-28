@@ -1,0 +1,419 @@
+{% extends "mobile/base.html" %}
+
+{% block title %}{{ tool_name|title }} - 曈灵智能台灯家长端{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="/static/css/tool_detail.css">
+{% endblock %}
+
+{% block content %}
+<div class="mobile-page">
+    <div class="tool-header">
+        <button class="back-btn" onclick="history.back()">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <h3 id="toolTitle">{{ tool_name|title }}</h3>
+        <div></div>
+    </div>
+    
+    <div class="mobile-dashboard">
+        <!-- 坐姿检测内容 -->
+        <div id="posture-content" class="tool-content" {% if tool_name != 'posture' %}style="display: none;"{% endif %}>
+            <!-- 时间范围选择器 -->
+            <div class="time-range-selector">
+                <button class="time-range-btn active" data-range="day" onclick="changeTimeRange('day')">今日</button>
+                <button class="time-range-btn" data-range="week" onclick="changeTimeRange('week')">本周</button>
+                <button class="time-range-btn" data-range="month" onclick="changeTimeRange('month')">本月</button>
+            </div>
+            
+            <!-- 坐姿改善建议卡片 -->
+            <div class="mobile-card improvement-suggestion">
+                <div class="mobile-card-header">
+                    <div class="mobile-card-title">坐姿改善建议</div>
+                    <div class="suggestion-icon">
+                        <i class="bi bi-lightbulb"></i>
+                    </div>
+                </div>
+                <div class="mobile-card-content">
+                    <div class="suggestion-content">
+                        <div class="suggestion-item">
+                            <div class="suggestion-indicator warning"></div>
+                            <div class="suggestion-text">
+                                根据数据分析，您孩子在下午3-5点时段坐姿不良率较高，建议加强这个时段的监督或调整学习环境。
+                            </div>
+                        </div>
+                        <div class="suggestion-item">
+                            <div class="suggestion-indicator info"></div>
+                            <div class="suggestion-text">
+                                本周坐姿改善效果明显，请继续保持良好习惯。
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 数据分析图表滑动模块 -->
+            <div class="mobile-card">
+                <div class="mobile-card-header">
+                    <div class="mobile-card-title" id="chartTitle">坐姿时间占比</div>
+                    <div class="chart-icon" id="chartIcon">
+                        <i class="bi bi-pie-chart"></i>
+                    </div>
+                </div>
+                <div class="mobile-card-content">
+                    <!-- 图表指示器点 -->
+                    <div class="chart-indicators">
+                        <div class="indicator-dot active" data-chart="0" onclick="switchChart(0)"></div>
+                        <div class="indicator-dot" data-chart="1" onclick="switchChart(1)"></div>
+                        <div class="indicator-dot" data-chart="2" onclick="switchChart(2)"></div>
+                    </div>
+                    
+                    <!-- 可滑动的图表容器 -->
+                    <div class="chart-swiper" id="chartSwiper">
+                        <!-- 坐姿时间占比图表 -->
+                        <div class="chart-slide active" id="slide-0">
+                            <div class="chart-container">
+                                <canvas id="posturePieChart"></canvas>
+                            </div>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-value" id="goodPostureTime">3.2h</div>
+                                    <div class="stat-label">良好坐姿</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value" id="mildBadPostureTime">1.2h</div>
+                                    <div class="stat-label">轻度不良坐姿</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value" id="badPostureTime">0.6h</div>
+                                    <div class="stat-label">不良坐姿</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-value" id="postureRate">64%</div>
+                                    <div class="stat-label">良好率</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 不良姿态时段分布图表 -->
+                        <div class="chart-slide" id="slide-1">
+                            <div class="chart-container">
+                                <canvas id="heatmapChart"></canvas>
+                            </div>
+                            <div class="heatmap-legend">
+                                <div class="legend-item">
+                                    <div class="legend-color low"></div>
+                                    <span>良好</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color medium"></div>
+                                    <span>一般</span>
+                                </div>
+                                <div class="legend-item">
+                                    <div class="legend-color high"></div>
+                                    <span>较差</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 坐姿图像记录 -->
+                        <div class="chart-slide" id="slide-2">
+                            <div id="posture-images-container" class="mobile-image-gallery">
+                                <!-- 坐姿图像将通过JS动态加载 -->
+                                <div class="loading-indicator">
+                                    <i class="bi bi-arrow-clockwise"></i>
+                                    <span>加载中...</span>
+                                </div>
+                            </div>
+                            <div class="image-actions">
+                                <button class="mobile-btn secondary" onclick="loadMorePostureImages()">查看更多</button>
+                                <button class="mobile-btn primary" onclick="exportPostureImages()">导出记录</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 用眼情况内容 -->
+        <div id="eye-content" class="tool-content" {% if tool_name != 'eye' %}style="display: none;"{% endif %}>
+            <!-- 用眼监控和每日反馈切换模块 -->
+            <div class="mobile-card">
+                <div class="mobile-card-header">
+                    <div class="mobile-card-title" id="eyeCardTitle">用眼监控</div>
+                    <div class="eye-status">
+                        <span class="status-dot"></span>
+                        <span>监控中</span>
+                    </div>
+                </div>
+                <div class="mobile-card-content">
+                    <!-- 切换指示器 -->
+                    <div class="eye-indicators">
+                        <div class="indicator-btn active" data-eye-view="0" onclick="switchEyeView(0)">用眼监控</div>
+                        <div class="indicator-btn" data-eye-view="1" onclick="switchEyeView(1)">每日反馈</div>
+                    </div>
+                    
+                    <!-- 可切换的内容容器 -->
+                    <div class="eye-swiper" id="eyeSwiper">
+                        <!-- 用眼监控内容 -->
+                        <div class="eye-slide active" id="eye-slide-0">
+                            <div class="eye-metrics">
+                                <div class="metric-item">
+                                    <div class="metric-icon">
+                                        <i class="bi bi-clock"></i>
+                                    </div>
+                                    <div class="metric-info">
+                                        <div class="metric-value">2.5小时</div>
+                                        <div class="metric-label">连续用眼时间</div>
+                                    </div>
+                                </div>
+                                <div class="metric-item">
+                                    <div class="metric-icon">
+                                        <i class="bi bi-eye"></i>
+                                    </div>
+                                    <div class="metric-info">
+                                        <div class="metric-value">15次/分钟</div>
+                                        <div class="metric-label">眨眼频率</div>
+                                    </div>
+                                </div>
+                                <div class="metric-item">
+                                    <div class="metric-icon">
+                                        <i class="bi bi-phone"></i>
+                                    </div>
+                                    <div class="metric-info">
+                                        <div class="metric-value">45cm</div>
+                                        <div class="metric-label">眼屏距离</div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 每日反馈内容 -->
+                        <div class="eye-slide" id="eye-slide-1">
+                            <div class="feedback-list">
+                                <div class="feedback-item positive">
+                                    <div class="feedback-badge">
+                                        <i class="bi bi-check-circle-fill"></i>
+                                    </div>
+                                    <div class="feedback-content">
+                                        <div class="feedback-text">本周平均远眺次数：<strong>4.3 次/天</strong></div>
+                                    </div>
+                                </div>
+                                <div class="feedback-item positive">
+                                    <div class="feedback-badge">
+                                        <i class="bi bi-brightness-high-fill"></i>
+                                    </div>
+                                    <div class="feedback-content">
+                                        <div class="feedback-text">当前环境光照：<strong>良好</strong></div>
+                                    </div>
+                                </div>
+                                <div class="feedback-item positive">
+                                    <div class="feedback-badge">
+                                        <i class="bi bi-thermometer-sun"></i>
+                                    </div>
+                                    <div class="feedback-content">
+                                        <div class="feedback-text">色温状态：<strong>柔和</strong></div>
+                                    </div>
+                                </div>
+                                <div class="feedback-item warning">
+                                    <div class="feedback-badge">
+                                        <i class="bi bi-exclamation-triangle-fill"></i>
+                                    </div>
+                                    <div class="feedback-content">
+                                        <div class="feedback-text">昨日连续用眼超时：<strong>72 分钟</strong></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 用眼时间热力图 -->
+            <div class="mobile-card">
+                <div class="mobile-card-header">
+                    <div class="mobile-card-title">用眼时间热力图</div>
+                    <div class="heatmap-icon">
+                        <i class="bi bi-calendar-week"></i>
+                    </div>
+                </div>
+                <div class="mobile-card-content">
+                    <div class="heatmap-container">
+                        <div id="eyeHeatmapChart"></div>
+                    </div>
+                    <div class="heatmap-legend">
+                        <div class="legend-title">用眼强度</div>
+                        <div class="legend-scale">
+                            <div class="legend-item">
+                                <div class="legend-color low"></div>
+                                <span>低</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color medium"></div>
+                                <span>中</span>
+                            </div>
+                            <div class="legend-item">
+                                <div class="legend-color high"></div>
+                                <span>高</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 情绪反馈内容 -->
+        <div id="emotion-content" class="tool-content" {% if tool_name != 'emotion' %}style="display: none;"{% endif %}>
+            <!-- 情绪异常提醒小卡片 -->
+            <div class="mobile-card emotion-alert">
+                <div class="mobile-card-header">
+                    <div class="mobile-card-title">情绪异常提醒</div>
+                    <div class="alert-status">
+                        <span class="status-dot warning"></span>
+                        <span>需关注</span>
+                    </div>
+                </div>
+                <div class="mobile-card-content">
+                    <div class="alert-content">
+                        <div class="alert-item">
+                            <div class="alert-icon">
+                                <i class="bi bi-exclamation-triangle"></i>
+                            </div>
+                            <div class="alert-info">
+                                <div class="alert-text">检测到孩子在下午3:30出现焦虑情绪，持续约15分钟</div>
+                                <div class="alert-time">2小时前</div>
+                            </div>
+                        </div>
+                        <div class="alert-actions">
+                            <button class="alert-btn primary">发送关怀消息</button>
+                            <button class="alert-btn secondary">查看详情</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- 孩子情绪动态反馈面板 -->
+            <div class="mobile-card">
+                <div class="mobile-card-header">
+                    <div class="mobile-card-title">孩子情绪动态反馈面板</div>
+                    <div class="emotion-view-switcher">
+                        <select id="emotionViewSelect" class="view-select">
+                            <option value="radar">雷达图</option>
+                            <option value="trend">趋势图</option>
+                            <option value="distribution">分布图</option>
+                            <option value="heatmap">热力图</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="mobile-card-content">
+                    <!-- 情绪图表容器 -->
+                    <div class="emotion-charts-container">
+                        <!-- 雷达图 -->
+                        <div class="emotion-chart-view active" id="emotion-radar-view">
+                            <div class="chart-container">
+                                <canvas id="emotionRadarChart"></canvas>
+                            </div>
+                            <div class="emotion-summary">
+                                <div class="summary-item">
+                                    <span class="emotion-label">今日主导情绪</span>
+                                    <span class="emotion-value">高兴 😊 (4.2/5)</span>
+                                </div>
+                                <div class="summary-item">
+                                    <span class="emotion-label">情绪稳定度</span>
+                                    <span class="emotion-value stable">良好 (比昨日上升15%)</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 趋势图 -->
+                        <div class="emotion-chart-view" id="emotion-trend-view">
+                            <div class="chart-container">
+                                <canvas id="emotionTrendChart"></canvas>
+                            </div>
+                            <div class="trend-insights">
+                                <div class="insight-item positive">
+                                    <i class="bi bi-arrow-up"></i>
+                                    <span>今日平均情绪值1.8，比昨日提升0.3</span>
+                                </div>
+                                <div class="insight-item neutral">
+                                    <i class="bi bi-clock"></i>
+                                    <span>下午14-16点为情绪高峰期</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 分布图 -->
+                        <div class="emotion-chart-view" id="emotion-distribution-view">
+                            <div class="chart-container">
+                                <div id="emotionDistributionChart"></div>
+                            </div>
+                            <div class="distribution-stats">
+                                <div class="stat-row">
+                                    <span class="stat-label">高兴情绪</span>
+                                    <span class="stat-value positive">40次</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">平静情绪</span>
+                                    <span class="stat-value neutral">40次</span>
+                                </div>
+                                <div class="stat-row">
+                                    <span class="stat-label">其他情绪</span>
+                                    <span class="stat-value negative">22次</span>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- 热力图 -->
+                        <div class="emotion-chart-view" id="emotion-heatmap-view">
+                            <div class="chart-container">
+                                <div id="emotionHeatmapChart"></div>
+                            </div>
+                            <div class="heatmap-legend">
+                                <div class="legend-title">情绪强度</div>
+                                <div class="legend-scale">
+                                    <div class="legend-item">
+                                        <div class="legend-color low"></div>
+                                        <span>平静</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color medium"></div>
+                                        <span>一般</span>
+                                    </div>
+                                    <div class="legend-item">
+                                        <div class="legend-color high"></div>
+                                        <span>强烈</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="/static/js/tool_detail.js"></script>
+<script>
+    // 根据工具类型显示对应内容
+    document.addEventListener('DOMContentLoaded', function() {
+        const toolName = '{{ tool_name }}';
+        showToolContent(toolName);
+    });
+    
+    function showToolContent(toolName) {
+        // 隐藏所有内容
+        document.querySelectorAll('.tool-content').forEach(content => {
+            content.style.display = 'none';
+        });
+        
+        // 显示对应内容
+        const targetContent = document.getElementById(toolName + '-content');
+        if (targetContent) {
+            targetContent.style.display = 'block';
+        }
+    }
+</script>
+{% endblock %} 

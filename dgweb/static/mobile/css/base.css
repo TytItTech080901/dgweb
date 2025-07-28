@@ -1,0 +1,421 @@
+/* 基础样式重置和变量定义 - 柔和绿色调配色方案 */
+:root {
+    /* 主色调 - 透明渐变绿色系 */
+    --primary-color: rgba(143, 180, 160, 0.9);
+    --primary-hover: rgba(125, 160, 140, 0.95);
+    --primary-light: rgba(165, 196, 181, 0.8);
+    --primary-dark: rgba(107, 143, 123, 0.85);
+    
+    /* 辅助色 - 透明米色系 */
+    --secondary-color: rgba(232, 227, 220, 0.7);
+    --secondary-hover: rgba(221, 216, 209, 0.8);
+    --secondary-light: rgba(242, 239, 234, 0.6);
+    --secondary-dark: rgba(212, 207, 200, 0.75);
+    
+    /* 功能色 - 透明化 */
+    --warning-color: rgba(230, 184, 148, 0.9);
+    --danger-color: rgba(209, 139, 122, 0.9);
+    --success-color: rgba(143, 180, 160, 0.9);
+    --info-color: rgba(155, 180, 199, 0.9);
+    
+    /* 中性色 - 透明渐变 */
+    --light-gray: rgba(247, 245, 242, 0.6);
+    --medium-gray: rgba(242, 239, 234, 0.7);
+    --border-gray: rgba(232, 227, 220, 0.5);
+    --card-shadow: rgba(143, 180, 160, 0.08);
+    
+    /* 文字色 */
+    --dark-gray: rgba(58, 74, 66, 0.9);
+    --text-color: rgba(74, 90, 82, 0.9);
+    --light-text: rgba(122, 138, 130, 0.8);
+    --muted-text: rgba(165, 181, 173, 0.7);
+    
+    /* 图表颜色 - 透明化 */
+    --chart-color-1: rgba(143, 180, 160, 0.8);
+    --chart-color-2: rgba(232, 227, 220, 0.7);
+    --chart-color-3: rgba(165, 196, 181, 0.75);
+    --chart-color-4: rgba(230, 184, 148, 0.8);
+    --chart-color-5: rgba(155, 180, 199, 0.75);
+    
+    /* 阴影效果 */
+    --shadow-light: 0 2px 8px var(--card-shadow);
+    --shadow-medium: 0 4px 16px rgba(143, 180, 160, 0.12);
+    --shadow-heavy: 0 8px 32px rgba(143, 180, 160, 0.15);
+    --border-radius: 16px;
+    --border-radius-small: 12px;
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    --font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: var(--font-family);
+    -webkit-tap-highlight-color: transparent;
+}
+
+html, body {
+    width: 100%;
+    height: 100%;
+    overflow-x: hidden;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+    background: linear-gradient(135deg, #F7F5F2 0%, #E8E3DC 30%, #D4CFC8 70%, #C5BFB6 100%);
+    color: var(--text-color);
+    line-height: 1.5;
+    padding: 0;
+    margin: 0;
+    font-size: 16px;
+    min-height: 100vh;
+    position: relative;
+}
+
+/* 背景动画效果 */
+body::before {
+    content: '';
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: 
+        radial-gradient(circle at 20% 80%, rgba(143, 180, 160, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 80% 20%, rgba(232, 227, 220, 0.1) 0%, transparent 50%),
+        radial-gradient(circle at 40% 40%, rgba(165, 196, 181, 0.08) 0%, transparent 50%);
+    pointer-events: none;
+    z-index: -1;
+    animation: backgroundShift 20s ease-in-out infinite;
+}
+
+@keyframes backgroundShift {
+    0%, 100% { transform: translate(0, 0) scale(1); }
+    25% { transform: translate(-10px, -10px) scale(1.05); }
+    50% { transform: translate(10px, -5px) scale(1.02); }
+    75% { transform: translate(-5px, 10px) scale(1.03); }
+}
+
+/* 主容器 */
+.mobile-container {
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+    min-height: 100vh;
+    padding-top: 20px;
+    display: flex;
+    flex-direction: column;
+    position: relative;
+    z-index: 1;
+}
+
+.mobile-main {
+    flex: 1;
+    padding: 20px 16px 80px;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+}
+
+/* 移动端页面 */
+.mobile-page {
+    min-height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding-bottom: 120px; /* 为底部导航留出空间 */
+    background: transparent;
+}
+
+.mobile-dashboard {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    padding: 28px 24px;
+    background: transparent;
+}
+
+/* 卡片样式 */
+.mobile-card {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    border-radius: var(--border-radius);
+    box-shadow: var(--shadow-light), 0 2px 8px rgba(143, 180, 160, 0.05);
+    overflow: hidden;
+    transition: var(--transition);
+    position: relative;
+    border: 1px solid rgba(255, 255, 255, 0.4);
+    margin-bottom: 24px;
+    padding: 28px 24px;
+}
+
+.mobile-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 3px;
+    background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    border-radius: var(--border-radius) var(--border-radius) 0 0;
+}
+
+.mobile-card:hover {
+    transform: translateY(-4px);
+    box-shadow: var(--shadow-medium), 0 4px 16px rgba(143, 180, 160, 0.08);
+}
+
+.mobile-card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+    padding-bottom: 16px;
+    border-bottom: 2px solid var(--border-gray);
+    position: relative;
+}
+
+.mobile-card-header::after {
+    content: '';
+    position: absolute;
+    bottom: -2px;
+    left: 0;
+    width: 60px;
+    height: 2px;
+    background: linear-gradient(90deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    border-radius: 1px;
+}
+
+.mobile-card-title {
+    font-size: 1.25rem;
+    font-weight: 700;
+    color: var(--dark-gray);
+    font-family: 'SF Pro Display', system-ui, sans-serif;
+}
+
+.mobile-card-content {
+    font-size: 0.9rem;
+}
+
+/* 状态指示器 */
+.status-indicator {
+    display: flex;
+    align-items: center;
+    font-size: 0.85rem;
+    font-weight: 500;
+}
+
+.status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    margin-right: 6px;
+}
+
+.status-running .status-dot {
+    background-color: var(--success-color);
+}
+
+.status-error .status-dot {
+    background-color: var(--danger-color);
+}
+
+.status-paused .status-dot {
+    background-color: var(--warning-color);
+}
+
+.status-live .status-dot {
+    background-color: var(--danger-color);
+    animation: pulse 1.5s infinite;
+}
+
+@keyframes pulse {
+    0% { opacity: 1; }
+    50% { opacity: 0.5; }
+    100% { opacity: 1; }
+}
+
+/* 按钮样式 */
+.mobile-btn {
+    display: inline-block;
+    padding: 18px 28px;
+    border-radius: 20px;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--primary-light) 50%, var(--secondary-color) 100%);
+    color: white;
+    font-weight: 700;
+    border: none;
+    cursor: pointer;
+    text-align: center;
+    font-size: 1rem;
+    box-shadow: 0 8px 24px rgba(143, 180, 160, 0.25), 0 2px 8px rgba(143, 180, 160, 0.1);
+    transition: var(--transition);
+    outline: none;
+    width: 100%;
+    margin: 10px 0;
+    position: relative;
+    overflow: hidden;
+    font-family: 'SF Pro Text', system-ui, sans-serif;
+    letter-spacing: 0.3px;
+}
+
+.mobile-btn::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, rgba(255,255,255,0.25), transparent);
+    transition: left 0.6s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-btn:hover::before {
+    left: 100%;
+}
+
+.mobile-btn:hover {
+    transform: translateY(-4px) scale(1.02);
+    box-shadow: 0 12px 32px rgba(143, 180, 160, 0.35), 0 4px 16px rgba(143, 180, 160, 0.15);
+    filter: brightness(1.1);
+}
+
+.mobile-btn:active {
+    transform: translateY(-2px) scale(1.01);
+    box-shadow: 0 6px 20px rgba(143, 180, 160, 0.25), 0 2px 8px rgba(143, 180, 160, 0.1);
+}
+
+.mobile-btn-small {
+    padding: 12px 20px;
+    font-size: 0.9rem;
+    width: auto;
+    border-radius: 16px;
+}
+
+.mobile-btn-secondary {
+    background: rgba(255, 255, 255, 0.95);
+    color: var(--primary-color);
+    border: 2px solid var(--primary-color);
+    box-shadow: 0 4px 16px rgba(143, 180, 160, 0.1);
+    backdrop-filter: blur(10px);
+}
+
+.mobile-btn-secondary:hover {
+    background: var(--primary-color);
+    color: white;
+    border-color: var(--primary-color);
+}
+
+.mobile-btn-danger {
+    background: linear-gradient(135deg, var(--danger-color) 0%, #FF8A80 100%);
+    box-shadow: 0 8px 24px rgba(205, 92, 92, 0.25);
+}
+
+.btn-mini {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: 1.1rem;
+    cursor: pointer;
+    padding: 4px;
+    border-radius: 4px;
+}
+
+.btn-mini:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+/* 响应式设计 */
+@media (max-width: 320px) {
+    .mobile-main {
+        padding: 16px 12px 80px;
+    }
+    
+    .mobile-card {
+        border-radius: var(--border-radius-small);
+        padding: 12px;
+        margin-bottom: 12px;
+    }
+    
+    .mobile-card-title {
+        font-size: 1rem;
+    }
+}
+
+@media (min-width: 768px) {
+    .mobile-main {
+        padding: 24px 20px 80px;
+    }
+    
+    .mobile-dashboard {
+        gap: 20px;
+        max-width: 540px;
+        margin: 0 auto;
+        padding: 20px;
+    }
+}
+
+@media (max-height: 600px) {
+    .mobile-main {
+        padding-bottom: 70px;
+    }
+    
+    .mobile-page {
+        padding-bottom: 70px;
+    }
+}
+
+/* 工具提示和加载状态 */
+.mobile-toast {
+    position: fixed;
+    top: 100px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, rgba(143, 180, 160, 0.95) 0%, rgba(160, 82, 45, 0.95) 100%);
+    backdrop-filter: blur(20px);
+    color: white;
+    padding: 16px 24px;
+    border-radius: 24px;
+    font-size: 0.9rem;
+    font-weight: 600;
+    z-index: 9999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+    max-width: 85%;
+    text-align: center;
+    box-shadow: 0 8px 32px rgba(143, 180, 160, 0.3), 0 2px 8px rgba(0, 0, 0, 0.1);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.mobile-toast.show {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(-50%) translateY(0);
+}
+
+.mobile-toast:not(.show) {
+    transform: translateX(-50%) translateY(-20px);
+}
+
+/* 加载指示器 */
+.loading-indicator {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 40px 20px;
+    color: var(--light-text);
+    font-size: 14px;
+    gap: 8px;
+}
+
+.loading-indicator i {
+    font-size: 24px;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from { transform: rotate(0deg); }
+    to { transform: rotate(360deg); }
+} 

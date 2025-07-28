@@ -1,0 +1,68 @@
+{% extends "mobile/base.html" %}
+{% block title %}账户设置 - 曈灵智能台灯家长端{% endblock %}
+{% block extra_head %}
+<link rel="stylesheet" href="/static/css/settings.css">
+{% endblock %}
+{% block content %}
+<div class="mobile-page">
+    <div class="tool-header">
+        <button class="back-btn" onclick="history.back()">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <h3>账户设置</h3>
+        <div></div>
+    </div>
+    <div class="mobile-dashboard">
+        <div class="mobile-card">
+            <div class="mobile-card-header">
+                <div class="mobile-card-title">账户设置</div>
+            </div>
+            <div class="mobile-card-content">
+                <div class="account-info">
+                    <div class="avatar-section">
+                        <div class="avatar">
+                            <i class="bi bi-person-circle"></i>
+                        </div>
+                        <div class="user-info">
+                            <div class="username">家长用户</div>
+                            <div class="user-role">管理员</div>
+                        </div>
+                    </div>
+                    <div class="account-actions">
+                        <button class="action-item">
+                            <i class="bi bi-person"></i>
+                            <span>修改个人信息</span>
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                        <button class="action-item">
+                            <i class="bi bi-shield-lock"></i>
+                            <span>修改密码</span>
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                        <button class="action-item">
+                            <i class="bi bi-wifi"></i>
+                            <span>网络设置</span>
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                        <button class="action-item">
+                            <i class="bi bi-download"></i>
+                            <span>数据导出</span>
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                        <button class="action-item">
+                            <i class="bi bi-question-circle"></i>
+                            <span>帮助与反馈</span>
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                        <button class="action-item logout">
+                            <i class="bi bi-box-arrow-right"></i>
+                            <span>退出登录</span>
+                            <i class="bi bi-chevron-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %} 

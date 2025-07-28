@@ -1,0 +1,619 @@
+/* 情绪识别工具样式 - 柔和绿色调配色方案 */
+
+/* 工具头部样式 */
+.tool-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 20px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(20px);
+    color: var(--dark-gray);
+    border-bottom: 1px solid var(--border-gray);
+    box-shadow: 0 2px 4px var(--card-shadow);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+}
+
+.tool-header h3 {
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    flex: 1;
+    text-align: center;
+}
+
+.back-btn {
+    background: none;
+    border: none;
+    color: var(--primary-color);
+    font-size: 20px;
+    padding: 8px;
+    border-radius: 50%;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 40px;
+    height: 40px;
+}
+
+.back-btn:hover {
+    background-color: rgba(143, 180, 160, 0.1);
+    transform: scale(1.1);
+}
+
+.back-btn:active {
+    transform: scale(0.95);
+}
+
+/* 情绪异常提醒 */
+.emotion-alert {
+    border-left: 4px solid var(--warning-color);
+}
+
+.alert-status {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--warning-color);
+}
+
+.status-dot.warning {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--warning-color);
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+.alert-content {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.alert-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+}
+
+.alert-icon {
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: var(--warning-color);
+    color: white;
+    border-radius: 50%;
+    font-size: 16px;
+    flex-shrink: 0;
+}
+
+.alert-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.alert-text {
+    font-size: 14px;
+    line-height: 1.5;
+    color: var(--text-color);
+}
+
+.alert-time {
+    font-size: 12px;
+    color: var(--light-text);
+}
+
+.alert-actions {
+    display: flex;
+    gap: 12px;
+}
+
+.alert-btn {
+    flex: 1;
+    padding: 10px 16px;
+    border: none;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.alert-btn.primary {
+    background: var(--primary-color);
+    color: white;
+}
+
+.alert-btn.primary:hover {
+    background: var(--primary-dark);
+    transform: translateY(-2px);
+}
+
+.alert-btn.secondary {
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    color: var(--text-color);
+    border: 1px solid var(--border-gray);
+}
+
+.alert-btn.secondary:hover {
+    background: rgba(143, 180, 160, 0.1);
+    border-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+/* 情绪视图切换器 */
+.emotion-view-switcher {
+    display: flex;
+    align-items: center;
+}
+
+.view-select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-gray);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    color: var(--text-color);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.view-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(143, 180, 160, 0.1);
+}
+
+.view-select:hover {
+    border-color: var(--primary-color);
+}
+
+/* 情绪图表容器 */
+.emotion-charts-container {
+    position: relative;
+    overflow: hidden;
+}
+
+.emotion-chart-view {
+    display: none;
+    animation: fadeIn 0.3s ease-out;
+}
+
+.emotion-chart-view.active {
+    display: block;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+        transform: translateX(20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+/* 图表容器 */
+.chart-container {
+    position: relative;
+    width: 100%;
+    height: 300px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid var(--border-gray);
+    margin-bottom: 16px;
+    overflow: hidden;
+}
+
+.chart-container::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, rgba(143, 180, 160, 0.05) 0%, rgba(232, 227, 220, 0.05) 100%);
+    pointer-events: none;
+}
+
+.chart-container:hover {
+    box-shadow: 0 4px 16px rgba(143, 180, 160, 0.15);
+    transform: translateY(-2px);
+}
+
+.chart-container canvas {
+    width: 100% !important;
+    height: 100% !important;
+    object-fit: contain;
+}
+
+/* 情绪摘要 */
+.emotion-summary {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    border: 1px solid var(--border-gray);
+}
+
+.summary-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 0;
+}
+
+.emotion-label {
+    font-size: 14px;
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.emotion-value {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary-color);
+}
+
+.emotion-value.stable {
+    color: var(--success-color);
+}
+
+/* 趋势洞察 */
+.trend-insights {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    border: 1px solid var(--border-gray);
+}
+
+.insight-item {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 13px;
+}
+
+.insight-item.positive {
+    background: rgba(143, 180, 160, 0.1);
+    color: var(--success-color);
+}
+
+.insight-item.neutral {
+    background: rgba(155, 180, 199, 0.1);
+    color: var(--info-color);
+}
+
+.insight-item.negative {
+    background: rgba(209, 139, 122, 0.1);
+    color: var(--danger-color);
+}
+
+.insight-item i {
+    font-size: 14px;
+}
+
+
+
+/* 热力图图例 */
+.heatmap-legend {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    border: 1px solid var(--border-gray);
+}
+
+.legend-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--text-color);
+    text-align: center;
+}
+
+.legend-scale {
+    display: flex;
+    justify-content: center;
+    gap: 16px;
+}
+
+.legend-item {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    font-size: 12px;
+    color: var(--text-color);
+}
+
+.legend-color {
+    width: 12px;
+    height: 12px;
+    border-radius: 2px;
+}
+
+.legend-color.low {
+    background: var(--success-color);
+}
+
+.legend-color.medium {
+    background: var(--warning-color);
+}
+
+.legend-color.high {
+    background: var(--danger-color);
+}
+
+/* 情绪时间线 */
+.emotion-timeline {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.timeline-item {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid var(--border-gray);
+    transition: all 0.3s ease;
+    position: relative;
+}
+
+.timeline-item::before {
+    content: '';
+    position: absolute;
+    left: 0;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 3px;
+    height: 60%;
+    background: linear-gradient(to bottom, var(--primary-color), var(--primary-light));
+    border-radius: 0 2px 2px 0;
+}
+
+.timeline-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(143, 180, 160, 0.15);
+}
+
+.timeline-time {
+    font-size: 14px;
+    font-weight: 600;
+    color: var(--primary-color);
+    min-width: 60px;
+}
+
+.timeline-emotion {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex: 1;
+}
+
+.timeline-emoji {
+    font-size: 24px;
+    width: 40px;
+    text-align: center;
+}
+
+.timeline-label {
+    font-size: 14px;
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+/* 情绪建议 */
+.emotion-suggestions {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+.emotion-suggestions .suggestion-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid var(--border-gray);
+    transition: all 0.3s ease;
+}
+
+.emotion-suggestions .suggestion-item:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(143, 180, 160, 0.15);
+}
+
+.emotion-suggestions .suggestion-icon {
+    width: 40px;
+    height: 40px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: linear-gradient(135deg, var(--info-color), var(--primary-light));
+    color: white;
+    border-radius: 10px;
+    font-size: 18px;
+    flex-shrink: 0;
+}
+
+.emotion-suggestions .suggestion-content {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.emotion-suggestions .suggestion-title {
+    font-size: 15px;
+    font-weight: 600;
+    color: var(--dark-gray);
+}
+
+.emotion-suggestions .suggestion-text {
+    font-size: 13px;
+    line-height: 1.5;
+    color: var(--text-color);
+}
+
+/* 响应式设计 */
+@media (max-width: 375px) {
+    .alert-actions {
+        flex-direction: column;
+        gap: 8px;
+    }
+    
+    .alert-btn {
+        padding: 8px 12px;
+        font-size: 13px;
+    }
+    
+    .timeline-item {
+        padding: 10px 12px;
+    }
+    
+    .timeline-emoji {
+        font-size: 20px;
+        width: 32px;
+    }
+    
+    .view-select {
+        padding: 6px 10px;
+        font-size: 13px;
+    }
+}
+
+@media (min-width: 768px) {
+    .emotion-summary {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+    
+    .trend-insights {
+        flex-direction: row;
+        justify-content: space-between;
+    }
+    
+    .chart-container {
+        height: 400px;
+    }
+}
+
+/* 动画效果 */
+.alert-item {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+.timeline-item {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+.emotion-suggestions .suggestion-item {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 特殊状态 */
+.timeline-item.positive::before {
+    background: linear-gradient(to bottom, var(--success-color), var(--primary-light));
+}
+
+.timeline-item.warning::before {
+    background: linear-gradient(to bottom, var(--warning-color), var(--danger-color));
+}
+
+.timeline-item.negative::before {
+    background: linear-gradient(to bottom, var(--danger-color), var(--warning-color));
+} 
+
+.emotion-tabs-nav {
+  display: flex;
+  border-bottom: 1px solid var(--border-gray);
+  background: rgba(255,255,255,0.95);
+  border-radius: 12px 12px 0 0;
+  overflow: hidden;
+}
+.emotion-tab-btn {
+  flex: 1;
+  padding: 12px 0;
+  background: none;
+  border: none;
+  font-size: 16px;
+  font-weight: 600;
+  color: var(--primary-color);
+  cursor: pointer;
+  transition: background 0.2s, color 0.2s;
+  outline: none;
+}
+.emotion-tab-btn.active {
+  background: var(--primary-color);
+  color: #fff;
+}
+.emotion-tabs-content {
+  padding: 0;
+  padding-top: 20px;
+}
+.emotion-tab-panel {
+  display: none;
+  animation: fadeIn 0.3s;
+}
+.emotion-tab-panel.active {
+  display: block;
+} 

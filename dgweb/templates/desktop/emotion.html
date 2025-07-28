@@ -1,0 +1,219 @@
+{% extends "desktop/base.html" %}
+
+{% block title %}情绪识别 - 曈灵智能台灯家长端{% endblock %}
+
+{% block extra_head %}
+<link rel="stylesheet" href="{{ url_for('static', filename='css/emotion.css') }}">
+{% endblock %}
+
+{% block content %}
+<div class="mobile-page">
+    <div class="tool-header">
+        <button class="back-btn" onclick="history.back()">
+            <i class="bi bi-arrow-left"></i>
+        </button>
+        <h3>情绪识别</h3>
+        <div></div>
+    </div>
+    
+    <div class="mobile-dashboard">
+        <!-- 情绪异常提醒小卡片 -->
+        <div class="mobile-card emotion-alert">
+            <div class="mobile-card-header">
+                <div class="mobile-card-title">情绪异常提醒</div>
+                <div class="alert-status">
+                    <span class="status-dot warning"></span>
+                    <span>需关注</span>
+                </div>
+            </div>
+            <div class="mobile-card-content">
+                <div class="alert-content">
+                    <div class="alert-item">
+                        <div class="alert-icon">
+                            <i class="bi bi-exclamation-triangle"></i>
+                        </div>
+                        <div class="alert-info">
+                            <div class="alert-text">检测到孩子在下午3:30出现焦虑情绪，持续约15分钟</div>
+                            <div class="alert-time">2小时前</div>
+                        </div>
+                    </div>
+                    <div class="alert-actions">
+                        <button class="alert-btn primary" onclick="sendCareMessage()">发送关怀消息</button>
+                        <button class="alert-btn secondary" onclick="viewEmotionDetail()">查看详情</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- 新增tab卡片结构 -->
+        <div class="mobile-card emotion-tabs-card">
+          <div class="emotion-tabs-nav">
+            <button class="emotion-tab-btn active" data-tab="feedback">动态反馈</button>
+            <button class="emotion-tab-btn" data-tab="timeline">时间线</button>
+            <button class="emotion-tab-btn" data-tab="suggestion">管理建议</button>
+          </div>
+          <div class="emotion-tabs-content">
+            <div class="emotion-tab-panel active" id="tab-feedback">
+              <!-- 孩子情绪动态反馈面板内容（原内容整体搬迁） -->
+              <div class="mobile-card-header">
+                <div class="mobile-card-title">孩子情绪动态反馈面板</div>
+                <div class="emotion-view-switcher">
+                  <select id="emotionViewSelect" class="view-select" onchange="switchEmotionView(this.value)">
+                    <option value="radar">雷达图</option>
+                    <option value="trend">趋势图</option>
+                    <option value="distribution">分布图</option>
+                    <option value="heatmap">热力图</option>
+                  </select>
+                </div>
+              </div>
+              <div class="mobile-card-content">
+                <div class="emotion-charts-container">
+                  <div class="emotion-chart-view active" id="emotion-radar-view">
+                    <div class="chart-container">
+                      <canvas id="emotionRadarChart"></canvas>
+                    </div>
+                    <div class="emotion-summary">
+                      <div class="summary-item">
+                        <span class="emotion-label">今日主导情绪</span>
+                        <span class="emotion-value">高兴 😊 (4.2/5)</span>
+                      </div>
+                      <div class="summary-item">
+                        <span class="emotion-label">情绪稳定度</span>
+                        <span class="emotion-value stable">良好 (比昨日上升15%)</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="emotion-chart-view" id="emotion-trend-view">
+                    <div class="chart-container">
+                      <canvas id="emotionTrendChart"></canvas>
+                    </div>
+                    <div class="trend-insights">
+                      <div class="insight-item positive">
+                        <i class="bi bi-arrow-up"></i>
+                        <span>今日平均情绪值1.8，比昨日提升0.3</span>
+                      </div>
+                      <div class="insight-item neutral">
+                        <i class="bi bi-clock"></i>
+                        <span>下午14-16点为情绪高峰期</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div class="emotion-chart-view" id="emotion-distribution-view">
+                    <div class="chart-container">
+                      <div id="emotionDistributionChart"></div>
+                    </div>
+                  </div>
+                  <div class="emotion-chart-view" id="emotion-heatmap-view">
+                    <div class="chart-container">
+                      <div id="emotionHeatmapChart"></div>
+                    </div>
+                    <div class="heatmap-legend">
+                      <div class="legend-title">情绪强度</div>
+                      <div class="legend-scale">
+                        <div class="legend-item">
+                          <div class="legend-color low"></div>
+                          <span>平静</span>
+                        </div>
+                        <div class="legend-item">
+                          <div class="legend-color medium"></div>
+                          <span>一般</span>
+                        </div>
+                        <div class="legend-item">
+                          <div class="legend-color high"></div>
+                          <span>强烈</span>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="emotion-tab-panel" id="tab-timeline">
+              <!-- 情绪时间线内容（原内容整体搬迁） -->
+              <div class="mobile-card-header">
+                <div class="mobile-card-title">情绪时间线</div>
+                <div class="timeline-icon">
+                  <i class="bi bi-clock-history"></i>
+                </div>
+              </div>
+              <div class="mobile-card-content">
+                <div class="emotion-timeline">
+                  <div class="timeline-item">
+                    <div class="timeline-time">15:30</div>
+                    <div class="timeline-emotion">
+                      <div class="timeline-emoji">😊</div>
+                      <div class="timeline-label">高兴</div>
+                    </div>
+                  </div>
+                  <div class="timeline-item">
+                    <div class="timeline-time">14:45</div>
+                    <div class="timeline-emotion">
+                      <div class="timeline-emoji">😐</div>
+                      <div class="timeline-label">平静</div>
+                    </div>
+                  </div>
+                  <div class="timeline-item">
+                    <div class="timeline-time">14:20</div>
+                    <div class="timeline-emotion">
+                      <div class="timeline-emoji">😟</div>
+                      <div class="timeline-label">焦虑</div>
+                    </div>
+                  </div>
+                  <div class="timeline-item">
+                    <div class="timeline-time">13:55</div>
+                    <div class="timeline-emotion">
+                      <div class="timeline-emoji">😊</div>
+                      <div class="timeline-label">高兴</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+            <div class="emotion-tab-panel" id="tab-suggestion">
+              <!-- 情绪管理建议内容（原内容整体搬迁） -->
+              <div class="mobile-card-header">
+                <div class="mobile-card-title">情绪管理建议</div>
+                <div class="suggestion-icon">
+                  <i class="bi bi-lightbulb"></i>
+                </div>
+              </div>
+              <div class="mobile-card-content">
+                <div class="emotion-suggestions">
+                  <div class="suggestion-item">
+                    <div class="suggestion-icon">
+                      <i class="bi bi-heart"></i>
+                    </div>
+                    <div class="suggestion-content">
+                      <div class="suggestion-title">积极关注</div>
+                      <div class="suggestion-text">多关注孩子的积极情绪，给予正面反馈和鼓励</div>
+                    </div>
+                  </div>
+                  <div class="suggestion-item">
+                    <div class="suggestion-icon">
+                      <i class="bi bi-chat-dots"></i>
+                    </div>
+                    <div class="suggestion-content">
+                      <div class="suggestion-title">沟通交流</div>
+                      <div class="suggestion-text">当发现情绪异常时，及时与孩子沟通了解原因</div>
+                    </div>
+                  </div>
+                  <div class="suggestion-item">
+                    <div class="suggestion-icon">
+                      <i class="bi bi-activity"></i>
+                    </div>
+                    <div class="suggestion-content">
+                      <div class="suggestion-title">情绪调节</div>
+                      <div class="suggestion-text">引导孩子学习情绪调节技巧，如深呼吸、运动等</div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_scripts %}
+<script src="{{ url_for('static', filename='js/emotion.js') }}"></script>
+{% endblock %} 

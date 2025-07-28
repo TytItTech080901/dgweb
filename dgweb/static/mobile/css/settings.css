@@ -1,0 +1,554 @@
+/* 设置页面样式 - 柔和绿色调配色方案 */
+
+/* 设置列表样式 */
+.setting-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.setting-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 15px 0;
+    border-bottom: 1px solid var(--border-gray);
+    transition: all 0.3s ease;
+}
+
+.setting-item:last-child {
+    border-bottom: none;
+}
+
+.setting-item:hover {
+    background: rgba(143, 180, 160, 0.05);
+    border-radius: 8px;
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.setting-info {
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.setting-title {
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--dark-gray);
+}
+
+.setting-desc {
+    font-size: 13px;
+    color: var(--light-text);
+    line-height: 1.4;
+}
+
+/* 设置开关样式 */
+.setting-toggle {
+    background: none;
+    border: none;
+    font-size: 1.5rem;
+    color: var(--border-gray);
+    cursor: pointer;
+    transition: all 0.3s ease;
+    padding: 8px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.setting-toggle:hover {
+    background: rgba(143, 180, 160, 0.1);
+    color: var(--primary-color);
+}
+
+.setting-toggle.active {
+    color: var(--primary-color);
+}
+
+.setting-toggle.active:hover {
+    background: rgba(143, 180, 160, 0.15);
+}
+
+/* 设置选择器样式 */
+.setting-select {
+    padding: 8px 12px;
+    border: 1px solid var(--border-gray);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    color: var(--text-color);
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    min-width: 100px;
+}
+
+.setting-select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    box-shadow: 0 0 0 3px rgba(143, 180, 160, 0.1);
+}
+
+.setting-select:hover {
+    border-color: var(--primary-color);
+}
+
+/* 账户信息样式 */
+.account-info {
+    text-align: center;
+}
+
+.avatar-section {
+    display: flex;
+    align-items: center;
+    margin-bottom: 20px;
+    padding: 16px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 12px;
+    border: 1px solid var(--border-gray);
+}
+
+.avatar {
+    width: 60px;
+    height: 60px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, var(--primary-color), var(--primary-light));
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: white;
+    margin-right: 15px;
+    box-shadow: 0 4px 12px rgba(143, 180, 160, 0.2);
+}
+
+.user-info {
+    text-align: left;
+    flex: 1;
+}
+
+.username {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 2px;
+    color: var(--dark-gray);
+}
+
+.user-role {
+    font-size: 0.9rem;
+    color: var(--light-text);
+    background: var(--primary-color);
+    color: white;
+    padding: 4px 8px;
+    border-radius: 12px;
+    display: inline-block;
+    font-size: 0.8rem;
+}
+
+/* 账户操作列表样式 */
+.account-actions {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.action-item {
+    display: flex;
+    align-items: center;
+    padding: 15px 0;
+    background: none;
+    border: none;
+    border-bottom: 1px solid var(--border-gray);
+    cursor: pointer;
+    text-align: left;
+    transition: all 0.3s ease;
+    border-radius: 8px;
+    margin-bottom: 2px;
+}
+
+.action-item:last-child {
+    border-bottom: none;
+}
+
+.action-item:hover {
+    background: rgba(143, 180, 160, 0.05);
+    padding-left: 8px;
+    padding-right: 8px;
+}
+
+.action-item i:first-child {
+    margin-right: 12px;
+    color: var(--primary-color);
+    font-size: 1.2rem;
+    width: 20px;
+    text-align: center;
+}
+
+.action-item span {
+    flex: 1;
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.action-item i:last-child {
+    color: var(--light-text);
+    font-size: 0.9rem;
+}
+
+.action-item.logout {
+    color: var(--danger-color);
+    border-top: 2px solid var(--border-gray);
+    margin-top: 8px;
+    padding-top: 20px;
+}
+
+.action-item.logout i:first-child {
+    color: var(--danger-color);
+}
+
+.action-item.logout span {
+    color: var(--danger-color);
+    font-weight: 600;
+}
+
+.action-item.logout:hover {
+    background: rgba(209, 139, 122, 0.1);
+}
+
+/* 系统信息样式 */
+.system-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 12px 16px;
+    background: rgba(255, 255, 255, 0.95);
+    backdrop-filter: blur(10px);
+    border-radius: 8px;
+    border: 1px solid var(--border-gray);
+    transition: all 0.3s ease;
+}
+
+.info-item:hover {
+    background: rgba(255, 255, 255, 0.98);
+    box-shadow: 0 2px 8px rgba(143, 180, 160, 0.1);
+}
+
+.info-label {
+    font-size: 14px;
+    color: var(--text-color);
+    font-weight: 500;
+}
+
+.info-value {
+    font-size: 14px;
+    color: var(--primary-color);
+    font-weight: 600;
+    background: rgba(143, 180, 160, 0.1);
+    padding: 4px 8px;
+    border-radius: 6px;
+}
+
+/* 设备信息样式 */
+.device-info {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+/* 响应式设计 */
+@media (max-width: 375px) {
+    .setting-item {
+        padding: 12px 0;
+    }
+    
+    .setting-title {
+        font-size: 15px;
+    }
+    
+    .setting-desc {
+        font-size: 12px;
+    }
+    
+    .avatar-section {
+        padding: 12px;
+    }
+    
+    .avatar {
+        width: 50px;
+        height: 50px;
+        font-size: 1.5rem;
+    }
+    
+    .username {
+        font-size: 1rem;
+    }
+    
+    .action-item {
+        padding: 12px 0;
+    }
+    
+    .action-item i:first-child {
+        font-size: 1.1rem;
+        margin-right: 10px;
+    }
+}
+
+@media (min-width: 768px) {
+    .setting-list {
+        gap: 4px;
+    }
+    
+    .setting-item {
+        padding: 18px 0;
+    }
+    
+    .setting-title {
+        font-size: 17px;
+    }
+    
+    .setting-desc {
+        font-size: 14px;
+    }
+    
+    .avatar-section {
+        padding: 20px;
+    }
+    
+    .avatar {
+        width: 70px;
+        height: 70px;
+        font-size: 2.2rem;
+    }
+    
+    .username {
+        font-size: 1.2rem;
+    }
+    
+    .action-item {
+        padding: 18px 0;
+    }
+    
+    .action-item i:first-child {
+        font-size: 1.3rem;
+        margin-right: 15px;
+    }
+}
+
+/* 动画效果 */
+.setting-item {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+.action-item {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+.info-item {
+    animation: fadeInUp 0.3s ease-out;
+}
+
+@keyframes fadeInUp {
+    from {
+        opacity: 0;
+        transform: translateY(10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* 悬停效果增强 */
+.setting-toggle:hover {
+    transform: scale(1.1);
+}
+
+.action-item:hover {
+    transform: translateX(4px);
+}
+
+.info-item:hover {
+    transform: translateY(-2px);
+}
+
+/* 焦点效果 */
+.setting-select:focus {
+    transform: scale(1.02);
+}
+
+.action-item:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(143, 180, 160, 0.1);
+}
+
+/* 状态指示器 */
+.setting-toggle.active::before {
+    content: '';
+    position: absolute;
+    width: 8px;
+    height: 8px;
+    background: var(--success-color);
+    border-radius: 50%;
+    top: -2px;
+    right: -2px;
+    animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+    0% {
+        transform: scale(1);
+        opacity: 1;
+    }
+    50% {
+        transform: scale(1.2);
+        opacity: 0.7;
+    }
+    100% {
+        transform: scale(1);
+        opacity: 1;
+    }
+}
+
+/* 特殊状态样式 */
+.setting-item.disabled {
+    opacity: 0.6;
+    pointer-events: none;
+}
+
+.setting-item.disabled .setting-toggle {
+    color: var(--muted-text);
+}
+
+.setting-item.disabled:hover {
+    background: none;
+    padding-left: 0;
+    padding-right: 0;
+}
+
+/* 加载状态 */
+.setting-item.loading {
+    position: relative;
+}
+
+.setting-item.loading::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    right: 10px;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--border-gray);
+    border-top: 2px solid var(--primary-color);
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    0% { transform: translateY(-50%) rotate(0deg); }
+    100% { transform: translateY(-50%) rotate(360deg); }
+} 
+
+.setting-entry-list {
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  margin-top: 24px;
+}
+.setting-entry {
+  display: flex;
+  align-items: center;
+  background: #fff;
+  border-radius: 14px;
+  box-shadow: 0 2px 8px rgba(143,180,160,0.08);
+  padding: 18px 16px;
+  text-decoration: none;
+  color: var(--dark-gray);
+  transition: box-shadow 0.2s, background 0.2s;
+  position: relative;
+}
+.setting-entry:active {
+  background: var(--primary-light);
+}
+.entry-icon {
+  font-size: 28px;
+  margin-right: 16px;
+  color: var(--primary-color);
+  flex-shrink: 0;
+}
+.entry-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.entry-title {
+  font-size: 17px;
+  font-weight: 600;
+}
+.entry-desc {
+  font-size: 13px;
+  color: var(--text-color);
+  opacity: 0.7;
+}
+.entry-arrow {
+  font-size: 20px;
+  color: var(--border-gray);
+  margin-left: 10px;
+} 
+
+/* 保证设置详情页头部与主功能页一致 */
+.tool-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 15px 20px;
+  background: rgba(255, 255, 255, 0.95);
+  backdrop-filter: blur(20px);
+  color: var(--dark-gray);
+  border-bottom: 1px solid var(--border-gray);
+  box-shadow: 0 2px 4px var(--card-shadow);
+  position: sticky;
+  top: 0;
+  z-index: 100;
+}
+.tool-header h3 {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 600;
+  flex: 1;
+  text-align: center;
+}
+.back-btn {
+  background: none;
+  border: none;
+  color: var(--primary-color);
+  font-size: 20px;
+  padding: 8px;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+}
+.back-btn:hover {
+  background-color: rgba(143, 180, 160, 0.1);
+  transform: scale(1.1);
+}
+.back-btn:active {
+  transform: scale(0.95);
+} 

@@ -1,0 +1,198 @@
+/* 底部导航栏样式 - 柔和绿色调配色方案 */
+.mobile-nav {
+    position: fixed;
+    bottom: 24px;
+    left: 20px;
+    right: 20px;
+    border-radius: 28px;
+    background: rgba(255, 255, 255, 0.15);
+    backdrop-filter: blur(25px);
+    display: flex;
+    justify-content: space-around;
+    padding: 20px 12px;
+    box-shadow: 0 -4px 20px rgba(143, 180, 160, 0.1), 0 -2px 8px rgba(143, 180, 160, 0.05);
+    z-index: 100;
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    transition: all 0.3s ease;
+}
+
+.nav-item {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 14px 10px;
+    color: var(--light-text);
+    text-decoration: none;
+    width: 20%;
+    font-size: 0.75rem;
+    font-weight: 600;
+    transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    border-radius: 20px;
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    opacity: 0;
+    transition: opacity 0.3s ease;
+    border-radius: 20px;
+}
+
+.nav-item:hover::before {
+    opacity: 0.1;
+}
+
+.nav-item:hover {
+    transform: translateY(-3px) scale(1.05);
+    color: var(--primary-color);
+}
+
+.nav-item.active {
+    color: white;
+    background: linear-gradient(135deg, var(--primary-color) 0%, var(--secondary-color) 100%);
+    transform: translateY(-3px) scale(1.05);
+    box-shadow: 0 6px 20px rgba(143, 180, 160, 0.3);
+}
+
+.nav-item.active::before {
+    opacity: 0;
+}
+
+.nav-icon {
+    font-size: 1.5rem;
+    margin-bottom: 6px;
+    position: relative;
+    z-index: 1;
+    transition: transform 0.3s ease;
+}
+
+.nav-item:hover .nav-icon,
+.nav-item.active .nav-icon {
+    transform: scale(1.1);
+}
+
+.nav-item span {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-align: center;
+    line-height: 1.2;
+    transition: var(--transition);
+    position: relative;
+    z-index: 1;
+}
+
+/* 导航项激活时的动画效果 */
+.nav-item.active {
+    animation: navItemActivate 0.3s ease-out;
+}
+
+@keyframes navItemActivate {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+/* 响应式设计 */
+@media (max-width: 320px) {
+    .mobile-nav {
+        bottom: 20px;
+        left: 16px;
+        right: 16px;
+        padding: 16px 8px;
+    }
+    
+    .nav-icon {
+        font-size: 1.2rem;
+    }
+    
+    .nav-item span {
+        font-size: 0.7rem;
+    }
+    
+    .nav-item {
+        padding: 10px 6px;
+    }
+}
+
+@media (min-width: 768px) {
+    .mobile-nav {
+        bottom: 30px;
+        left: 30px;
+        right: 30px;
+        padding: 24px 16px;
+    }
+    
+    .nav-icon {
+        font-size: 1.6rem;
+    }
+    
+    .nav-item span {
+        font-size: 0.8rem;
+    }
+}
+
+@media (max-height: 600px) {
+    .mobile-nav {
+        bottom: 16px;
+        padding: 16px 10px;
+    }
+    
+    .nav-item {
+        padding: 10px 8px;
+    }
+}
+
+/* 安全区域适配 */
+@supports (padding-bottom: env(safe-area-inset-bottom)) {
+    .mobile-nav {
+        padding-bottom: calc(20px + env(safe-area-inset-bottom));
+    }
+}
+
+/* 导航栏背景模糊效果增强 */
+.mobile-nav::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(25px);
+    -webkit-backdrop-filter: blur(25px);
+    z-index: -1;
+    border-radius: 28px;
+}
+
+/* 导航项悬停时的光晕效果 */
+.nav-item::after {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    width: 40px;
+    height: 40px;
+    background: radial-gradient(circle, rgba(143, 180, 160, 0.1) 0%, transparent 70%);
+    border-radius: 50%;
+    opacity: 0;
+    transition: var(--transition);
+    pointer-events: none;
+}
+
+.nav-item:hover::after {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.2);
+}
+
+.nav-item.active::after {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1.1);
+} 
